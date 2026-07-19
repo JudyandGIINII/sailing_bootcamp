@@ -1,7 +1,7 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-19 KST
-> 상태: **AP-0D P0 hardening integrated on shared main / remote push pending / release blocked**
+> 상태: **AP-0D P0 integrated and pushed / AP-0E G0 fresh integration verified, shared main and push pending / release blocked**
 
 ## 1. 현재 위치
 
@@ -27,7 +27,7 @@
 
 ## 4. 구현 전 AP-0
 
-AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence)는 2026-07-19 integrated/verified 되었다. 별도 AP-0D P0 hardening은 `00c34b3`으로 local commit되고 `0e84d85` fresh integration candidate에서 검증된 뒤, user-authorized shared `main` 정렬로 `20148a1`에 통합되었다. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
+AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence)는 2026-07-19 integrated/verified 되었다. 별도 AP-0D P0 hardening은 `00c34b3`으로 local commit되고 `0e84d85` fresh integration candidate에서 검증된 뒤, user-authorized shared `main` 정렬로 `20148a1`에 통합·push되었다. AP-0E G0 bounded prototype hardening은 source commit `5c7ea5d`를 fresh integration worktree의 `b4a3dc1`에 merge한 뒤 strict typecheck, 102 Vitest, 8 Chromium smoke, build, diff, historical evidence invariants로 검증되었고, shared main sync와 origin push만 남아 있다. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
 
 ## 4.1 버전 관리 checkpoint
 

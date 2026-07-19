@@ -1,5 +1,20 @@
 # DEVLOG
 
+## 2026-07-19 — AP-0E G0 fresh integration candidate
+
+- User-authorized source commit `5c7ea5d` was merged into fresh Orca integration worktree `sailing-ap0e-g0-integration` as `b4a3dc1` from clean `origin/main` base `3014a3f`.
+- Fresh controller verification passed: strict typecheck; **102 Vitest** tests; **8 Chromium** smokes including all active-transport pre-dispatch denials; production build; diff check; and unchanged historical AP-0C evidence hashes.
+- This documentation candidate records integration evidence while shared `main` synchronization and origin push remain the next user-authorized operations. No deployment, release, domain validation, or registry promotion is implied; release remains `BLOCKED`.
+
+## 2026-07-19 — AP-0E G0 verified after independent-review correction loop 1/2
+
+- Validated Alfred plan `ALF-20260719-1820-sailing-ap0e-g0` received **PLAN_APPROVED 50/50**. User-authorized autopilot was bounded to implementation, controller QA, independent review, and at most two in-scope corrections; it excluded domain validation, registry promotion, P1/release work, Git integration, deployment, and release.
+- Initial implementation made typed manifest observation HUDs, synthetic safety-event scaffolding, cadence presets, and local-only request classification. Two independent reviews then identified HIGH policy-injection and observation-only transport-boundary flaws, plus cadence-validation and safety-projection coverage gaps.
+- Correction loop 1/2 removed the canonical public policy injection path: direct input and replay now resolve action/safety policy solely from a trusted registry-bound full identity. Unknown/forged bindings deny direct action without mutation and reject whole replay preflight.
+- The browser bootstrap now installs a pre-dispatch guard that denies fetch, XHR, WebSocket, and `sendBeacon` with stable `LOCAL_ONLY_TRANSPORT_DENIED`; Chromium verifies every denial path reaches no `/api/transport-denial` request. Scheduler validates exactly 125/250/500 ms, and direct/replay synthetic safety fixtures prove zero score plus causal debrief provenance.
+- Fresh controller verification passed: strict typecheck; full **102 Vitest** tests; **8 Chromium** smokes; production build; diff check; and unchanged historical AP-0C hashes. Final independent read-only re-review returned **APPROVE**, with both prior HIGHs and MEDIUMs resolved.
+- Source is intentionally uncommitted and unintegrated pending separate Git authority. Registry remains five `assumption` records / zero validated; release remains `BLOCKED`.
+
 ## 2026-07-19 — AP-0D P0 authorized shared-main synchronization
 
 - After proving candidate ancestry, byte-identical overlapping documentation, and preserved `.agent` coordination-artifact hashes, the user explicitly authorized `git reset --hard 20148a1` for the shared checkout.
