@@ -1,6 +1,6 @@
 # Implementation Handoff — Training Sloop MVP
 
-> **Current reconciliation (2026-07-19):** The active product path is personal, browser-local synthetic use. Personal-use G1 is complete as a limitation acknowledgement only; external qualification, controlled apply, P1, deployment, and release are deferred/public-distribution-only. Registry records remain `assumption` and no real-world sailing authority is asserted.
+> **Current reconciliation (2026-07-19):** The active product path is personal, browser-local synthetic use. Any future personal prototype work requires only explicit user approval of a bounded scope. External qualification, authority, controlled apply, G1/G2/G3, P1, deployment, and release materials are archived non-operational references; they cannot block or automatically resume personal work. Registry records remain `assumption` and no real-world sailing authority is asserted.
 
 > **Handoff status:** AP-0C_COMMITTED_AND_INTEGRATED_PROTOTYPE_COMPLETE
 > 이 문서는 구현 시작을 자동 승인하지 않는다.

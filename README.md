@@ -54,6 +54,6 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 
 ## 현재 권한 게이트
 
-AP-0A–AP-0E prototype 구현과 개인용 G1 self-review는 완료되었다. semantic learning behavior는 여전히 assumption-only이며 registry promotion은 일어나지 않았다. 현 제품은 개인·로컬 사용으로 한정되며, public distribution/certification/independent authority/P1/release는 비활성 범위다. non-navigation·local-only 경계와 explicit user authorization for future code work는 계속 적용된다.
+AP-0A–AP-0E prototype 구현은 완료되었다. 이후 개인용 prototype 작업에는 대상·파일·검증 범위를 명시한 사용자 직접 승인만 필요하다. external reviewer, qualification, authority, controlled apply, G1/G2/G3, P1, public-release evidence는 archived non-operational materials이며 진행 gate가 아니다. semantic learning behavior는 assumption-only이고 registry promotion은 없으며, non-navigation·local-only 경계는 계속 적용된다.
 
 향후 코드 변경은 명시된 사용자 승인 뒤에만 Orca worktree에서 Codex를 primary builder로 수행하며, Claude는 read-only architecture/diff review, Hermes는 독립 QA를 수행한다. 자세한 규칙은 [AGENTS.md](AGENTS.md)를 따른다.

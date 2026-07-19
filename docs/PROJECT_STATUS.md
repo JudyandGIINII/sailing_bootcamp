@@ -1,7 +1,7 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-19 KST
-> 상태: **AP-0D P0 integrated and pushed / AP-0E G0 integrated and pushed / personal-use G1 complete / public release out of scope**
+> 상태: **AP-0D P0 integrated and pushed / AP-0E G0 integrated and pushed / personal-use scope active / external gates archived**
 
 ## 1. 현재 위치
 
@@ -23,8 +23,8 @@
 |---|---|---|
 | Load | implemented / verified (prototype bindings) | AP-0A–AP-0C L01–L05 load eligibility, replay identity, and fail-closed incompatible-record behavior are tested; this is not a release-support claim |
 | Prototype | implemented / verified | L01–L05 assumption-only local prototype is integrated; current deterministic/Chromium evidence is recorded, while domain correctness remains unvalidated |
-| Personal-use G1 | complete | project-owner가 assumption-only/non-navigation/local-only 한계를 확인; registry promotion·expert validation 없음 |
-| Future public release | out of scope / fail-closed | L01–L05 registry는 `assumption`, P1·external review·release authority workflow는 deferred |
+| Personal prototype work | available with explicit bounded user authorization | external reviewer/authority/controlled apply/G1/G2/G3/P1/release evidence는 prerequisite가 아님 |
+| Archived external-release materials | non-operational | registry assumptions·P1·external review·release authority 절차는 개인용 roadmap을 막거나 자동 재개하지 않음 |
 
 ## 4. 구현 전 AP-0
 
@@ -41,13 +41,11 @@ AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence)는 2026-07-19 in
 3. **완료:** quota/corruption/interrupted-write preservation, 9-field replay fail-closed coverage, machine-readable AP-0C release evidence (`BLOCKED`)
 4. **후속 승인 전 보류:** WebKit/Firefox named-project configuration and any release remediation
 
-## 6. 미래 public distribution 전용 의존성
+## 6. Archived external-release materials
 
-- review record의 `validated` disposition 및 concrete model/contract/coordinate/determinism/comparison-policy version binding
-- browser/accessibility/pilot/operations/replay compatibility/privacy P1 artifacts
-- 별도 external review 및 release authority evidence
-
-이 항목들은 현재 개인·로컬 사용을 막지 않으며, public distribution을 별도로 제안할 때만 다시 활성화된다.
+- `validated` disposition, external reviewer/authority, concrete binding, P1 artifact, public release evidence는 개인용 prototype work의 requirement가 아니다.
+- 이 archived 자료는 과거 설계/향후 별도 제품 전환을 위한 reference일 뿐, 현재 또는 미래 개인용 roadmap을 block·wait·required input 상태로 만들 수 없다.
+- public release를 새로 고려한다면 기존 gate를 자동 재개하지 않고, 그때 별도 제품 정책을 새로 작성한다.
 
 ## 7. 비목표 / 경계
 

@@ -1,5 +1,11 @@
 # DEVLOG
 
+## 2026-07-19 — External-gate retirement for personal prototype work
+
+- User decision: external reviewer qualification, authority, controlled apply, G1/G2/G3 approval, P1, and public-release evidence are not current or future prerequisites for this personal, browser-local prototype.
+- Reclassified affected review packets, runbook, templates, handoffs, plans, status, and Kanban as archived non-operational references. They cannot block, wait for, require input from, or automatically resume personal work.
+- Future personal implementation requires only an explicit user-approved bounded scope; non-navigation, synthetic-only, local-only, privacy, and no-real-world-safety boundaries remain mandatory.
+
 ## 2026-07-19 — Personal-use product reframe and G1 reconciliation
 
 - The project owner explicitly selected personal, browser-local use as the active product model. Certification, external reviewer qualification, independent authority, formal controlled apply, public distribution, deployment, and release are no longer active product goals.

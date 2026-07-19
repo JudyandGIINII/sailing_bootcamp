@@ -4,7 +4,7 @@
 >
 > 작성일: 2026-07-19 KST · 기준 커밋: `aaf1db8` (`main`, clean at audit start)
 
-**Current reconciliation (2026-07-19):** This historical plan's external-review G1/G2/G3 sequence is deferred to a future public-distribution decision. The active path is personal local use; G1 is complete only as project-owner limitation acknowledgement in `docs/content/personal-use-g1-self-review-record-v1.md`. All registry records remain `assumption`; no expert validation or release claim follows.
+**Current policy (2026-07-19):** This historical plan's external-review G1/G2/G3 sequence is **archived, non-operational, non-blocking, and non-resumable** for this personal-use project. A future personal prototype increment requires only a fresh explicit user-approved bounded plan; no external reviewer, qualification, authority, controlled apply, P1, or release evidence is a prerequisite. All registry records remain `assumption`; no expert validation or release claim follows.
 
 **Goal:** 현재 `training-sloop-v1` L01–L05 assumption-only prototype의 실제 구현 범위를 PRD와 분리해 확정하고, 도메인 검증 → P1 품질 근거 → 제한적 release 후보 평가로 이어지는 승인-의존 후속 경로를 만든다.
 
@@ -112,7 +112,7 @@ The user authorized the bounded G0 P0 remediation. It was committed as `00c34b3`
 
 **Objective:** Turn selected simulation assumptions into auditable educational claims only after qualified review.
 
-**Required inputs:** `docs/content/domain-validation-registry.yaml`, `docs/content/mandatory-lessons-l01-l05.md`, the controlled-apply runbook, reviewer qualification evidence, source snapshots, and a dated review record.
+**Archived historical inputs (not required for personal work):** `docs/content/domain-validation-registry.yaml`, `docs/content/mandatory-lessons-l01-l05.md`, the controlled-apply runbook, reviewer qualification evidence, source snapshots, and a dated review record.
 
 1. Prepare one review packet per L01–L05 that lists every model/score/threshold/polar/depth/reef assumption, evidence source, intended educational claim, and explicit non-navigation limitation.
 2. Have the identified qualified reviewer record `validated`, `partially_validated`, or `rejected` disposition for each exact version binding. Do not mass-promote records.

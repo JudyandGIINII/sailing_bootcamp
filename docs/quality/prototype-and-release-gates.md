@@ -1,8 +1,8 @@
 # Prototype, Personal-Use, and Future Public-Distribution Gate Model
 
-> **Active operating path (2026-07-19):** personal, browser-local synthetic training use. G1 is a project-owner self-review/limitation-acknowledgement checkpoint; it is not expert validation, independent review, certification, authority approval, registry promotion, or release approval.
+> **Active operating path (2026-07-19):** personal, browser-local synthetic training use proceeds only through explicit user-approved bounded work. External review, qualification, authority, controlled apply, G1/G2/G3, P1, and release evidence are archived non-operational references; they cannot block or automatically resume personal work.
 >
-> **Deferred path:** external review, controlled apply, P1, deployment, and release apply only if a future public-distribution decision is explicitly made.
+> **Unchanged technical boundary:** the existing fail-closed release check remains code for a hypothetical public-release path and is not invoked or satisfied by personal local work.
 
 ## 목적
 
@@ -26,11 +26,11 @@ scenario, lesson, profile, coordinate, determinism, comparison, replay schema가
 - 사용자는 local replay 목록을 보고 개별 record를 삭제할 수 있으며 reset은 이전 attempt를 암묵적으로 삭제하지 않음
 - release mode로 표시·배포·주장하지 않음
 
-### 3. Personal-use G1 checkpoint
+### 3. Personal-use decision record — not a gate
 
-Personal-use G1 is complete when the project owner has explicitly acknowledged that L01–L05 are synthetic, assumption-only, non-navigation training content and that replay/telemetry remains local-only. The durable record is `docs/content/personal-use-g1-self-review-record-v1.md`.
+`docs/content/personal-use-g1-self-review-record-v1.md` records the owner's limitation acknowledgement. It is retained historical context, not a G1 gate and not a prerequisite for later personal prototype work. Future personal work requires only an explicit bounded user authorization.
 
-This checkpoint does **not** require certification, qualified reviewer identity, independence, external authority, formal submission, controlled apply, P1 evidence, or release approval. It also does **not** change a registry disposition, add a domain value, claim factual sailing/safety correctness, or enable public distribution.
+No external reviewer identity, certification, qualification, independence, authority, controlled apply, P1 evidence, or release approval is required. The record also does **not** change a registry disposition, add a domain value, claim factual sailing/safety correctness, or enable public distribution.
 
 ### 4. Future public-distribution release gate
 
@@ -62,8 +62,8 @@ release check는 단순 파일 존재가 아니라 아래 필드를 갖는 versi
 |---|---|
 | load | version/schema/profile/action compatibility report |
 | prototype | unvalidated label presence, registry linkage, full replay-identity/load rejection, input lifecycle, local-only network/storage checks |
-| personal-use G1 | owner limitation acknowledgement, assumption status, non-navigation/local-only boundary |
-| future public release | validation disposition report, versioned P1 artifact manifest, approval/stale references, no override assertion |
+| personal-use decision record | historical limitation acknowledgement only; no gate or prerequisite |
+| hypothetical public release | validation disposition report, versioned P1 artifact manifest, approval/stale references, no override assertion |
 
 ## implementation boundary
 

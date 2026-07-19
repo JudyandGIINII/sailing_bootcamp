@@ -1,6 +1,6 @@
-# Sailing Coach Domain Review — Qualification & Controlled Apply Runbook v1
+# Archived External Qualification & Controlled Apply Runbook v1
 
-> **Current status (2026-07-19):** **DEFERRED — future public-distribution-only.** This runbook is not required for the active personal/local prototype path and has not been completed. Personal-use G1 uses a project-owner limitation acknowledgement only; it neither creates reviewer credentials nor changes registry dispositions.
+> **Current status (2026-07-19):** **ARCHIVED / NON-OPERATIONAL.** This runbook is never required for personal/local prototype work, cannot block or automatically resume it, and has not been completed. It creates no reviewer credential, authority, validation, registry disposition, or release state.
 
 > **상태:** 절차 초안. 이 문서는 reviewer를 찾거나 연락하지 않으며, reviewer/authority를 수락·지정하지 않고, registry·계약·P1·release 상태를 변경하지 않는다.
 

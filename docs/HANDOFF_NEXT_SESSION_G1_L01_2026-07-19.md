@@ -1,6 +1,6 @@
-# Next-Session Handoff — G1 L01 Domain Review Preparation
+# Archived Handoff — Former External G1 L01 Review Preparation
 
-> **Current reconciliation (2026-07-19):** This handoff preserves the historical external-review preparation account below. The active product path is now personal/local use: personal-use G1 is complete via `docs/content/personal-use-g1-self-review-record-v1.md`; external qualification, controlled apply, P1, and release are deferred to a future public-distribution decision. All registry records remain `assumption`.
+> **Current policy (2026-07-19):** This file is a historical external-review record only. Its reviewer/qualification/authority/controlled-apply/G1/G2/G3 steps are archived, non-operational, non-blocking, and cannot be resumed automatically. Personal prototype work proceeds only on explicit user-approved bounded scope; non-navigation/local-only limits remain mandatory.
 
 > **Handoff date:** 2026-07-19 KST
 >
@@ -141,7 +141,7 @@ docs/content/l01-domain-review-packet-v0.md
 
 Do not stage `.agent/plans/` unless the user explicitly changes the coordination-artifact policy.
 
-### B. G1 evidence/reviewer workflow — blocked pending external authority
+### B. Archived historical external-review workflow — non-operational
 
 Before any actual review/submission/apply:
 

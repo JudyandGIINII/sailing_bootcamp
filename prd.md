@@ -4,7 +4,7 @@
 > 갱신일: `2026-07-19 KST`
 > 제품 범위: 브라우저 기반의 물리·판단 훈련 보조 게임. 실제 항해·안전 판단·자격/면허를 대체하지 않는다.
 >
-> **현재 운영 모델 (2026-07-19):** 프로젝트 소유자의 개인·로컬 사용만을 위한 합성 훈련 prototype이다. certification, 외부 검토자 자격, 독립 authority, formal controlled apply, public distribution, deployment, release는 현재 제품 목표가 아니다. 이 결정은 sailing-domain correctness 또는 실제 안전/항법 권위를 주장하지 않는다.
+> **현재 운영 모델 (2026-07-19):** 프로젝트 소유자의 개인·로컬 사용만을 위한 합성 훈련 prototype이다. **개인용 prototype 작업의 유일한 진행 권한은 대상·파일·검증 범위를 명시한 사용자의 직접 승인이다.** 외부 reviewer qualification, independent authority, controlled apply, G1/G2/G3 approval, certification, public-release evidence는 개인용 경로의 현재 또는 미래 prerequisite가 아니다. 이 결정은 sailing-domain correctness 또는 실제 안전/항법 권위를 주장하지 않는다.
 
 ## 1. 제품 개요
 
@@ -250,13 +250,13 @@ MVP의 유일한 플레이 가능 프로필은 `training-sloop-v1`이다. 마스
 | 물리 단순화가 잘못된 자신감 유발 | 실제 항해/자격 대체 금지, 도메인 검토, 안전 우선 채점. |
 | 점수만 최적화하는 행동 | 관측·판단·조작·안전을 속도와 분리해 채점. |
 
-## 12. 개인용 G1과 미래 public-distribution 의존성
+## 12. 개인용 진행 정책과 archived external-release 자료
 
-### 12.0 활성 경로 — 개인용 G1 self-review
+### 12.0 활성 경로 — 사용자 승인 기반 개인용 prototype work
 
-현재 G1은 `docs/content/personal-use-g1-self-review-record-v1.md`의 **project-owner self-review 및 limitation acknowledgement**로 완료된다. 이는 L01–L05가 `assumption`/draft 상태임을 수락하고 non-navigation/local-only 경계를 유지하는 개인용 checkpoint일 뿐, reviewer credential, independent authority, formal controlled apply, domain validation, registry promotion, certification, 또는 release approval이 아니다.
+개인용 L01–L05 work는 범위가 명시된 사용자 직접 승인만으로 진행할 수 있다. `docs/content/personal-use-g1-self-review-record-v1.md`는 limitation acknowledgement의 역사 기록일 뿐 gate, reviewer credential, authority, controlled apply, domain validation, registry promotion, certification, 또는 release approval을 만들거나 요구하지 않는다. 외부 review/P1/release 절차는 archived non-operational references이며 개인용 work의 현재 또는 미래 prerequisite가 아니다.
 
-### 12.1 미래 public-distribution 전용 도메인 검증 레지스터 — 비활성 경로
+### 12.1 archived external-release registry 자료 — 비활성 reference
 
 L01–L05 및 Training Sloop의 물리·안전·채점 가정은 lesson-level **도메인 검증 레지스터**로 관리한다. 각 레코드는 `validation_record_id`, claim 또는 assumption, source 또는 근거 부재 사유, scenario/model/boat profile/contract/coordinate/determinism/comparison-policy version, reviewer, review_date, disposition(`assumption | partially_validated | validated | rejected`)을 가져야 한다.
 
@@ -266,7 +266,7 @@ L01–L05 및 Training Sloop의 물리·안전·채점 가정은 lesson-level **
 - `validated`가 아닌 가정은 UI·디브리프에서 시뮬레이션 전용 가정으로 취급하며 실제 항해의 안전 수치로 표현하지 않는다.
 - 출시 대상 레슨에 `rejected` 또는 미승인 record가 남아 있으면 그 레슨은 출시에서 제외한다. `validated` record라도 위 version binding 중 하나가 missing, `TBD`, draft, unapproved, incompatible이면 출시에서 제외한다. 승인자와 반려 레슨 disposition 방식은 명시적 사용자/운영 결정이 필요하다.
 
-### 12.2 미래 public-distribution 전용 P1 품질·파일럿·릴리스 승인 artifact
+### 12.2 archived external-release P1 자료 — 비활성 reference
 
 다음은 PRD에서 임의 수치를 확정하지 않으며, 출시 전 별도 승인 artifact에 **값·근거·승인 주체·승인일·중단 조건**을 기록해야 한다.
 
@@ -280,7 +280,9 @@ L01–L05 및 Training Sloop의 물리·안전·채점 가정은 lesson-level **
 | Release operations | rollout/rollback, replay compatibility, 결함 content/model version의 처리 정책 |
 | Replay/telemetry privacy | local-only 기본의 보존 범위, 서버 분석을 도입할 경우 동의·보존·삭제·export 정책 |
 
-### 12.3 미래 public-distribution을 제안할 경우의 다음 결정
+### 12.3 archived external-release 자료의 재활성화
+
+아래 항목은 현재 개인용 roadmap의 결정 사항이 아니다. 사용자가 제품 범위를 public distribution으로 명시적으로 변경한 경우에만 새 정책으로 재설계할 수 있으며, 이 문서의 archived 절차가 자동으로 재개되지는 않는다.
 
 1. 세일링 코치/강사 등 도메인 검토자의 확보 주체, 승인 일정, 미승인/반려 레슨의 처리 방식
 2. 안전 위반별 세션 동작: 즉시 실패, 계속 진행하되 보상 제한, 안전 회복 허용 중 레슨별 선택

@@ -1,6 +1,6 @@
-# L01 Domain Review Packet v0 — Preparation Only
+# Archived L01 External Review Packet v0
 
-> **Current reconciliation (2026-07-19):** active scope is personal local use. The project-owner self-review is recorded in `personal-use-g1-self-review-record-v1.md`; it acknowledges limitations only and does not fill any reviewer/qualification/authority/signature field below. External review remains deferred for a future public-distribution decision.
+> **Current policy (2026-07-19):** Historical reference only. Reviewer qualification, authority, controlled apply, evidence freeze, and submission fields below are non-operational for this personal-use project. They cannot block, wait for, or automatically resume personal prototype work.
 
 > **Packet status:** `PREPARATION_ONLY` · **not a review submission** · **not frozen**
 >

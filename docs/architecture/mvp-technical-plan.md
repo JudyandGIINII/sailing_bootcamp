@@ -1,4 +1,6 @@
-# Training Sloop MVP Implementation Plan
+# Training Sloop MVP Implementation Plan — Archived Baseline
+
+> **Current policy (2026-07-19):** Tasks below describe completed/bootstrap historical work. They are not the active next-step plan. New personal prototype work requires a fresh bounded user-approved plan only; it has no external reviewer/qualification/authority/controlled-apply/G1/G2/G3 prerequisite.
 
 > **For Hermes:** 구현 승인 후 `orca-codex-primary-hermes-qa`에 따라 Orca worktree의 Codex primary lane으로 task-by-task 실행하고, Hermes가 독립 QA를 수행한다.
 

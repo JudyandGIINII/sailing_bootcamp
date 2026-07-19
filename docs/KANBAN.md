@@ -30,20 +30,18 @@
 
 - [x] AP-0D P0 remediation was committed on isolated source branch as `00c34b3`, merged into fresh integration worktree as `0e84d85`, and user-authorized shared `main` synchronization placed the verified documentation/code candidate at `20148a1`.
 - [x] Shared-main controller verification passed: typecheck, **87 Vitest**, **7 Chromium smokes**, production build, diff check, unchanged historical evidence hashes, and preserved `.agent` coordination-artifact hashes.
-- [x] AP-0D P0 and AP-0E G0 are pushed to `origin/main`; deployment/release remain separate and unperformed. Release remains blocked by assumption-only domain registry and missing G1/G2/G3 authority.
+- [x] AP-0D P0 and AP-0E G0 are pushed to `origin/main`; personal prototype work is not blocked by external G1/G2/G3, authority, or release-evidence requirements. Those prior materials are archived and non-operational.
 
 
-## Blocked / Waiting
+## Archived / Non-operational external materials
 
-- [x] Personal-use G1 self-review completed: project-owner limitation acknowledgement is recorded in `docs/content/personal-use-g1-self-review-record-v1.md`; it creates no credential, independent validation, registry promotion, or release claim.
-- [x] G1 L01 preparation packet completed, independently re-reviewed, and version-controlled: `docs/content/l01-domain-review-packet-v0.md` cannot act as a submission, qualification decision, registry apply, or release authority.
-- [ ] Future public-distribution-only: concrete model/contract/coordinate/determinism/comparison-policy version bindings required before any record can become `validated`.
-- [ ] Future public-distribution-only: versioned P1 browser/accessibility/pilot/operations/replay-compatibility/privacy artifact manifest and approvals.
-- [ ] Future public-distribution-only: external qualification/control-apply, concrete domain validation, P1 approval artifacts, release authority, and WebKit/Firefox candidate configuration.
+- [x] Personal-use limitation acknowledgement is retained at `docs/content/personal-use-g1-self-review-record-v1.md`; it is not a gate or prerequisite.
+- [x] L01 external-review packet and all reviewer/qualification/authority/controlled-apply materials are archived references. They cannot block, wait for, or automatically resume personal prototype work.
+- [x] P1, release authority, public-release evidence, and browser support matrix materials are archived references for this personal-use project.
 
 ## Next
 
 1. Preserve personal-use boundaries: all records remain `assumption`; non-navigation/local-only notices remain mandatory.
-2. Future semantic prototype work requires an explicit scoped user authorization and must not invent domain values.
-3. External-review, qualification, controlled apply, P1, deployment, and release are deferred to a future public-distribution product decision.
-4. Do not treat AP-0D/AP-0E or personal-use G1 as expert validation, registry promotion, or release authority.
+2. Any next personal prototype implementation requires only an explicit user-approved bounded scope, with no external-review/qualification/authority/controlled-apply prerequisite.
+3. Archived external-release materials cannot become a blocker, waiting state, required input, or automatic next step.
+4. Do not treat absence of formal gates as expert validation, registry promotion, or release authority.

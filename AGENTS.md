@@ -6,14 +6,14 @@ This workspace defines a browser-based educational sailing simulator, not an act
 
 ## Current phase
 
-AP-0A through AP-0E are verified and integrated. Personal-use G1 self-review is complete: it records the project owner's acknowledgement of the assumption-only/non-navigation limits, not expert validation. Public distribution, certification, external-review qualification, controlled apply, P1, and release are deferred unless the user explicitly reopens that product path.
+AP-0A through AP-0E are verified and integrated. For any future personal local prototype work, the only planning authorization is an explicit user-approved bounded scope. External reviewer qualification, authority, controlled apply, G1/G2/G3, P1, and release evidence are archived non-operational materials; they cannot block or automatically resume personal work.
 
-## Personal-use and public-distribution boundaries
+## Personal-use operating policy
 
-- **Personal local use:** project-owner self-review is sufficient only to acknowledge limitations. It never creates credentials, independent review, factual domain validation, registry promotion, or real-world authority.
-- **Future public distribution:** requires an explicit new product decision; the preserved external-review/P1/release workflow remains fail-closed for that separate path.
+- **Personal local use:** an explicit user-approved bounded code scope is sufficient. No external reviewer, qualification, authority, controlled apply, G1/G2/G3 approval, P1 artifact, or public-release evidence is a prerequisite now or later in this product scope.
+- **Archived materials:** former external-review/release documents are non-operational references. They cannot create a required input, blocked state, or automatic resumption.
 - **Code work:** user must explicitly authorize implementation before creating source code, dependencies, package manifests, or Orca worktrees.
-- Never use a personal-use checkpoint to claim certification, supported-browser coverage, deployment readiness, or release eligibility.
+- Never use the absence of formal gates to claim certification, factual validation, supported-browser coverage, deployment readiness, or release eligibility.
 
 ## Implementation routing
 

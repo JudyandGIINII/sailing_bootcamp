@@ -25,6 +25,6 @@ Personal-use G1 is complete because the owner has explicitly accepted the assump
 
 It does not permit registry disposition changes, claims of validation, semantic sailing-model implementation without a separately authorized scope, public release, or real-world safety/navigation claims.
 
-## 4. Deferred formal path
+## 4. Archived external materials
 
-The coach/instructor review packet, qualification/controlled-apply runbook, submission template, and apply-request template remain available only for a future explicit public-distribution decision. They have not been completed or invoked by this record.
+The coach/instructor review packet, qualification/controlled-apply runbook, submission template, and apply-request template are historical, non-operational references. They are not a future prerequisite for personal prototype work, cannot block or automatically resume it, and must not be used to infer credentials, validation, authority, or release readiness.
