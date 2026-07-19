@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-07-19 — AP-0E G0 shared-main synchronization and push
+
+- After preservation checks confirmed `.agent` coordination artifacts unchanged, user explicitly authorized `git reset --hard 038aece` for shared `main`.
+- Shared `main` moved to `038aece`; source `5c7ea5d` and integration merge `b4a3dc1` were confirmed ancestors.
+- `git push origin main` advanced remote from `3014a3f` to `038aece`; a fresh fetch confirmed local `HEAD` and `origin/main` at the same SHA.
+- This follow-up docs-only commit corrects the integration-candidate “pending” wording. Release remains `BLOCKED`; no deployment, registry promotion, or domain validation occurred.
+
 ## 2026-07-19 — AP-0E G0 fresh integration candidate
 
 - User-authorized source commit `5c7ea5d` was merged into fresh Orca integration worktree `sailing-ap0e-g0-integration` as `b4a3dc1` from clean `origin/main` base `3014a3f`.
