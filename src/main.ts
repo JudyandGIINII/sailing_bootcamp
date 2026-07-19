@@ -9,7 +9,7 @@ import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindi
 import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
 import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
-import { projectDebrief, projectL03RuntimeTrace, projectScore, type L03TraceEvidence } from './scoring/projection.js';
+import { projectDebrief, projectL03RuntimeTrace, projectL04RuntimeTrace, projectScore, type L03TraceEvidence, type L04TraceEvidence } from './scoring/projection.js';
 
 // Install before any app-owned bootstrap work can initiate a browser transport.
 installLocalOnlyTransportGuard();
@@ -52,6 +52,12 @@ mount.innerHTML = `
         <h4 id="l03-runtime-heading">Current runtime trace</h4><dl id="l03-runtime-trace"></dl>
         <p id="l03-trace-boundary" role="note"></p>
       </section>
+      <section id="l04-runtime-evidence-section" aria-label="L04 runtime-evidence trace" hidden>
+        <h3>L04 runtime-evidence trace</h3>
+        <h4>L04 static lesson-manifest declarations</h4><dl id="l04-static-declarations"></dl>
+        <h4>L04 runtime evidence</h4><dl id="l04-runtime-evidence"></dl>
+        <p id="l04-runtime-evidence-boundary" role="note"></p>
+      </section>
     </section>
     <section aria-labelledby="debrief-heading"><h2 id="debrief-heading">Debrief</h2><ul id="debrief"></ul></section>
     <section aria-labelledby="replays-heading"><h2 id="replays-heading">Local replays</h2><p id="storage-status" role="status"></p><ul id="replays"></ul></section>
@@ -78,6 +84,10 @@ const l03TraceSection = requiredElement<HTMLElement>('#l03-trace-section');
 const l03StaticTrace = requiredElement<HTMLDListElement>('#l03-static-trace');
 const l03RuntimeTrace = requiredElement<HTMLDListElement>('#l03-runtime-trace');
 const l03TraceBoundary = requiredElement<HTMLElement>('#l03-trace-boundary');
+const l04RuntimeEvidenceSection = requiredElement<HTMLElement>('#l04-runtime-evidence-section');
+const l04StaticDeclarations = requiredElement<HTMLDListElement>('#l04-static-declarations');
+const l04RuntimeEvidence = requiredElement<HTMLDListElement>('#l04-runtime-evidence');
+const l04RuntimeEvidenceBoundary = requiredElement<HTMLElement>('#l04-runtime-evidence-boundary');
 
 type PendingBrowserSignal =
   | { kind: 'keyboard'; key: string; repeat: boolean }
@@ -100,6 +110,24 @@ function appendTraceEntry(target: HTMLDListElement, label: string, description: 
 function traceEvidenceText(evidence: L03TraceEvidence): string {
   if (evidence.status === 'unavailable_no_runtime_record') return 'Unavailable: no runtime record.';
   return `Recorded runtime evidence. Event ID: ${evidence.event_id ?? 'unavailable'}. Recorded cause reference: ${evidence.recorded_cause ?? 'unavailable'}.`;
+}
+
+function l04TraceEvidenceText(evidence: L04TraceEvidence): string {
+  if (evidence.status === 'unavailable_no_runtime_record') return 'Unavailable: no matching L04 runtime record.';
+  return `Recorded L04 runtime evidence. Event ID: ${evidence.event_id ?? 'unavailable'}. Explicit cause: ${evidence.recorded_cause ?? 'unavailable'}.`;
+}
+
+/** Presentation-only trust check; action authority remains in the canonical input policy. */
+function hasTrustedL04Presentation(): boolean {
+  const manifest = getLessonManifest(currentLesson.id);
+  return currentLesson.id === 'L04' && manifest?.lesson_id === 'L04' &&
+    manifest.scenario_version === currentLesson.bindings.scenario_version &&
+    manifest.model_version === currentLesson.bindings.model_version &&
+    manifest.boat_profile_version === currentLesson.bindings.boat_profile_version &&
+    manifest.contract_version === currentLesson.bindings.contract_version &&
+    manifest.coordinate_contract_version === currentLesson.bindings.coordinate_contract_version &&
+    manifest.determinism_contract_version === currentLesson.bindings.determinism_contract_version &&
+    manifest.comparison_policy_version === currentLesson.bindings.comparison_policy_version;
 }
 
 function render(): void {
@@ -130,6 +158,19 @@ function render(): void {
     l03TraceBoundary.textContent = l03Trace.boundary_copy;
   } else {
     l03TraceBoundary.textContent = '';
+  }
+  const l04Trace = hasTrustedL04Presentation() ? projectL04RuntimeTrace(session.raw, session.ledger) : undefined;
+  l04RuntimeEvidenceSection.hidden = !l04Trace;
+  l04StaticDeclarations.replaceChildren();
+  l04RuntimeEvidence.replaceChildren();
+  if (l04Trace) {
+    appendTraceEntry(l04StaticDeclarations, l04Trace.static_declaration.mark_relation_label, 'Declared synthetic in the trusted L04 lesson manifest; this is a static declaration, not runtime evidence.');
+    appendTraceEntry(l04StaticDeclarations, l04Trace.static_declaration.helm_action_label, 'Registered in the trusted L04 lesson manifest; this is a static declaration, not runtime evidence.');
+    appendTraceEntry(l04RuntimeEvidence, l04Trace.runtime_evidence.miss.label, l04TraceEvidenceText(l04Trace.runtime_evidence.miss));
+    appendTraceEntry(l04RuntimeEvidence, l04Trace.runtime_evidence.correction.label, l04TraceEvidenceText(l04Trace.runtime_evidence.correction));
+    l04RuntimeEvidenceBoundary.textContent = l04Trace.boundary_copy;
+  } else {
+    l04RuntimeEvidenceBoundary.textContent = '';
   }
   pause.textContent = session.paused ? 'PAUSED — explicit resume required; logical state is not progressing.' : 'RUNNING — logical tick scheduler active.';
   const score = projectScore(session.raw, session.ledger);

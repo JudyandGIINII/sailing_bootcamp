@@ -38,6 +38,28 @@ export interface L03RuntimeTraceProjection {
   readonly boundary_copy: 'Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance.';
 }
 
+export interface L04TraceEvidence {
+  readonly label: 'Recoverable synthetic mark miss runtime evidence' | 'Slower valid synthetic correction runtime evidence';
+  readonly status: 'recorded' | 'unavailable_no_runtime_record';
+  readonly event_id?: string;
+  readonly recorded_cause?: string;
+}
+
+export interface L04RuntimeTraceProjection {
+  readonly static_declaration: {
+    readonly heading: 'L04 static lesson-manifest declarations';
+    readonly status: 'declared_synthetic';
+    readonly mark_relation_label: 'Declared virtual mark relation declaration';
+    readonly helm_action_label: 'Registered L04 helm action declarations';
+  };
+  readonly runtime_evidence: {
+    readonly heading: 'L04 runtime evidence';
+    readonly miss: L04TraceEvidence;
+    readonly correction: L04TraceEvidence;
+  };
+  readonly boundary_copy: 'Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.';
+}
+
 /** Pure projections: no values are written back to the canonical state or ledger. */
 export function projectScore(_raw: RawSimulationState, ledger: readonly LedgerEvent[]): ScoreProjection {
   const safetyEvent = ledger.find((event) => event.type === 'SAFETY_BLOCKED');
@@ -114,5 +136,52 @@ export function projectL03RuntimeTrace(
       checkpoint: traceEvidence('Declared checkpoint evidence', ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L03')),
     }),
     boundary_copy: 'Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance.',
+  });
+}
+
+function l04TraceEvidence(
+  label: L04TraceEvidence['label'],
+  event: LedgerEvent | undefined,
+): L04TraceEvidence {
+  return event
+    ? Object.freeze({ label, status: 'recorded', event_id: event.id, recorded_cause: event.cause })
+    : Object.freeze({ label, status: 'unavailable_no_runtime_record' });
+}
+
+/**
+ * L04 display-only evidence. Each entry comes only from its own explicit L04
+ * checkpoint cause; static declarations and raw state do not establish it.
+ */
+export function projectL04RuntimeTrace(
+  raw: RawSimulationState,
+  ledger: readonly LedgerEvent[],
+): L04RuntimeTraceProjection | undefined {
+  if (raw.lesson_id !== 'L04') return undefined;
+
+  const manifest = getLessonManifest('L04');
+  if (!manifest || manifest.lesson_id !== 'L04') return undefined;
+  const hasDeclaredMarkRelation = manifest.required_observations.some((observation) => observation.key === 'declared_mark_relation' && observation.status === 'declared_synthetic');
+  const hasRegisteredHelmActions = manifest.permitted_actions.includes('helm_port') && manifest.permitted_actions.includes('helm_starboard');
+  if (!hasDeclaredMarkRelation || !hasRegisteredHelmActions) return undefined;
+
+  return Object.freeze({
+    static_declaration: Object.freeze({
+      heading: 'L04 static lesson-manifest declarations',
+      status: 'declared_synthetic',
+      mark_relation_label: 'Declared virtual mark relation declaration',
+      helm_action_label: 'Registered L04 helm action declarations',
+    }),
+    runtime_evidence: Object.freeze({
+      heading: 'L04 runtime evidence',
+      miss: l04TraceEvidence(
+        'Recoverable synthetic mark miss runtime evidence',
+        ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L04' && event.cause === 'recoverable synthetic mark miss recorded'),
+      ),
+      correction: l04TraceEvidence(
+        'Slower valid synthetic correction runtime evidence',
+        ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L04' && event.cause === 'slower valid synthetic correction recorded'),
+      ),
+    }),
+    boundary_copy: 'Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.',
   });
 }

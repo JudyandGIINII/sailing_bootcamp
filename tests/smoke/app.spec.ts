@@ -39,7 +39,7 @@ test('uses visible focus and reduced-motion-safe styles', async ({ page }) => {
 
 test('projects L02 through L05 as keyboard-operable, manifest-only observation HUDs', async ({ page }) => {
   await page.goto('/');
-  const lesson = page.getByLabel('Lesson');
+  const lesson = page.locator('#lesson-select');
   for (const [id, key, observation] of [
     ['L02', 'KeyM', 'Declared trim feedback / 선언된 트림 피드백'], ['L03', 'KeyF', 'Synthetic gust/wave cue / 합성 돌풍·파도 신호'], ['L04', 'ArrowLeft', 'Declared virtual mark relation / 선언된 가상 마크 관계'], ['L05', 'KeyW', 'Synthetic tide state / 합성 조류 상태'],
   ] as const) {
@@ -79,9 +79,46 @@ test('reaches the L03 trace and debrief by keyboard with textual evidence and bo
   await expect(page.locator('#l03-trace-section')).not.toContainText(/\b(?:knot|meter|mile|degree|second|minute|hour|bearing|threshold)\b/i);
 });
 
+test('renders uniquely named L04 runtime evidence from keyboard actions without conflating it with static declarations', async ({ page }) => {
+  const requests: { url: string; resourceType: string; method: string }[] = [];
+  page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
+  await page.goto('/');
+
+  await page.keyboard.press('Tab');
+  const lesson = page.locator('#lesson-select');
+  await expect(lesson).toBeFocused();
+  await lesson.selectOption('L04');
+
+  const l04Region = page.getByRole('region', { name: 'L04 runtime-evidence trace', exact: true });
+  const staticDeclarations = page.locator('#l04-static-declarations');
+  const runtimeEvidence = page.locator('#l04-runtime-evidence');
+  await expect(l04Region).toHaveCount(1);
+  await expect(l04Region).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'L04 static lesson-manifest declarations', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'L04 runtime evidence', exact: true })).toHaveCount(1);
+  await expect(staticDeclarations).toHaveCount(1);
+  await expect(runtimeEvidence).toHaveCount(1);
+  await expect(staticDeclarations).toContainText('static declaration, not runtime evidence');
+  await expect(runtimeEvidence).toContainText('Unavailable: no matching L04 runtime record.');
+
+  await page.keyboard.press('ArrowLeft');
+  await expect(runtimeEvidence).toContainText('Recoverable synthetic mark miss runtime evidence');
+  await expect(runtimeEvidence).toContainText('Recorded L04 runtime evidence. Event ID:');
+  await expect(runtimeEvidence).toContainText('Explicit cause: recoverable synthetic mark miss recorded.');
+  await expect(runtimeEvidence).toContainText('Unavailable: no matching L04 runtime record.');
+
+  await page.keyboard.press('ArrowRight');
+  await expect(runtimeEvidence).toContainText('Slower valid synthetic correction runtime evidence');
+  await expect(runtimeEvidence).toContainText('Explicit cause: slower valid synthetic correction recorded.');
+  await expect(page.getByText('Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('L04 runtime evidence', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('L04 static lesson-manifest declarations', { exact: true })).toHaveCount(1);
+  expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
+});
+
 test('ignores globally mapped keyboard actions disallowed by the selected lesson', async ({ page }) => {
   await page.goto('/');
-  const lesson = page.getByLabel('Lesson');
+  const lesson = page.locator('#lesson-select');
   const hud = page.locator('#hud');
   const debrief = page.locator('#debrief');
 
@@ -152,7 +189,7 @@ test('has keyboard focus order and no beacon or websocket traffic', async ({ pag
   page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
   await page.goto('/');
   await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Lesson')).toBeFocused();
+  await expect(page.locator('#lesson-select')).toBeFocused();
   const cadence = page.getByLabel('Browser update cadence');
   await cadence.selectOption('125');
   await expect(cadence).toHaveValue('125');

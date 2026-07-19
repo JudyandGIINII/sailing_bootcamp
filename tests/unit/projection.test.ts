@@ -1,12 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createSession, replayInputs, type CanonicalInput, type LedgerEvent } from '../../src/sim/session.js';
-import { projectDebrief, projectL03RuntimeTrace, projectScore } from '../../src/scoring/projection.js';
+import { projectDebrief, projectL03RuntimeTrace, projectL04RuntimeTrace, projectScore } from '../../src/scoring/projection.js';
 
 const rawFixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: []; terminal_ticks: number };
 const scoreFixture = JSON.parse(readFileSync('tests/fixtures/l01-score-debrief-golden.json', 'utf8')) as { score: unknown; debrief_fact_kinds: unknown };
 const l03RawFixture = JSON.parse(readFileSync('tests/fixtures/l03-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: CanonicalInput[]; terminal_ticks: number };
 const l03ScoreFixture = JSON.parse(readFileSync('tests/fixtures/l03-score-debrief-golden.json', 'utf8')) as { score: unknown; l03_runtime_trace: unknown };
+const l04RawFixture = JSON.parse(readFileSync('tests/fixtures/l04-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: CanonicalInput[]; terminal_ticks: number };
+const l04ScoreFixture = JSON.parse(readFileSync('tests/fixtures/l04-score-debrief-golden.json', 'utf8')) as { score: unknown };
 
 describe('score/debrief pure causality projections', () => {
   it('matches its dedicated golden fixture without changing the raw baseline', () => {
@@ -70,5 +72,52 @@ describe('score/debrief pure causality projections', () => {
 
     expect(projectL03RuntimeTrace(two.raw, two.ledger)).toEqual(oneTrace);
     expect(JSON.stringify(oneTrace)).not.toMatch(/\b(?:knot|meter|mile|degree|second|minute|hour|bearing|threshold)\b/i);
+  });
+
+  it('keeps L04 static declarations separate from absent runtime evidence', () => {
+    const session = createSession(l04RawFixture.identity);
+    const trace = projectL04RuntimeTrace(session.raw, session.ledger);
+
+    expect(trace).toEqual(expect.objectContaining({
+      static_declaration: expect.objectContaining({ heading: 'L04 static lesson-manifest declarations', status: 'declared_synthetic' }),
+      runtime_evidence: expect.objectContaining({ heading: 'L04 runtime evidence' }),
+    }));
+    expect(trace?.runtime_evidence.miss).toEqual({ label: 'Recoverable synthetic mark miss runtime evidence', status: 'unavailable_no_runtime_record' });
+    expect(trace?.runtime_evidence.correction).toEqual({ label: 'Slower valid synthetic correction runtime evidence', status: 'unavailable_no_runtime_record' });
+  });
+
+  it('recognizes L04 miss and correction evidence independently from their explicit checkpoint causes', () => {
+    const missOnly = replayInputs(l04RawFixture.identity, [l04RawFixture.inputs[0]!], 1);
+    const missOnlyTrace = projectL04RuntimeTrace(missOnly.raw, missOnly.ledger);
+    const correctionOnly: LedgerEvent = {
+      id: 'explicit-correction-only', tick: 0, sequence: 9, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'slower valid synthetic correction recorded',
+    };
+    const correctionOnlyTrace = projectL04RuntimeTrace(createSession(l04RawFixture.identity).raw, [correctionOnly]);
+
+    expect(missOnlyTrace?.runtime_evidence.miss).toEqual(expect.objectContaining({ event_id: '0:1:2', recorded_cause: 'recoverable synthetic mark miss recorded' }));
+    expect(missOnlyTrace?.runtime_evidence.correction.status).toBe('unavailable_no_runtime_record');
+    expect(correctionOnlyTrace?.runtime_evidence.miss.status).toBe('unavailable_no_runtime_record');
+    expect(correctionOnlyTrace?.runtime_evidence.correction).toEqual(expect.objectContaining({ event_id: 'explicit-correction-only', recorded_cause: 'slower valid synthetic correction recorded' }));
+  });
+
+  it('projects both L04 checkpoint records repeatedly without mutating canonical state, ledger, score, or replay payload', () => {
+    const replayPayload = structuredClone({ ...l04RawFixture.identity, ordered_input_log: l04RawFixture.inputs });
+    const session = replayInputs(l04RawFixture.identity, l04RawFixture.inputs, l04RawFixture.terminal_ticks);
+    const before = structuredClone({ raw: session.raw, ledger: session.ledger, identity: session.identity, replayPayload });
+    const firstTrace = projectL04RuntimeTrace(session.raw, session.ledger);
+    const secondTrace = projectL04RuntimeTrace(session.raw, session.ledger);
+
+    expect(projectScore(session.raw, session.ledger)).toEqual(l04ScoreFixture.score);
+    expect(firstTrace).toEqual(secondTrace);
+    expect(firstTrace?.runtime_evidence.miss).toEqual(expect.objectContaining({ event_id: '0:1:2', recorded_cause: 'recoverable synthetic mark miss recorded' }));
+    expect(firstTrace?.runtime_evidence.correction).toEqual(expect.objectContaining({ event_id: '0:2:4', recorded_cause: 'slower valid synthetic correction recorded' }));
+    expect({ raw: session.raw, ledger: session.ledger, identity: session.identity, replayPayload }).toEqual(before);
+  });
+
+  it('returns identical L04 runtime evidence for identical deterministic replays', () => {
+    const one = replayInputs(l04RawFixture.identity, l04RawFixture.inputs, l04RawFixture.terminal_ticks);
+    const two = replayInputs(l04RawFixture.identity, l04RawFixture.inputs, l04RawFixture.terminal_ticks);
+
+    expect(projectL04RuntimeTrace(two.raw, two.ledger)).toEqual(projectL04RuntimeTrace(one.raw, one.ledger));
   });
 });
