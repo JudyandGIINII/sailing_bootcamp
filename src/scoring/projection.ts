@@ -60,6 +60,30 @@ export interface L04RuntimeTraceProjection {
   readonly boundary_copy: 'Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.';
 }
 
+export interface L02TraceEvidence {
+  readonly label: 'Recorded main trim action evidence' | 'Recorded jib trim action evidence' | 'Recorded synthetic trim causality evidence';
+  readonly status: 'recorded' | 'unavailable_no_runtime_record';
+  /** Sorted only for deterministic presentation; this is not runtime event order. */
+  readonly record_ids?: readonly string[];
+  readonly recorded_cause?: 'main/jib synthetic trim causality recorded';
+}
+
+export interface L02RuntimeTraceProjection {
+  readonly static_declaration: {
+    readonly heading: 'L02 static lesson-manifest declarations';
+    readonly status: 'declared_synthetic';
+    readonly trim_feedback_label: 'Declared synthetic trim feedback declaration';
+    readonly trim_actions_label: 'Registered L02 trim action declarations';
+  };
+  readonly runtime_evidence: {
+    readonly heading: 'L02 browser-local synthetic recorded evidence';
+    readonly main_action: L02TraceEvidence;
+    readonly jib_action: L02TraceEvidence;
+    readonly checkpoint: L02TraceEvidence;
+  };
+  readonly boundary_copy: 'Browser-local synthetic recorded evidence only. It is not trim, performance, or safety advice.';
+}
+
 /** Pure projections: no values are written back to the canonical state or ledger. */
 export function projectScore(_raw: RawSimulationState, ledger: readonly LedgerEvent[]): ScoreProjection {
   const safetyEvent = ledger.find((event) => event.type === 'SAFETY_BLOCKED');
@@ -95,6 +119,60 @@ export function projectDebrief(raw: RawSimulationState, ledger: readonly LedgerE
     if (event.type === 'ENVIRONMENT_EPISODE') facts.push({ id: `episode:${event.id}`, kind: 'environment_episode', cause_event_id: event.id });
   }
   return Object.freeze(facts.map((fact) => Object.freeze(fact)));
+}
+
+function l02TraceEvidence(
+  label: L02TraceEvidence['label'],
+  matchingEvents: readonly LedgerEvent[],
+  recordedCause?: L02TraceEvidence['recorded_cause'],
+): L02TraceEvidence {
+  if (matchingEvents.length === 0) return Object.freeze({ label, status: 'unavailable_no_runtime_record' });
+  const recordIds = Object.freeze(matchingEvents.map((event) => event.id).sort());
+  return Object.freeze({ label, status: 'recorded', record_ids: recordIds, ...(recordedCause ? { recorded_cause: recordedCause } : {}) });
+}
+
+/**
+ * L02 display-only evidence. Each entry is read from its own exact immutable
+ * ledger record; raw trim state, record adjacency, and record order establish
+ * neither evidence nor causality.
+ */
+export function projectL02RuntimeTrace(
+  raw: RawSimulationState,
+  ledger: readonly LedgerEvent[],
+): L02RuntimeTraceProjection | undefined {
+  if (raw.lesson_id !== 'L02') return undefined;
+
+  const manifest = getLessonManifest('L02');
+  if (!manifest || manifest.lesson_id !== 'L02') return undefined;
+  const hasDeclaredTrimFeedback = manifest.required_observations.some((observation) => observation.key === 'declared_trim_feedback' && observation.status === 'declared_synthetic');
+  const hasRegisteredTrimActions = manifest.permitted_actions.includes('main_trim') && manifest.permitted_actions.includes('jib_trim');
+  if (!hasDeclaredTrimFeedback || !hasRegisteredTrimActions) return undefined;
+
+  return Object.freeze({
+    static_declaration: Object.freeze({
+      heading: 'L02 static lesson-manifest declarations',
+      status: 'declared_synthetic',
+      trim_feedback_label: 'Declared synthetic trim feedback declaration',
+      trim_actions_label: 'Registered L02 trim action declarations',
+    }),
+    runtime_evidence: Object.freeze({
+      heading: 'L02 browser-local synthetic recorded evidence',
+      main_action: l02TraceEvidence(
+        'Recorded main trim action evidence',
+        ledger.filter((event) => event.type === 'ACTION_ACCEPTED' && event.action === 'main_trim'),
+      ),
+      jib_action: l02TraceEvidence(
+        'Recorded jib trim action evidence',
+        ledger.filter((event) => event.type === 'ACTION_ACCEPTED' && event.action === 'jib_trim'),
+      ),
+      checkpoint: l02TraceEvidence(
+        'Recorded synthetic trim causality evidence',
+        ledger.filter((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L02' && event.cause === 'main/jib synthetic trim causality recorded'),
+        'main/jib synthetic trim causality recorded',
+      ),
+    }),
+    boundary_copy: 'Browser-local synthetic recorded evidence only. It is not trim, performance, or safety advice.',
+  });
 }
 
 function traceEvidence(

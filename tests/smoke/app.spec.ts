@@ -53,6 +53,41 @@ test('projects L02 through L05 as keyboard-operable, manifest-only observation H
   }
 });
 
+test('renders L02 browser-local recorded evidence from the keyboard without conflating it with static declarations', async ({ page }) => {
+  const requests: { url: string; resourceType: string; method: string }[] = [];
+  page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
+  await page.goto('/');
+  await page.locator('#lesson-select').selectOption('L02');
+
+  const l02Region = page.getByRole('region', { name: 'L02 browser-local runtime-evidence trace', exact: true });
+  const staticDeclarations = page.locator('#l02-static-declarations');
+  const runtimeEvidence = page.locator('#l02-runtime-evidence');
+  await expect(l02Region).toHaveCount(1);
+  await expect(l02Region).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'L02 static lesson-manifest declarations', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'L02 browser-local synthetic recorded evidence', exact: true })).toHaveCount(1);
+  await expect(staticDeclarations).toHaveCount(1);
+  await expect(runtimeEvidence).toHaveCount(1);
+  await expect(staticDeclarations).toContainText('static declaration, not runtime evidence');
+  await expect(runtimeEvidence).toContainText('Unavailable: no exact browser-local synthetic runtime record.');
+  await expect(runtimeEvidence).not.toContainText('Recorded synthetic causality statement:');
+
+  await page.keyboard.press('KeyM');
+  await expect(runtimeEvidence).toContainText('Recorded main trim action evidence');
+  await expect(runtimeEvidence).toContainText('Recorded browser-local synthetic runtime evidence. Record IDs:');
+  await expect(runtimeEvidence).toContainText('Unavailable: no exact browser-local synthetic runtime record.');
+  await expect(runtimeEvidence).not.toContainText('Recorded synthetic causality statement:');
+
+  await page.keyboard.press('KeyJ');
+  await expect(runtimeEvidence).toContainText('Recorded jib trim action evidence');
+  await expect(runtimeEvidence).toContainText('Recorded synthetic trim causality evidence');
+  await expect(runtimeEvidence).toContainText('Recorded synthetic causality statement: main/jib synthetic trim causality recorded.');
+  await expect(page.locator('#l02-runtime-evidence-boundary')).toHaveText('Browser-local synthetic recorded evidence only. It is not trim, performance, or safety advice.');
+  await expect(page.getByText('L02 browser-local synthetic recorded evidence', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('L02 static lesson-manifest declarations', { exact: true })).toHaveCount(1);
+  expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
+});
+
 test('reaches the L03 trace and debrief by keyboard with textual evidence and boundaries', async ({ page }) => {
   await page.goto('/');
   await page.locator('select#lesson-select').selectOption('L03');

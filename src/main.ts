@@ -9,7 +9,7 @@ import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindi
 import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
 import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
-import { projectDebrief, projectL03RuntimeTrace, projectL04RuntimeTrace, projectScore, type L03TraceEvidence, type L04TraceEvidence } from './scoring/projection.js';
+import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence } from './scoring/projection.js';
 
 // Install before any app-owned bootstrap work can initiate a browser transport.
 installLocalOnlyTransportGuard();
@@ -46,6 +46,12 @@ mount.innerHTML = `
       <label for="cadence-select">Browser update cadence</label><select id="cadence-select" aria-describedby="cadence-note"><option value="125">125 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option></select><p id="cadence-note">Browser rendering cadence only; logical tick order is unchanged.</p>
       <p id="controls"></p>
       <p id="pause" role="status"></p>
+      <section id="l02-runtime-evidence-section" aria-labelledby="l02-runtime-evidence-trace-heading" hidden>
+        <h3 id="l02-runtime-evidence-trace-heading">L02 browser-local runtime-evidence trace</h3>
+        <h4 id="l02-static-declarations-heading">L02 static lesson-manifest declarations</h4><dl id="l02-static-declarations"></dl>
+        <h4 id="l02-runtime-evidence-heading">L02 browser-local synthetic recorded evidence</h4><dl id="l02-runtime-evidence"></dl>
+        <p id="l02-runtime-evidence-boundary" role="note"></p>
+      </section>
       <section id="l03-trace-section" aria-labelledby="l03-trace-heading" hidden>
         <h3 id="l03-trace-heading">L03 trace</h3>
         <h4 id="l03-static-heading">Static lesson-manifest declaration</h4><dl id="l03-static-trace"></dl>
@@ -80,6 +86,10 @@ const title = requiredElement<HTMLElement>('#lesson-title');
 const controls = requiredElement<HTMLElement>('#controls');
 const lessonSelect = requiredElement<HTMLSelectElement>('#lesson-select');
 const cadenceSelect = requiredElement<HTMLSelectElement>('#cadence-select');
+const l02RuntimeEvidenceSection = requiredElement<HTMLElement>('#l02-runtime-evidence-section');
+const l02StaticDeclarations = requiredElement<HTMLDListElement>('#l02-static-declarations');
+const l02RuntimeEvidence = requiredElement<HTMLDListElement>('#l02-runtime-evidence');
+const l02RuntimeEvidenceBoundary = requiredElement<HTMLElement>('#l02-runtime-evidence-boundary');
 const l03TraceSection = requiredElement<HTMLElement>('#l03-trace-section');
 const l03StaticTrace = requiredElement<HTMLDListElement>('#l03-static-trace');
 const l03RuntimeTrace = requiredElement<HTMLDListElement>('#l03-runtime-trace');
@@ -117,6 +127,27 @@ function l04TraceEvidenceText(evidence: L04TraceEvidence): string {
   return `Recorded L04 runtime evidence. Event ID: ${evidence.event_id ?? 'unavailable'}. Explicit cause: ${evidence.recorded_cause ?? 'unavailable'}.`;
 }
 
+function l02TraceEvidenceText(evidence: L02TraceEvidence): string {
+  if (evidence.status === 'unavailable_no_runtime_record') return 'Unavailable: no exact browser-local synthetic runtime record.';
+  const recordIds = evidence.record_ids?.join(', ') ?? 'unavailable';
+  return evidence.recorded_cause
+    ? `Recorded synthetic causality statement: ${evidence.recorded_cause}. Browser-local record IDs: ${recordIds}.`
+    : `Recorded browser-local synthetic runtime evidence. Record IDs: ${recordIds}.`;
+}
+
+/** Presentation-only trust check; action authority remains in the canonical input policy. */
+function hasTrustedL02Presentation(): boolean {
+  const manifest = getLessonManifest(currentLesson.id);
+  return currentLesson.id === 'L02' && manifest?.lesson_id === 'L02' &&
+    manifest.scenario_version === currentLesson.bindings.scenario_version &&
+    manifest.model_version === currentLesson.bindings.model_version &&
+    manifest.boat_profile_version === currentLesson.bindings.boat_profile_version &&
+    manifest.contract_version === currentLesson.bindings.contract_version &&
+    manifest.coordinate_contract_version === currentLesson.bindings.coordinate_contract_version &&
+    manifest.determinism_contract_version === currentLesson.bindings.determinism_contract_version &&
+    manifest.comparison_policy_version === currentLesson.bindings.comparison_policy_version;
+}
+
 /** Presentation-only trust check; action authority remains in the canonical input policy. */
 function hasTrustedL04Presentation(): boolean {
   const manifest = getLessonManifest(currentLesson.id);
@@ -144,6 +175,20 @@ function render(): void {
     const term = document.createElement('dt'); term.textContent = observation.accessible_label;
     const description = document.createElement('dd'); description.textContent = observation.status;
     hud.append(term, description);
+  }
+  const l02Trace = hasTrustedL02Presentation() ? projectL02RuntimeTrace(session.raw, session.ledger) : undefined;
+  l02RuntimeEvidenceSection.hidden = !l02Trace;
+  l02StaticDeclarations.replaceChildren();
+  l02RuntimeEvidence.replaceChildren();
+  if (l02Trace) {
+    appendTraceEntry(l02StaticDeclarations, l02Trace.static_declaration.trim_feedback_label, 'Declared synthetic in the trusted L02 lesson manifest; this is a static declaration, not runtime evidence.');
+    appendTraceEntry(l02StaticDeclarations, l02Trace.static_declaration.trim_actions_label, 'Registered in the trusted L02 lesson manifest; this is a static declaration, not runtime evidence.');
+    appendTraceEntry(l02RuntimeEvidence, l02Trace.runtime_evidence.main_action.label, l02TraceEvidenceText(l02Trace.runtime_evidence.main_action));
+    appendTraceEntry(l02RuntimeEvidence, l02Trace.runtime_evidence.jib_action.label, l02TraceEvidenceText(l02Trace.runtime_evidence.jib_action));
+    appendTraceEntry(l02RuntimeEvidence, l02Trace.runtime_evidence.checkpoint.label, l02TraceEvidenceText(l02Trace.runtime_evidence.checkpoint));
+    l02RuntimeEvidenceBoundary.textContent = l02Trace.boundary_copy;
+  } else {
+    l02RuntimeEvidenceBoundary.textContent = '';
   }
   const l03Trace = projectL03RuntimeTrace(session.raw, session.ledger);
   l03TraceSection.hidden = !l03Trace;
