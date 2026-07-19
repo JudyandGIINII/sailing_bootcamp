@@ -1,11 +1,21 @@
 import type { ReplayIdentity } from '../contracts/replay.js';
-import { l01Manifest, type L01Manifest, type L01SemanticAction } from './l01.js';
+import { l01Manifest, type L01Manifest, type L01SemanticAction, type RequiredObservation, type SyntheticSafetyEventDeclaration } from './l01.js';
 import { l02Manifest, l03Manifest, l04Manifest, l05Manifest, type DraftLessonManifest, type LessonAction } from './l02-l05.js';
 
 export type LessonId = 'L01' | 'L02' | 'L03' | 'L04' | 'L05';
 export type DeclaredLessonAction = L01SemanticAction | LessonAction;
 export type LessonManifest = L01Manifest | DraftLessonManifest;
 export type LessonPolicyIdentity = Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>;
+export interface LessonObservationProjection {
+  readonly key: string;
+  readonly accessible_label: string;
+  readonly status: RequiredObservation['status'];
+}
+
+export interface ResolvedLessonPolicy {
+  readonly permitted_actions: readonly DeclaredLessonAction[];
+  readonly synthetic_safety_event?: SyntheticSafetyEventDeclaration<DeclaredLessonAction>;
+}
 
 /**
  * The lesson declarations are the single authority for executable actions.
@@ -35,10 +45,50 @@ function matchesBindings(identity: LessonPolicyIdentity, manifest: LessonManifes
     identity.comparison_policy_version === manifest.comparison_policy_version;
 }
 
-/** Resolves policy only when the complete lesson binding is recognized. */
-export function resolveLessonActionPolicy(identity: LessonPolicyIdentity): readonly DeclaredLessonAction[] | undefined {
+/**
+ * Validates only the declaration shape. It does not register a manifest or
+ * authorize a runtime identity, so callers cannot use it to inject policy.
+ */
+export function resolveDeclaredSyntheticSafetyEvent(
+  permittedActions: readonly string[],
+  declaration: unknown,
+): SyntheticSafetyEventDeclaration<DeclaredLessonAction> | undefined {
+  if (typeof declaration !== 'object' || declaration === null || Array.isArray(declaration)) return undefined;
+  const candidate = declaration as Record<string, unknown>;
+  if (
+    candidate.status !== 'declared_synthetic' ||
+    candidate.validation_status !== 'unvalidated' ||
+    typeof candidate.action !== 'string' ||
+    !permittedActions.includes(candidate.action)
+  ) return undefined;
+  return Object.freeze({
+    action: candidate.action as DeclaredLessonAction,
+    status: 'declared_synthetic',
+    validation_status: 'unvalidated',
+  });
+}
+
+/** Resolves policy only when the complete lesson binding is recognized in the trusted registry. */
+export function projectLessonObservations(lessonId: unknown): readonly LessonObservationProjection[] | undefined {
+  const observations = getLessonManifest(lessonId)?.required_observations;
+  return observations && Object.freeze(observations.map((observation) => Object.freeze({ ...observation })));
+}
+
+/** Resolves only explicit manifest declarations; absent, empty, or unknown safety actions deny by default. */
+export function resolveLessonPolicy(
+  identity: LessonPolicyIdentity,
+): ResolvedLessonPolicy | undefined {
   const manifest = Object.values(lessonManifestRegistry).find((candidate) => matchesBindings(identity, candidate));
-  return manifest?.permitted_actions as readonly DeclaredLessonAction[] | undefined;
+  if (!manifest) return undefined;
+  const syntheticSafetyEvent = resolveDeclaredSyntheticSafetyEvent(manifest.permitted_actions, manifest.synthetic_safety_event);
+  return Object.freeze({
+    permitted_actions: Object.freeze([...manifest.permitted_actions]) as readonly DeclaredLessonAction[],
+    ...(syntheticSafetyEvent ? { synthetic_safety_event: syntheticSafetyEvent } : {}),
+  });
+}
+
+export function resolveLessonActionPolicy(identity: LessonPolicyIdentity): readonly DeclaredLessonAction[] | undefined {
+  return resolveLessonPolicy(identity)?.permitted_actions;
 }
 
 export function isLessonActionAllowed(identity: LessonPolicyIdentity, action: unknown): action is DeclaredLessonAction {

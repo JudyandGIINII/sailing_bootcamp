@@ -1,4 +1,4 @@
-import { TRAINING_SLOOP_PROFILE_ID, type L01Manifest } from './l01.js';
+import { TRAINING_SLOOP_PROFILE_ID, type L01Manifest, type SyntheticSafetyEventDeclaration } from './l01.js';
 
 export const L02_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] as const;
 export const L03_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'reef', 'pause', 'resume', 'reset'] as const;
@@ -8,11 +8,12 @@ export const L05_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'decision_pa
 type LessonId = 'L02' | 'L03' | 'L04' | 'L05';
 export type LessonAction = (typeof L02_SEMANTIC_ACTIONS)[number] | (typeof L03_SEMANTIC_ACTIONS)[number] | (typeof L04_SEMANTIC_ACTIONS)[number] | (typeof L05_SEMANTIC_ACTIONS)[number];
 
-export interface DraftLessonManifest extends Omit<L01Manifest, 'lesson_id' | 'validation_record_id' | 'initial_state' | 'permitted_actions'> {
+export interface DraftLessonManifest extends Omit<L01Manifest, 'lesson_id' | 'validation_record_id' | 'initial_state' | 'permitted_actions' | 'synthetic_safety_event'> {
   lesson_id: LessonId;
   validation_record_id: 'VR-L02-v0' | 'VR-L03-v0' | 'VR-L04-v0' | 'VR-L05-v0';
   initial_state: string;
   permitted_actions: readonly LessonAction[];
+  synthetic_safety_event?: SyntheticSafetyEventDeclaration<LessonAction>;
 }
 
 const common = {
@@ -29,7 +30,14 @@ const common = {
 export const l02Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L02', scenario_version: 'l02-scenario-v0-draft', validation_record_id: 'VR-L02-v0',
   initial_state: 'training-sloop-v1 steady-wind synthetic main/jib trim fixture',
-  required_observations: ['apparent_wind_angle', 'declared_trim_feedback', 'main_sheet', 'jib_sheet', 'declared_speed_response', 'control_stability'],
+  required_observations: [
+    { key: 'apparent_wind_angle', accessible_label: 'Apparent wind angle / 체감 바람 각도', status: 'declared_unavailable' },
+    { key: 'declared_trim_feedback', accessible_label: 'Declared trim feedback / 선언된 트림 피드백', status: 'declared_synthetic' },
+    { key: 'main_sheet', accessible_label: 'Main sheet / 메인 시트', status: 'declared_unavailable' },
+    { key: 'jib_sheet', accessible_label: 'Jib sheet / 집 시트', status: 'declared_unavailable' },
+    { key: 'declared_speed_response', accessible_label: 'Declared speed response / 선언된 속도 반응', status: 'declared_unavailable' },
+    { key: 'control_stability', accessible_label: 'Control stability / 제어 안정성', status: 'declared_unavailable' },
+  ] as const,
   permitted_actions: L02_SEMANTIC_ACTIONS, checkpoints: ['identify_initial_trim', 'record_main_jib_adjustment', 'reach_declared_stable_trim'],
   pass_semantics: 'Draft-only stable-trim causality; no speed or safety metric is asserted.', fail_semantics: 'Draft-only unexplained response or declared terminal boundary.',
   safe_recovery_semantics: 'Draft-only: return controls to a declared recoverable state; prior instability stays recorded.',
@@ -40,7 +48,12 @@ export const l02Manifest: DraftLessonManifest = Object.freeze({
 export const l03Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L03', scenario_version: 'l03-scenario-v0-draft', validation_record_id: 'VR-L03-v0',
   initial_state: 'training-sloop-v1 deterministic synthetic gust/wave episode before its declared checkpoint',
-  required_observations: ['gust_wave_cue', 'apparent_wind', 'sail_reef_state', 'declared_control_indicator'],
+  required_observations: [
+    { key: 'gust_wave_cue', accessible_label: 'Synthetic gust/wave cue / 합성 돌풍·파도 신호', status: 'declared_synthetic' },
+    { key: 'apparent_wind', accessible_label: 'Apparent wind / 체감 바람', status: 'declared_unavailable' },
+    { key: 'sail_reef_state', accessible_label: 'Sail reef state / 세일 리프 상태', status: 'declared_synthetic' },
+    { key: 'declared_control_indicator', accessible_label: 'Declared control indicator / 선언된 제어 표시', status: 'declared_unavailable' },
+  ] as const,
   permitted_actions: L03_SEMANTIC_ACTIONS, checkpoints: ['observe_episode', 'record_conservative_mitigation', 'reach_declared_post_episode_control'],
   pass_semantics: 'Draft-only: conservative synthetic mitigation can satisfy the declared checkpoint.', fail_semantics: 'Draft-only ignored episode, omitted mitigation, or declared terminal boundary.',
   safe_recovery_semantics: 'Draft-only recoverable episode may be mitigated; this is not real-world reef timing advice.',
@@ -51,7 +64,14 @@ export const l03Manifest: DraftLessonManifest = Object.freeze({
 export const l04Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L04', scenario_version: 'l04-scenario-v0-draft', validation_record_id: 'VR-L04-v0',
   initial_state: 'training-sloop-v1 synthetic declared current-to vector and declared virtual mark',
-  required_observations: ['heading', 'cog', 'stw', 'sog', 'drift', 'declared_mark_relation'],
+  required_observations: [
+    { key: 'heading', accessible_label: 'Heading / 선수 방향', status: 'declared_unavailable' },
+    { key: 'cog', accessible_label: 'Course over ground / 지상 항로', status: 'declared_unavailable' },
+    { key: 'stw', accessible_label: 'Speed through water / 대수 속력', status: 'declared_unavailable' },
+    { key: 'sog', accessible_label: 'Speed over ground / 대지 속력', status: 'declared_unavailable' },
+    { key: 'drift', accessible_label: 'Drift / 표류', status: 'declared_unavailable' },
+    { key: 'declared_mark_relation', accessible_label: 'Declared virtual mark relation / 선언된 가상 마크 관계', status: 'declared_synthetic' },
+  ] as const,
   permitted_actions: L04_SEMANTIC_ACTIONS, checkpoints: ['identify_declared_vector_difference', 'record_correction', 'reach_declared_mark_acceptance'],
   pass_semantics: 'Draft-only declared synthetic mark acceptance; a slower valid correction remains valid.', fail_semantics: 'Draft-only ignored synthetic current or declared terminal boundary.',
   safe_recovery_semantics: 'Draft-only recoverable miss stays recorded before a later valid correction.',
@@ -62,7 +82,14 @@ export const l04Manifest: DraftLessonManifest = Object.freeze({
 export const l05Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L05', scenario_version: 'l05-scenario-v0-draft', validation_record_id: 'VR-L05-v0',
   initial_state: 'training-sloop-v1 synthetic tide/depth/visibility timeline and decision gate',
-  required_observations: ['synthetic_tide_state', 'scenario_depth', 'synthetic_depth_datum', 'declared_clearance', 'visibility', 'route_state'],
+  required_observations: [
+    { key: 'synthetic_tide_state', accessible_label: 'Synthetic tide state / 합성 조류 상태', status: 'declared_synthetic' },
+    { key: 'scenario_depth', accessible_label: 'Scenario depth / 시나리오 수심', status: 'declared_unavailable' },
+    { key: 'synthetic_depth_datum', accessible_label: 'Synthetic depth datum / 합성 수심 기준', status: 'declared_synthetic' },
+    { key: 'declared_clearance', accessible_label: 'Declared clearance / 선언된 여유', status: 'declared_unavailable' },
+    { key: 'visibility', accessible_label: 'Visibility / 시계', status: 'declared_unavailable' },
+    { key: 'route_state', accessible_label: 'Route state / 경로 상태', status: 'declared_unavailable' },
+  ] as const,
   permitted_actions: L05_SEMANTIC_ACTIONS, checkpoints: ['observe_declared_environment', 'make_decision_before_boundary', 'record_pass_wait_return_outcome'],
   pass_semantics: 'Draft-only: a declared conservative pass, wait, or return may be accepted; transit is not mastery.', fail_semantics: 'Draft-only proceeding without observation or declared terminal boundary.',
   safe_recovery_semantics: 'Draft-only wait or return can be a valid result before the declared terminal boundary.',

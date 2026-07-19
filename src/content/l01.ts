@@ -6,6 +6,22 @@ export const L01_ID = 'L01' as const;
 export const L01_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'pause', 'resume', 'reset'] as const;
 export type L01SemanticAction = (typeof L01_SEMANTIC_ACTIONS)[number];
 
+export type ObservationStatus = 'declared_synthetic' | 'declared_unavailable';
+
+/** A lesson-owned HUD declaration. It does not derive status from simulation state. */
+export interface RequiredObservation {
+  readonly key: string;
+  readonly accessible_label: string;
+  readonly status: ObservationStatus;
+}
+
+/** Optional and deny-by-default synthetic event declaration for contract fixtures. */
+export interface SyntheticSafetyEventDeclaration<Action extends string = string> {
+  readonly action: Action;
+  readonly status: 'declared_synthetic';
+  readonly validation_status: 'unvalidated';
+}
+
 export interface L01Manifest {
   lesson_id: typeof L01_ID;
   scenario_version: string;
@@ -18,8 +34,9 @@ export interface L01Manifest {
   validation_record_id: 'VR-L01-v0';
   validation_disposition: 'assumption';
   initial_state: 'training-sloop-v1 steady-wind synthetic fixture';
-  required_observations: readonly string[];
+  required_observations: readonly RequiredObservation[];
   permitted_actions: readonly L01SemanticAction[];
+  synthetic_safety_event?: SyntheticSafetyEventDeclaration<L01SemanticAction>;
   checkpoints: readonly string[];
   pass_semantics: string;
   fail_semantics: string;
@@ -45,7 +62,12 @@ export const l01Manifest: L01Manifest = Object.freeze({
   validation_record_id: 'VR-L01-v0',
   validation_disposition: 'assumption',
   initial_state: 'training-sloop-v1 steady-wind synthetic fixture',
-  required_observations: ['true_wind_from', 'apparent_wind', 'heading', 'cog'],
+  required_observations: [
+    { key: 'true_wind_from', accessible_label: 'True wind / 실제 바람', status: 'declared_unavailable' },
+    { key: 'apparent_wind', accessible_label: 'Apparent wind / 체감 바람', status: 'declared_unavailable' },
+    { key: 'heading', accessible_label: 'Heading / 선수 방향', status: 'declared_unavailable' },
+    { key: 'cog', accessible_label: 'Course over ground / 지상 항로', status: 'declared_unavailable' },
+  ] as const,
   permitted_actions: L01_SEMANTIC_ACTIONS,
   checkpoints: ['observe_declared_signals', 'record_helm_correction', 'reach_declared_course_state'],
   pass_semantics: 'Draft-only: declared checkpoints complete with no unresolved simulated boundary event.',
