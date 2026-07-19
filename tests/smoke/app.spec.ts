@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { classifyLocalOnlyRequest } from '../../src/app/local-network-policy.js';
 
 test('runs the keyboard-only L01 prototype with visible non-navigation status', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Sailing Training Sloop — L01' })).toBeVisible();
   await expect(page.getByText('Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.')).toBeVisible();
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByText('starboard', { exact: true })).toBeVisible();
+  await expect(page.locator('#debrief')).toContainText('action recorded');
   await page.keyboard.press('Space');
   await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
   await page.keyboard.press('Space');
@@ -13,8 +14,8 @@ test('runs the keyboard-only L01 prototype with visible non-navigation status', 
 });
 
 test('keeps reset attempts locally, supports delete, and makes no unexpected network request', async ({ page }) => {
-  const requests: string[] = [];
-  page.on('request', (request) => requests.push(request.url()));
+  const requests: { url: string; resourceType: string; method: string }[] = [];
+  page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
   const navigation = page.goto('/');
   await expect(page.getByRole('heading', { name: 'Sailing Training Sloop — L01' })).toBeVisible();
   await page.keyboard.press('R');
@@ -23,7 +24,7 @@ test('keeps reset attempts locally, supports delete, and makes no unexpected net
   await expect(page.getByRole('button', { name: /Load attempt-/ })).toBeVisible();
   await page.getByRole('button', { name: /Delete attempt-/ }).click();
   await expect(page.getByText('No saved local attempts.')).toBeVisible();
-  expect(requests.every((url) => url.startsWith('http://127.0.0.1:4173/'))).toBe(true);
+  expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
 });
 
 test('uses visible focus and reduced-motion-safe styles', async ({ page }) => {
@@ -36,17 +37,19 @@ test('uses visible focus and reduced-motion-safe styles', async ({ page }) => {
   await expect(button).toHaveCSS('outline-style', 'solid');
 });
 
-test('projects L02 through L05 as keyboard-operable, visible assumption-only lessons', async ({ page }) => {
+test('projects L02 through L05 as keyboard-operable, manifest-only observation HUDs', async ({ page }) => {
   await page.goto('/');
   const lesson = page.getByLabel('Lesson');
-  for (const [id, key, expected] of [
-    ['L02', 'KeyM', 'declared-adjusted'], ['L03', 'KeyF', 'selected'], ['L04', 'ArrowLeft', 'recoverable_miss_recorded'], ['L05', 'KeyW', 'wait_recorded'],
+  for (const [id, key, observation] of [
+    ['L02', 'KeyM', 'Declared trim feedback / 선언된 트림 피드백'], ['L03', 'KeyF', 'Synthetic gust/wave cue / 합성 돌풍·파도 신호'], ['L04', 'ArrowLeft', 'Declared virtual mark relation / 선언된 가상 마크 관계'], ['L05', 'KeyW', 'Synthetic tide state / 합성 조류 상태'],
   ] as const) {
     await lesson.selectOption(id);
     await expect(page.getByRole('heading', { name: `Sailing Training Sloop — ${id}` })).toBeVisible();
     await expect(page.getByText(/Every lesson is an assumption/)).toBeVisible();
+    await expect(page.locator('#hud')).toContainText(observation);
+    await expect(page.locator('#hud')).toContainText(/declared_(synthetic|unavailable)/);
     await page.keyboard.press(key);
-    await expect(page.getByText(expected, { exact: true })).toBeVisible();
+    await expect(page.locator('#debrief')).toContainText('action recorded');
   }
 });
 
@@ -118,12 +121,55 @@ test('fails closed for a malformed native IndexedDB raw payload and retains an a
 });
 
 test('has keyboard focus order and no beacon or websocket traffic', async ({ page }) => {
-  const webSockets: string[] = []; const requests: string[] = [];
+  const webSockets: string[] = []; const requests: { url: string; resourceType: string; method: string }[] = [];
   page.on('websocket', (socket) => webSockets.push(socket.url()));
-  page.on('request', (request) => requests.push(request.url()));
+  page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
   await page.goto('/');
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Lesson')).toBeFocused();
+  const cadence = page.getByLabel('Browser update cadence');
+  await cadence.selectOption('125');
+  await expect(cadence).toHaveValue('125');
+  await cadence.selectOption('500');
+  await expect(cadence).toHaveValue('500');
+  await page.keyboard.press('Space');
+  await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
   expect(webSockets).toEqual([]);
-  expect(requests.every((url) => url.startsWith('http://127.0.0.1:4173/'))).toBe(true);
+  expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
+});
+
+test('denies every active browser transport before dispatch with a stable local-only reason', async ({ page }) => {
+  const forbiddenRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.url().includes('/api/transport-denial')) forbiddenRequests.push(request.url());
+  });
+  await page.goto('/');
+  const results = await page.evaluate(async () => {
+    const denial = (error: unknown) => {
+      const candidate = error as { name?: unknown; code?: unknown; message?: unknown };
+      return `${candidate.name}:${candidate.code}:${candidate.message}`;
+    };
+    const fetchResult = await fetch('/api/transport-denial').then(() => 'accepted', denial);
+    const xhrOpenResult = (() => {
+      try { new XMLHttpRequest().open('GET', '/api/transport-denial'); return 'accepted'; }
+      catch (error) { return denial(error); }
+    })();
+    const xhrSendResult = (() => {
+      try { new XMLHttpRequest().send(); return 'accepted'; }
+      catch (error) { return denial(error); }
+    })();
+    const socketResult = (() => {
+      try { new WebSocket('ws://127.0.0.1:4173/api/transport-denial'); return 'accepted'; }
+      catch (error) { return denial(error); }
+    })();
+    const beaconResult = (() => {
+      try { navigator.sendBeacon('/api/transport-denial', 'x'); return 'accepted'; }
+      catch (error) { return denial(error); }
+    })();
+    return { fetchResult, xhrOpenResult, xhrSendResult, socketResult, beaconResult };
+  });
+  for (const result of Object.values(results)) {
+    expect(result).toBe('LocalOnlyTransportDeniedError:LOCAL_ONLY_TRANSPORT_DENIED:LOCAL_ONLY_TRANSPORT_DENIED');
+  }
+  expect(forbiddenRequests).toEqual([]);
 });

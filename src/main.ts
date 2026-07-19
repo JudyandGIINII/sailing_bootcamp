@@ -1,14 +1,18 @@
 import { evaluateLessonLoad, evaluatePrototypeEligibility } from './gates/eligibility.js';
 import { normalizeKeyboardAction } from './app/input.js';
-import { createLogicalScheduler } from './app/scheduler.js';
+import { installLocalOnlyTransportGuard } from './app/local-network-policy.js';
+import { BROWSER_CADENCE_PRESETS, createLogicalScheduler, type BrowserCadenceMs } from './app/scheduler.js';
 import { createWorldProjection } from './render/world-projection.js';
 import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayRecord } from './storage/replays.js';
 import { l01ReplayBindings } from './content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindings } from './content/l02-l05.js';
-import { getLessonManifest, isLessonActionAllowed } from './content/lesson-manifest.js';
+import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
 import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
 import { projectDebrief, projectScore } from './scoring/projection.js';
+
+// Install before any app-owned bootstrap work can initiate a browser transport.
+installLocalOnlyTransportGuard();
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Application mount point is missing.');
@@ -39,6 +43,7 @@ mount.innerHTML = `
     <section aria-labelledby="world-heading"><h2 id="world-heading">Synthetic training water</h2><div id="world"></div></section>
     <section aria-labelledby="hud-heading"><h2 id="hud-heading">Accessible status HUD</h2>
       <dl id="hud"></dl>
+      <label for="cadence-select">Browser update cadence</label><select id="cadence-select" aria-describedby="cadence-note"><option value="125">125 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option></select><p id="cadence-note">Browser rendering cadence only; logical tick order is unchanged.</p>
       <p id="controls"></p>
       <p id="pause" role="status"></p>
     </section>
@@ -62,6 +67,7 @@ const eligibility = requiredElement<HTMLElement>('#eligibility');
 const title = requiredElement<HTMLElement>('#lesson-title');
 const controls = requiredElement<HTMLElement>('#controls');
 const lessonSelect = requiredElement<HTMLSelectElement>('#lesson-select');
+const cadenceSelect = requiredElement<HTMLSelectElement>('#cadence-select');
 
 type PendingBrowserSignal =
   | { kind: 'keyboard'; key: string; repeat: boolean }
@@ -85,26 +91,9 @@ function render(): void {
   controls.textContent = `Keyboard: ${currentLesson.controls} R saves this local attempt then resets.`;
   projection.render(session);
   hud.replaceChildren();
-  const fields: [string, string][] = [
-    ['Logical tick', String(session.raw.logical_tick)],
-    ['Helm command', session.raw.helm_command],
-    ['Heading', session.raw.heading],
-    ['COG', session.raw.cog],
-    ['True wind', session.raw.true_wind],
-    ['Apparent wind', session.raw.apparent_wind],
-    ['Domain status', 'Declared unavailable: validation pending'],
-  ];
-  if (session.raw.main_trim) fields.push(['Main trim', session.raw.main_trim]);
-  if (session.raw.jib_trim) fields.push(['Jib trim', session.raw.jib_trim]);
-  if (session.raw.reef_state) fields.push(['Reef state', session.raw.reef_state]);
-  if (session.raw.synthetic_episode) fields.push(['Synthetic episode', session.raw.synthetic_episode]);
-  if (session.raw.declared_navigation_concepts) fields.push(['Synthetic concepts', session.raw.declared_navigation_concepts]);
-  if (session.raw.mark_state) fields.push(['Virtual mark state', session.raw.mark_state]);
-  if (session.raw.synthetic_environment) fields.push(['Synthetic environment', session.raw.synthetic_environment]);
-  if (session.raw.decision_state) fields.push(['Decision state', session.raw.decision_state]);
-  for (const [label, value] of fields) {
-    const term = document.createElement('dt'); term.textContent = label;
-    const description = document.createElement('dd'); description.textContent = value;
+  for (const observation of projectLessonObservations(currentLesson.id) ?? []) {
+    const term = document.createElement('dt'); term.textContent = observation.accessible_label;
+    const description = document.createElement('dd'); description.textContent = observation.status;
     hud.append(term, description);
   }
   pause.textContent = session.paused ? 'PAUSED — explicit resume required; logical state is not progressing.' : 'RUNNING — logical tick scheduler active.';
@@ -194,6 +183,12 @@ function applyAction(action: CanonicalInput['input']['action']): void {
 }
 
 const scheduler = createLogicalScheduler(() => { session = advanceLogicalTick(session); render(); });
+
+cadenceSelect.addEventListener('change', () => {
+  const cadence = Number(cadenceSelect.value);
+  if (!BROWSER_CADENCE_PRESETS.includes(cadence as BrowserCadenceMs)) return;
+  scheduler.setCadence(cadence as BrowserCadenceMs);
+});
 
 function processBrowserSignal(signal: PendingBrowserSignal): void {
   if (signal.kind === 'keyboard') {

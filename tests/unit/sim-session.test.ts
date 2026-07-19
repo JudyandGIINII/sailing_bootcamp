@@ -1,8 +1,31 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { l01ReplayBindings } from '../../src/content/l01.js';
 import { CanonicalInputContractError, applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from '../../src/sim/session.js';
+import { projectDebrief, projectScore } from '../../src/scoring/projection.js';
 import { composeGroundRelativeVelocity } from '../../src/sim/vector.js';
+
+const syntheticSafetyFixture = vi.hoisted(() => ({
+  scenarioVersion: 'synthetic-safety-test-only-v0',
+  policy: Object.freeze({
+    permitted_actions: Object.freeze(['helm_port'] as const),
+    synthetic_safety_event: Object.freeze({ action: 'helm_port' as const, status: 'declared_synthetic' as const, validation_status: 'unvalidated' as const }),
+  }),
+}));
+
+// Test-only module replacement proves session/replay consult the resolver themselves;
+// production APIs cannot receive this policy as an argument.
+vi.mock('../../src/content/lesson-manifest.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/content/lesson-manifest.js')>();
+  return {
+    ...actual,
+    resolveLessonPolicy(identity: Parameters<typeof actual.resolveLessonPolicy>[0]) {
+      return identity.scenario_version === syntheticSafetyFixture.scenarioVersion
+        ? syntheticSafetyFixture.policy
+        : actual.resolveLessonPolicy(identity);
+    },
+  };
+});
 
 const fixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'utf8')) as {
   identity: Parameters<typeof createSession>[0];
@@ -83,6 +106,24 @@ describe('deterministic raw L01 session', () => {
     expect(denied.paused).toBe(false);
   });
 
+  it('has no public policy injection path and treats unknown registry bindings as immutable direct/replay denials', () => {
+    const identity = { ...l01ReplayBindings, seed: 'forged-policy', ordered_input_log: [] };
+    const forgedPolicy = Object.freeze({ permitted_actions: Object.freeze(['reef'] as const) });
+    // @ts-expect-error createSession accepts only a replay identity, never a caller policy.
+    createSession(identity, forgedPolicy);
+    const sessionWithExtraJsArgument = (createSession as unknown as (replayIdentity: typeof identity, policy: typeof forgedPolicy) => ReturnType<typeof createSession>)(identity, forgedPolicy);
+    expect(sessionWithExtraJsArgument).not.toHaveProperty('policy');
+    expect(applyCanonicalInput(sessionWithExtraJsArgument, { logical_tick: 0, sequence: 1, input: { action: 'reef' } })).toBe(sessionWithExtraJsArgument);
+
+    const forgedIdentity = { ...identity, model_version: 'forged-model-version' };
+    const unknown = createSession(forgedIdentity);
+    const denied = applyCanonicalInput(unknown, { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
+    expect(denied).toBe(unknown);
+    expect({ raw: denied.raw, ledger: denied.ledger, paused: denied.paused }).toEqual({ raw: unknown.raw, ledger: unknown.ledger, paused: unknown.paused });
+    expect(() => replayInputs(forgedIdentity, [], 1)).toThrow(/REPLAY_ACTION_DISALLOWED/);
+    expect(() => replayInputs(forgedIdentity, [{ logical_tick: 0, sequence: 1, input: { action: 'helm_port' } }], 1)).toThrow(/REPLAY_ACTION_DISALLOWED/);
+  });
+
   it.each(disallowedReplayInputCases)('preflights disallowed replay actions at start, middle, or end', (inputs) => {
     const identity = { ...l01ReplayBindings, seed: 'replay-policy', ordered_input_log: inputs };
     try {
@@ -92,5 +133,18 @@ describe('deterministic raw L01 session', () => {
       expect(error).toBeInstanceOf(CanonicalInputContractError);
       expect((error as CanonicalInputContractError).reason_code).toBe('REPLAY_ACTION_DISALLOWED');
     }
+  });
+
+  it('projects synthetic unvalidated safety causality for direct and replay resolver fixtures', () => {
+    const identity = { ...l01ReplayBindings, scenario_version: syntheticSafetyFixture.scenarioVersion, seed: 'synthetic-safety', ordered_input_log: [] };
+    const direct = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
+    const replay = replayInputs(identity, [{ logical_tick: 0, sequence: 1, input: { action: 'helm_port' } }], 1);
+    for (const session of [direct, replay]) {
+      const safety = session.ledger.find((event) => event.type === 'SAFETY_BLOCKED');
+      expect(safety).toEqual(expect.objectContaining({ synthetic: true, contract_status: 'UNVALIDATED_DOMAIN_MODEL', cause: 'manifest-declared synthetic event' }));
+      expect(projectScore(session.raw, session.ledger)).toEqual({ status: 'blocked_by_safety_contract', safety: 'blocked', total_points: 0, causal_event_ids: [safety!.id] });
+      expect(projectDebrief(session.raw, session.ledger)).toContainEqual({ id: `safety:${safety!.id}`, kind: 'safety_blocked', cause_event_id: safety!.id });
+    }
+    expect(createSession({ ...l01ReplayBindings, seed: 'no-safety', ordered_input_log: [] }).ledger).not.toContainEqual(expect.objectContaining({ type: 'SAFETY_BLOCKED' }));
   });
 });
