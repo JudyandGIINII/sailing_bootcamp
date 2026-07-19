@@ -11,18 +11,22 @@
 - [x] Browser technical option research and architecture recommendation
 - [x] Coordinate/determinism/replay/prototype-release technical contracts
 - [x] MVP implementation plan and documentation handoff
+- [x] Handoff P0/P1 hardening: bootstrap-before-contract tests, canonical full replay identity, bounded AP-0 ceilings, input/storage lifecycle, P1 artifact-manifest requirements
+- [x] Claude Opus independent review P1/P2 remediation: comparison-policy required binding and draft policy, explicit `contract_version` bundle meaning, non-draft validated-release invariant, immediate scheduler stop on focus/visibility loss, sim-boundary static check, Task 2A/2B split
+- [x] AP-0A in isolated Orca worktree: Vite/strict TypeScript/Vitest/Playwright bootstrap plus fail-closed replay/release/determinism contract tests; independent verification passed (15 unit tests, Chromium smoke, build)
 - [x] Local Git documentation checkpoint created; `origin` configured (push pending)
 
 ## Blocked / Waiting
 
 - [ ] Domain review evidence and reviewer/authority acceptance — release blocker only
-- [ ] Concrete model/contract/coordinate/determinism version bindings — required before validation can become `validated`
-- [ ] P1 browser/accessibility/pilot/operations/privacy artifacts — release blocker only
-- [ ] AP-0 user approval to begin prototype code bootstrap
+- [ ] Concrete model/contract/coordinate/determinism/comparison-policy version bindings — required before validation can become `validated`
+- [ ] Versioned P1 browser/accessibility/pilot/operations/replay-compatibility/privacy artifact manifest and approvals — release blocker only
+- [ ] AP-0A worktree checkpoint/integration decision — source and lockfile are verified but uncommitted in `sailing-ap0a-bootstrap-contract`; no shared-main integration, commit, push, or release occurred
+- [ ] AP-0B/C user approval to extend bounded prototype scope
 
 ## Next
 
-1. On explicit AP-0 approval, create an Orca worktree and execute Task 0: contract schemas plus negative tests.
-2. Bootstrap Vite/TypeScript/PixiJS/Vitest/Playwright only after current compatibility checks.
-3. Implement headless deterministic core and L01 vertical slice before L02–L05.
+1. On explicit AP-0B approval, implement Task 1 gate evaluator only after preserving the AP-0A checkpoint boundary.
+2. Under AP-0B, implement Task 2A raw deterministic ledger/golden replay, then Task 2B score/debrief causality; do not begin L01 UI unless the ceiling still permits it.
+3. Make a user-directed checkpoint/integration decision for the verified AP-0A worktree before any commit/push; no release action is implied.
 4. Keep release check fail-closed while registry remains `assumption`.

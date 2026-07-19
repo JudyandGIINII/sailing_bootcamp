@@ -17,17 +17,20 @@
 | 필드 | 값/정책 |
 |---|---|
 | `boat_profile_version` | `training-sloop-v1` |
-| `coordinate_contract_version` | PRD §8.0의 승인 전 가정 계약을 참조 |
-| `determinism_contract_version` | PRD §8.3의 승인 전 가정 계약을 참조 |
-| `comparison_policy_version` | 레슨별 scenario/model/contract 승인 후 지정 |
-| replay identity | `scenario_version + seed + input_log + model_version + boat_profile_version + contract_version` |
-| 저장 경계 | replay/telemetry는 로컬 브라우저 한정. 서버 전송은 별도 승인 전 금지 |
+| `contract_version` | `lesson-model-contract-v0-draft`: lesson schema와 model-interface bundle; coordinate/determinism/comparison 세부 정책을 대체하지 않음 |
+| `coordinate_contract_version` | `coordinate-contract-v1-draft` — PRD §8.0의 승인 전 가정 계약 |
+| `determinism_contract_version` | `determinism-replay-contract-v1-draft` — PRD §8.3 및 input lifecycle 계약 |
+| `comparison_policy_version` | `comparison-policy-v1-draft` — golden replay canonical fields/equality-tolerance 구조; 항해 임계값을 승인하지 않음 |
+| replay identity | `scenario_version + seed + ordered_input_log + model_version + boat_profile_version + contract_version + coordinate_contract_version + determinism_contract_version + comparison_policy_version` — 모든 필드가 호환되어야 함 |
+| 저장 경계 | replay/telemetry는 로컬 브라우저 한정. 서버 전송은 별도 승인 전 금지. 사용자는 replay 목록 조회·개별 삭제가 가능하며 reset은 기존 attempt를 암묵적으로 지우지 않음 |
 
 ### 2.2 방향·좌표·결정론 선언
 
 모든 레슨 manifest는 PRD §8.0의 좌표 frame·원점, 각도 0°·회전 방향, wind `from`, current `to`, 거리/속력/시간 단위, 수심 datum, 벡터 합성 순서, 반올림·클램프 정책을 명시적으로 참조한다. 실제 값은 검증 전 가정이며 각 validation record에서 검토한다.
 
-모든 레슨은 PRD §8.3에 따라 시간 진행 방식 또는 동등한 입력 순서 식별자, seed/난수 소비 정책, state-update 순서, event tie-break, pause(시뮬레이션 비진행), reset(선언된 초기상태 복원), 비교 대상 state/event/score/debrief 필드를 선언한다.
+모든 레슨은 PRD §8.3 및 `docs/contracts/determinism-replay-contract.md`에 따라 시간 진행 방식 또는 동등한 입력 순서 식별자, seed/난수 소비 정책, state-update 순서, event tie-break, pause(시뮬레이션 비진행), reset(선언된 초기상태 복원), 비교 대상 state/event/score/debrief 필드를 선언한다. focus-loss/visibility는 scheduler cadence를 즉시 정지하고 explicit resume action 뒤에만 재개되며, key-repeat은 선언된 logical action으로 정규화한다.
+
+identity가 missing/unknown/incompatible이면 레슨은 approximate replay를 하지 않고 stable reason code로 거부한다. 이때 원본 local replay payload는 삭제하거나 변경하지 않는다.
 
 ### 2.3 공통 점수·안전 불변식
 
@@ -136,11 +139,11 @@
 | §7.2/§7.2.1 | L01–L05 콘텐츠 manifest와 필수 계약 필드 |
 | §7.3 | 안전 비상쇄, 인과 점수, recovery 기록 |
 | §8.0 | 좌표·단위·방향 contract 선언 |
-| §8.3 | replay identity·pause/reset·입력 순서·비교 정책 |
-| §10 | local-only replay/telemetry와 P1 품질 게이트 참조 |
+| §8.3 | full replay identity·pause/reset·input lifecycle·비교 정책 |
+| §10 | local-only replay/telemetry, local lifecycle와 P1 품질 게이트 참조 |
 | §12.1 | `VR-L01-v0`~`VR-L05-v0` 도메인 검증 레코드 |
 | §12.2 | browser/accessibility/pilot/release/privacy 승인 artifact 미승인 상태 |
 
 ### 출시 상태
 
-모든 레슨의 초기 validation record disposition은 `assumption`이다. 따라서 L01–L05는 현재 **문서화된 콘텐츠 초안이며 출시 불가**다. 레슨의 scenario/model/profile/coordinate/determinism contract가 변경되면 해당 record의 승인을 재사용하지 않는다.
+모든 레슨의 초기 validation record disposition은 `assumption`이고 version binding은 draft다. 따라서 L01–L05는 현재 **문서화된 콘텐츠 초안이며 출시 불가**다. `validated` 전환에는 scenario/model/profile/contract/coordinate/determinism/comparison-policy의 concrete approved binding이 모두 필요하다. 이 중 하나라도 변경되면 해당 record의 승인을 재사용하지 않는다.

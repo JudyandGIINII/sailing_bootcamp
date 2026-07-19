@@ -185,15 +185,15 @@ MVP의 유일한 플레이 가능 프로필은 `training-sloop-v1`이다. 마스
 - 트림, reef, 파도, 안전 상태는 명시적 보정 계수로 기본값을 조정한다.
 - 조류 벡터를 물 기준 선속에 합성해 SOG/COG를 계산한다.
 - 레슨은 Training Sloop에서 허용되는 조작 목록을 선언한다. 지원되지 않는 조작은 시작 전 차단하거나 명확히 비활성화한다.
-- 같은 `scenario version + seed + input log + model version + boat profile version + contract version`은 §8.3의 승인된 비교 정책에 따라 같은 주요 상태·이벤트·채점 결과를 재현해야 한다.
+- 같은 `scenario_version + seed + ordered_input_log + model_version + boat_profile_version + contract_version + coordinate_contract_version + determinism_contract_version + comparison_policy_version`은 §8.3의 승인된 비교 정책에 따라 같은 주요 상태·이벤트·채점 결과를 재현해야 한다.
 - 모든 계수·임계값은 콘텐츠/모델 버전으로 기록하고 디브리프에서 사용자 친화적으로 설명한다.
 - 결정론 재생의 비교 대상, 입력 순서와 pause/reset 의미는 §8.3 결정론 계약을 단일 기준으로 따른다.
 
 ### 8.3 결정론 계약
 
-각 scenario/model contract는 replay에 대해 다음을 사전 선언한다: 시간 진행 방식(fixed tick 또는 동등한 입력 순서 식별자), input log 순서 식별, seed와 난수 소비 정책, 상태 업데이트 순서, 동시 이벤트 tie-break, pause의 비진행 의미, reset의 초기 상태 복원 의미, 비교 대상 state/event/score 필드, 비교 정책 version.
+각 scenario/model contract는 replay에 대해 다음을 사전 선언한다: 시간 진행 방식(fixed tick 또는 동등한 입력 순서 식별자), input log 순서 식별, seed와 난수 소비 정책, 상태 업데이트 순서, 동시 이벤트 tie-break, pause의 비진행 의미, reset의 초기 상태 복원 의미, focus-loss/visibility의 즉시 scheduler 정지와 explicit resume, 비교 대상 state/event/score 필드, 비교 정책 version. `contract_version`은 lesson contract schema와 model-interface bundle의 버전이며 coordinate/determinism/comparison 세부 버전과 별도로 선언한다.
 
-- 같은 `scenario_version + seed + input_log + model_version + boat_profile_version + contract_version`은 선언된 비교 대상의 주요 상태 궤적, 이벤트, 채점, 디브리프를 재현해야 한다.
+- 같은 `scenario_version + seed + ordered_input_log + model_version + boat_profile_version + contract_version + coordinate_contract_version + determinism_contract_version + comparison_policy_version`은 선언된 비교 대상의 주요 상태 궤적, 이벤트, 채점, 디브리프를 재현해야 한다. 일부 식별 필드가 missing/unknown/incompatible이면 approximate replay를 금지하고 원본 local record를 보존한 채 실행을 거부한다.
 - 구현 알고리즘과 수치 tolerance는 PRD 본문에서 발명하지 않으며, 기술 검증 문서와 도메인/QA 승인 레코드에서 versioned policy로 확정한다.
 
 ## 9. 기능 요구사항
@@ -207,7 +207,7 @@ MVP의 유일한 플레이 가능 프로필은 `training-sloop-v1`이다. 마스
 | FR-05 | 시스템은 수심 여유 임계값에 따른 주의/위험 이벤트를 기록한다. | 임계값 통과 시 정확히 한 번의 이벤트가 남는다. |
 | FR-06 | 레슨은 체크포인트와 안전/목표/회복 조건을 제공한다. | L01–L05 각각이 §7.2.1의 전 레슨 계약 필드와 validation record를 가진다. |
 | FR-07 | 디브리프는 관측·판단·행동·결과·점수 원인을 연결한다. | 점수 변화마다 원인 이벤트, 안전 episode 및 Training Sloop의 선언된 모델 상태로 이동할 수 있다. |
-| FR-08 | 사용자는 동일 조건으로 즉시 재시작하고 결과를 비교한다. | replay에 scenario/seed/model/boat profile/contract version이 보존되고, 기본 저장·비교는 로컬 브라우저에서만 수행된다. |
+| FR-08 | 사용자는 동일 조건으로 즉시 재시작하고 결과를 비교한다. | replay에 full identity(`scenario`, `seed`, ordered input, model/profile/contract, coordinate/determinism/comparison-policy version)가 보존되고, 기본 저장·비교는 로컬 브라우저에서만 수행된다. incompatible replay는 stable reason code로 거부하며 original local record를 보존한다. |
 | FR-09 | 온보딩과 결과 화면은 실제 항해·안전·자격 대체가 아님을 고지한다. | 신규 사용자가 레슨 전후 고지를 본다. |
 | FR-10 | Training Sloop의 버전형 보트 프로필을 제공하고, 후속 선체·리그 확장을 위한 분리된 데이터 방향을 유지한다. | MVP는 `training-sloop-v1`에 필요한 hull/rig/polar/draft/safety/controls/model version 필드만 요구하며, 다른 프로필의 실제 데이터·선택 UI를 요구하지 않는다. |
 | FR-11 | Training Sloop와 레슨 호환성을 검증한다. | MVP 카탈로그에는 `training-sloop-v1`만 존재하며 L01–L05는 모두 이 프로필과 호환된다. |
@@ -228,7 +228,7 @@ MVP의 유일한 플레이 가능 프로필은 `training-sloop-v1`이다. 마스
 
 ### 수용 기준
 
-1. `scenario + seed + input log + model version + boat profile version + contract version`이 같으면 §8.3의 승인된 비교 정책에 따라 주요 상태·이벤트·채점 결과가 재현된다.
+1. `scenario_version + seed + ordered_input_log + model_version + boat_profile_version + contract_version + coordinate_contract_version + determinism_contract_version + comparison_policy_version`이 같으면 §8.3의 승인된 비교 정책에 따라 주요 상태·이벤트·채점 결과가 재현된다. missing/unknown/incompatible identity는 approximate replay 없이 stable reason code로 거부하고 original local record를 보존한다.
 2. 무풍·무조류·무파 fixture 및 조류/조석/파도 단일변수 fixture는 해당 validation record가 선언한 벡터·폴라·수심 비교 정책을 만족한다.
 3. MVP 보트 profile은 Training Sloop에 필요한 hull/rig/polar/draft/safety/controls/model version 필드를 버전 관리한다. 다중 hull/rig 비교는 Post-MVP 요구사항이다.
 4. MVP에는 `training-sloop-v1`만 존재하고 L01–L05 모두 이 프로필을 사용하며, 지원 밖의 조작은 시작 전에 차단된다.
@@ -252,17 +252,19 @@ MVP의 유일한 플레이 가능 프로필은 `training-sloop-v1`이다. 마스
 
 ### 12.1 도메인 검증 레지스터 — 출시 차단 게이트
 
-L01–L05 및 Training Sloop의 물리·안전·채점 가정은 lesson-level **도메인 검증 레지스터**로 관리한다. 각 레코드는 `validation_record_id`, claim 또는 assumption, source 또는 근거 부재 사유, scenario/model/contract version, reviewer, review_date, disposition(`assumption | partially_validated | validated | rejected`)을 가져야 한다.
+L01–L05 및 Training Sloop의 물리·안전·채점 가정은 lesson-level **도메인 검증 레지스터**로 관리한다. 각 레코드는 `validation_record_id`, claim 또는 assumption, source 또는 근거 부재 사유, scenario/model/boat profile/contract/coordinate/determinism/comparison-policy version, reviewer, review_date, disposition(`assumption | partially_validated | validated | rejected`)을 가져야 한다.
 
 초기 machine-readable 초안은 [`docs/content/domain-validation-registry.yaml`](docs/content/domain-validation-registry.yaml)에 두며, 레슨 계약 원문은 [`docs/content/mandatory-lessons-l01-l05.md`](docs/content/mandatory-lessons-l01-l05.md)에 둔다.
 
 - 폴라, 대표 세일 구성, 흘수, 수심 여유, reef·돌풍·파도·시정 임계값, 안전 회복 의미, 채점 가중치 및 레슨 통과 기준은 레지스터의 검증 대상이다.
 - `validated`가 아닌 가정은 UI·디브리프에서 시뮬레이션 전용 가정으로 취급하며 실제 항해의 안전 수치로 표현하지 않는다.
-- 출시 대상 레슨에 `rejected` 또는 미승인 record가 남아 있으면 그 레슨은 출시에서 제외한다. 승인자와 반려 레슨 disposition 방식은 명시적 사용자/운영 결정이 필요하다.
+- 출시 대상 레슨에 `rejected` 또는 미승인 record가 남아 있으면 그 레슨은 출시에서 제외한다. `validated` record라도 위 version binding 중 하나가 missing, `TBD`, draft, unapproved, incompatible이면 출시에서 제외한다. 승인자와 반려 레슨 disposition 방식은 명시적 사용자/운영 결정이 필요하다.
 
 ### 12.2 P1 품질·파일럿·릴리스 승인 artifact
 
 다음은 PRD에서 임의 수치를 확정하지 않으며, 출시 전 별도 승인 artifact에 **값·근거·승인 주체·승인일·중단 조건**을 기록해야 한다.
+
+승인 artifact는 `docs/quality/prototype-and-release-gates.md`의 versioned P1 manifest 최소 필드(artifact identity, 대상 범위, evidence, approver/disposition, stale rule, 필요한 rollback/incompatibility reference)를 모두 가져야 하며, 단순 문서 존재만으로 충족되지 않는다.
 
 | 게이트 | 승인 artifact에서 확정할 내용 |
 |---|---|

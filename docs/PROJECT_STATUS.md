@@ -1,20 +1,21 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-19 KST
-> 상태: **Implementation planning complete / Prototype not started**
+> 상태: **AP-0A foundation verified in isolated worktree / shared-main integration and AP-0B pending**
 
 ## 1. 현재 위치
 
-프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획이 완료된 **구현 전 단계**다. 앱 코드, package manifest, dependency, Git worktree, 테스트 런타임은 아직 없다.
+프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. AP-0A TypeScript bootstrap과 contract negative tests는 isolated Orca worktree에서 검증됐지만, shared `main`에는 아직 앱 코드·package manifest·dependency·테스트 런타임이 없다.
 
 ## 2. 완료된 기반
 
 - 제품 결정 D1–D6: browser, 입문자, 장기 boat/rig catalog, 가상 수역, Sloop-only MVP, 물리훈련 보조/약한 게임성
 - C1: L01–L05 전체가 `training-sloop-v1`의 MVP 필수 레슨
-- 결정론 contract: versioned scenario/seed/input/model/profile/contract identity, replay, pause/reset/retry, event/score/debrief comparison
+- 결정론 contract: full versioned replay identity(scenario/seed/ordered input/model/profile/contract/coordinate/determinism/comparison policy), replay, pause/reset/retry, input lifecycle, event/score/debrief comparison
 - 안전·점수 원칙: 속도/진행은 safety violation을 상쇄하지 못함
 - 검증 체계: validation registry, reviewer submission, qualification/control-apply runbook
 - 기술 권고: TypeScript/Vite/PixiJS/DOM/Vitest/Playwright/IndexedDB
+- Claude Opus 독립 검토 P1/P2 반영: comparison-policy draft binding, non-draft release binding, `contract_version` 의미, focus-loss scheduler stop, static sim boundary, Task 2A/2B 분리
 
 ## 3. 현재 gate 상태
 
@@ -26,7 +27,7 @@
 
 ## 4. 구현 전 AP-0
 
-사용자 명시 구현 승인이 필요하다. 승인 범위는 code/dependency/worktree bootstrap으로 한정되며 release 권한은 포함하지 않는다.
+사용자 명시 구현 승인이 필요하다. AP-0A(bootstrap+contract tests)는 2026-07-19 isolated worktree에서 완료·검증됐으며 source/lockfile은 아직 uncommitted이다. 다음 구현은 AP-0B(L01까지) 또는 AP-0C(L05/resilience/release evidence까지) 중 별도 ceiling 승인이 필요하다. 어느 scope도 release 권한을 포함하지 않는다.
 
 ## 4.1 버전 관리 checkpoint
 
@@ -34,14 +35,14 @@
 
 ## 5. 첫 구현 slice
 
-1. coordinate/determinism/replay/gate contract를 code schema·negative tests로 동결
-2. Vite TypeScript shell, strict typecheck, Vitest, Playwright lane 구축
-3. renderer 없는 deterministic core + golden replay
-4. L01 vertical slice: keyboard → sim → PixiJS → DOM HUD/debrief → IndexedDB replay
+1. **완료/미통합:** Vite TypeScript shell, lockfile, strict typecheck, Vitest 15 tests, Playwright Chromium smoke, production build, contract negative tests
+2. **다음 AP-0B 후:** Task 1 gate evaluator
+3. renderer 없는 deterministic core + raw golden replay(Task 2A), 이어서 score/debrief causality(Task 2B)
+4. L01 vertical slice: keyboard → sim → PixiJS → DOM HUD/debrief → IndexedDB replay lifecycle
 
 ## 6. launch 전 별도 의존성
 
-- review record의 `validated` disposition 및 concrete version binding
+- review record의 `validated` disposition 및 concrete model/contract/coordinate/determinism/comparison-policy version binding
 - browser/accessibility/pilot/operations/replay compatibility/privacy P1 artifacts
 - 별도 release authority evidence
 

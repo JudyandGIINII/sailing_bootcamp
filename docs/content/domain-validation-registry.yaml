@@ -9,14 +9,18 @@ allowed_dispositions:
   - rejected
 release_rule: >-
   A lesson is release-ineligible unless its referenced validation record is validated
-  and all dependent P1 approval artifacts are approved. assumption, partially_validated,
-  rejected, missing, or otherwise unapproved records block release.
+  and all dependent P1 approval artifacts are approved, and its scenario/model/
+  boat-profile/contract/coordinate/determinism/comparison-policy versions are all
+  concrete, mutually compatible, and approved (not TBD or draft). assumption,
+  partially_validated, rejected, missing, stale, draft, TBD, or otherwise unapproved
+  records or version bindings block release.
 common_policy:
   simulation_only: true
   real_navigation_or_safety_authority: prohibited
   local_only_replay_and_telemetry: true
   server_transmission_before_separate_approval: prohibited
   no_numeric_thresholds_in_this_draft: true
+  validated_requires_non_draft_compatible_version_bindings: true
 required_record_fields:
   - validation_record_id
   - lesson_id
@@ -28,6 +32,7 @@ required_record_fields:
   - contract_version
   - coordinate_contract_version
   - determinism_contract_version
+  - comparison_policy_version
   - coverage
   - reviewer
   - review_date
@@ -40,11 +45,12 @@ records:
       boundary predicate, score and retry comparison semantics for training-sloop-v1.
     source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
     scenario_version: l01-scenario-v0-draft
-    model_version: TBD
+    model_version: training-sloop-model-v0-draft
     boat_profile_version: training-sloop-v1
-    contract_version: TBD
-    coordinate_contract_version: TBD
-    determinism_contract_version: TBD
+    contract_version: lesson-model-contract-v0-draft
+    coordinate_contract_version: coordinate-contract-v1-draft
+    determinism_contract_version: determinism-replay-contract-v1-draft
+    comparison_policy_version: comparison-policy-v1-draft
     coverage:
       - true/apparent-wind relationship
       - heading/COG/course objective semantics
@@ -60,11 +66,12 @@ records:
       recovery, score and retry comparison semantics for training-sloop-v1.
     source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
     scenario_version: l02-scenario-v0-draft
-    model_version: TBD
+    model_version: training-sloop-model-v0-draft
     boat_profile_version: training-sloop-v1
-    contract_version: TBD
-    coordinate_contract_version: TBD
-    determinism_contract_version: TBD
+    contract_version: lesson-model-contract-v0-draft
+    coordinate_contract_version: coordinate-contract-v1-draft
+    determinism_contract_version: determinism-replay-contract-v1-draft
+    comparison_policy_version: comparison-policy-v1-draft
     coverage:
       - main and jib trim feedback
       - polar and stability assumptions
@@ -80,11 +87,12 @@ records:
       boundary, safety-first score and retry semantics for training-sloop-v1.
     source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
     scenario_version: l03-scenario-v0-draft
-    model_version: TBD
+    model_version: training-sloop-model-v0-draft
     boat_profile_version: training-sloop-v1
-    contract_version: TBD
-    coordinate_contract_version: TBD
-    determinism_contract_version: TBD
+    contract_version: lesson-model-contract-v0-draft
+    coordinate_contract_version: coordinate-contract-v1-draft
+    determinism_contract_version: determinism-replay-contract-v1-draft
+    comparison_policy_version: comparison-policy-v1-draft
     coverage:
       - gust and wave cues
       - reef timing/effect assumptions
@@ -100,11 +108,12 @@ records:
       mark acceptance, recovery, score and retry comparison semantics.
     source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
     scenario_version: l04-scenario-v0-draft
-    model_version: TBD
+    model_version: training-sloop-model-v0-draft
     boat_profile_version: training-sloop-v1
-    contract_version: TBD
-    coordinate_contract_version: TBD
-    determinism_contract_version: TBD
+    contract_version: lesson-model-contract-v0-draft
+    coordinate_contract_version: coordinate-contract-v1-draft
+    determinism_contract_version: determinism-replay-contract-v1-draft
+    comparison_policy_version: comparison-policy-v1-draft
     coverage:
       - current-to direction convention
       - vector composition and drift
@@ -120,11 +129,12 @@ records:
       pass/wait/return policy, terminality, score and retry comparison semantics.
     source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
     scenario_version: l05-scenario-v0-draft
-    model_version: TBD
+    model_version: training-sloop-model-v0-draft
     boat_profile_version: training-sloop-v1
-    contract_version: TBD
-    coordinate_contract_version: TBD
-    determinism_contract_version: TBD
+    contract_version: lesson-model-contract-v0-draft
+    coordinate_contract_version: coordinate-contract-v1-draft
+    determinism_contract_version: determinism-replay-contract-v1-draft
+    comparison_policy_version: comparison-policy-v1-draft
     coverage:
       - synthetic tide and depth datum
       - draft and clearance assumptions
