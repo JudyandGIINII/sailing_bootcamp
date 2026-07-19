@@ -1,0 +1,23 @@
+{
+  "name": "sailing-training-sloop-mvp",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:smoke": "playwright test",
+    "build": "tsc --noEmit && vite build"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  }
+}
