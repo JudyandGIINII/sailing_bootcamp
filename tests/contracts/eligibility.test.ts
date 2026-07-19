@@ -32,6 +32,7 @@ describe('L01 content and gate eligibility', () => {
     const replay: ReplayIdentity = { ...l01ReplayBindings, seed: 'test', ordered_input_log: [] };
     expect(validateL01ReplayPayload(replay).eligible).toBe(true);
     expect(validateL01ReplayPayload({ ...replay, comparison_policy_version: 'other' })).toEqual({ eligible: false, mode: 'prototype', reasons: ['REPLAY_IDENTITY_INCOMPATIBLE'] });
+    expect(validateL01ReplayPayload({ ...replay, ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { action: 'reef' } }] })).toEqual({ eligible: false, mode: 'prototype', reasons: ['REPLAY_ACTION_DISALLOWED'] });
     expect(validateL01ReplayPayload({ legacy: true })).toEqual({ eligible: false, mode: 'prototype', reasons: ['REPLAY_IDENTITY_MISSING'] });
   });
 });

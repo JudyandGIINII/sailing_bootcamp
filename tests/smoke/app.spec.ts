@@ -50,6 +50,34 @@ test('projects L02 through L05 as keyboard-operable, visible assumption-only les
   }
 });
 
+test('ignores globally mapped keyboard actions disallowed by the selected lesson', async ({ page }) => {
+  await page.goto('/');
+  const lesson = page.getByLabel('Lesson');
+  const hud = page.locator('#hud');
+  const debrief = page.locator('#debrief');
+
+  for (const [id, key, forbiddenState] of [
+    ['L01', 'KeyF', 'selected'],
+    ['L02', 'KeyF', 'selected'],
+    ['L03', 'KeyP', 'pass_recorded'],
+    ['L04', 'KeyW', 'wait_recorded'],
+    ['L05', 'KeyM', 'declared-adjusted'],
+  ] as const) {
+    await lesson.selectOption(id);
+    await expect(page.getByRole('heading', { name: `Sailing Training Sloop — ${id}` })).toBeVisible();
+    await page.keyboard.press('Space');
+    await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
+    await expect(hud).toBeVisible();
+    const canonicalState = await hud.textContent();
+
+    await page.keyboard.press(key);
+
+    await expect(hud).toHaveText(canonicalState ?? '');
+    await expect(page.getByText(forbiddenState, { exact: true })).not.toBeVisible();
+    await expect(debrief).not.toContainText('lesson checkpoint');
+  }
+});
+
 test('fails closed for a malformed native IndexedDB raw payload and retains an aborted write', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('No saved local attempts.')).toBeVisible();
