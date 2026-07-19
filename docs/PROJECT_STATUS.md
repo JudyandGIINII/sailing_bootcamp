@@ -1,11 +1,11 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-19 KST
-> 상태: **AP-0A foundation verified in isolated worktree / shared-main integration and AP-0B pending**
+> 상태: **AP-0A foundation integrated and verified / AP-0B pending**
 
 ## 1. 현재 위치
 
-프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. AP-0A TypeScript bootstrap과 contract negative tests는 isolated Orca worktree에서 검증됐지만, shared `main`에는 아직 앱 코드·package manifest·dependency·테스트 런타임이 없다.
+프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. AP-0A TypeScript bootstrap과 contract negative tests는 isolated Orca worktree에서 검증된 뒤 shared history에 integrated 되었다.
 
 ## 2. 완료된 기반
 
@@ -27,7 +27,7 @@
 
 ## 4. 구현 전 AP-0
 
-사용자 명시 구현 승인이 필요하다. AP-0A(bootstrap+contract tests)는 2026-07-19 isolated worktree에서 완료·검증됐으며 source/lockfile은 아직 uncommitted이다. 다음 구현은 AP-0B(L01까지) 또는 AP-0C(L05/resilience/release evidence까지) 중 별도 ceiling 승인이 필요하다. 어느 scope도 release 권한을 포함하지 않는다.
+AP-0A(bootstrap+contract tests)는 2026-07-19 integrated/verified 되었다. 다음 구현은 AP-0B(L01까지) 또는 AP-0C(L05/resilience/release evidence까지) 중 별도 ceiling 승인이 필요하다. 어느 scope도 release 권한을 포함하지 않는다.
 
 ## 4.1 버전 관리 checkpoint
 

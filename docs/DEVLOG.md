@@ -14,11 +14,11 @@
 
 - AP-0A worktree: strict `npm run typecheck` passed; `npm test` passed (**15 tests**); Playwright Chromium smoke passed; `npm run build` passed; `git diff --check` passed.
 - Chromium for Playwright was installed to the user cache after the first smoke run reported the browser executable absent. The final independent smoke passed.
-- The worktree source, `package-lock.json`, and test files are intentionally uncommitted; shared `main` remains documentation-only and release remains blocked.
+- The AP-0A source, `package-lock.json`, and test files were committed and integrated after verification; release remains blocked.
 
 ### Next
 
-Await a user-directed AP-0A checkpoint/integration decision and a separate AP-0B authorization before Task 1, Task 2A/2B, or L01 work. `assumption` registry records and P1 approval artifacts still block release.
+Await a separate AP-0B authorization before Task 1, Task 2A/2B, or L01 work. `assumption` registry records and P1 approval artifacts still block release.
 
 ## 2026-07-19 — Handoff P0/P1 ambiguity remediation
 

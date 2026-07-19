@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: AP-0A foundation이 isolated Orca worktree에서 검증되었고 checkpoint/integration 대기 중입니다.** shared `main`에는 아직 앱 소스·패키지 manifest·dependency·테스트 런타임이 없으며, release는 계속 차단됩니다.
+> **현재 상태: AP-0A foundation이 integrated/committed 되었고 AP-0B 승인 대기 중입니다.** release는 계속 차단됩니다.
 
 ## MVP 한 줄 정의
 
@@ -26,7 +26,7 @@
 | L01–L05 콘텐츠 계약 | 완료 — 도메인 검증 전 초안 |
 | 코치/강사 검토·controlled apply 체계 | 완료 — 문서/양식만 존재 |
 | 기술 옵션·구현 계획 | 완료 — 구현 전 권고 |
-| 코드 bootstrap / AP-0A contracts | isolated worktree에서 검증됨 — shared `main` 통합·AP-0B 미승인 |
+| 코드 bootstrap / AP-0A contracts | integrated/committed — AP-0B 미승인 |
 | 도메인 검증·P1·release | **차단됨** |
 
 ## 권고 기술 방향

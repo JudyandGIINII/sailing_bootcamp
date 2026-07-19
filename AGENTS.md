@@ -6,7 +6,7 @@ This workspace defines a browser-based educational sailing simulator, not an act
 
 ## Current phase
 
-Implementation planning is complete. AP-0A bootstrap/contract code is verified but remains uncommitted in its isolated Orca worktree; shared `main` has not received source code. See `docs/PROJECT_STATUS.md` and `docs/HANDOFF.md`.
+Implementation planning is complete. AP-0A bootstrap/contract code is verified and integrated; AP-0B is the next gated implementation ceiling. See `docs/PROJECT_STATUS.md` and `docs/HANDOFF.md`.
 
 ## Authority gates
 
