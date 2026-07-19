@@ -11,6 +11,12 @@ const fixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'u
   expected: { raw: unknown; ledger: unknown };
 };
 
+const disallowedReplayInputCases: readonly (readonly [CanonicalInput[]])[] = [
+  [[{ logical_tick: 0, sequence: 1, input: { action: 'reef' } }]],
+  [[{ logical_tick: 0, sequence: 1, input: { action: 'helm_port' } }, { logical_tick: 1, sequence: 2, input: { action: 'reef' } }]],
+  [[{ logical_tick: 0, sequence: 1, input: { action: 'helm_port' } }, { logical_tick: 2, sequence: 2, input: { action: 'reef' } }]],
+];
+
 describe('deterministic raw L01 session', () => {
   it('matches the raw state/event golden fixture repeatedly', () => {
     const one = replayInputs(fixture.identity, fixture.inputs, fixture.terminal_ticks);
@@ -66,5 +72,25 @@ describe('deterministic raw L01 session', () => {
     const session = replayInputs({ ...l01ReplayBindings, seed: 'cadence', ordered_input_log: [] }, [], 3);
     expect(session.ledger.filter((event) => event.type === 'SESSION_STARTED')).toHaveLength(1);
     expect(replayInputs({ ...l01ReplayBindings, seed: 'cadence', ordered_input_log: [] }, [], 3)).toEqual(session);
+  });
+
+  it('rejects a direct canonical action outside the lesson policy without changing state, pause, RNG, ledger, or checkpoints', () => {
+    const initial = createSession({ ...l01ReplayBindings, seed: 'denied', ordered_input_log: [] });
+    const denied = applyCanonicalInput(initial, { logical_tick: 0, sequence: 1, input: { action: 'reef' } });
+    expect(denied).toBe(initial);
+    expect(denied.raw).toBe(initial.raw);
+    expect(denied.ledger).toBe(initial.ledger);
+    expect(denied.paused).toBe(false);
+  });
+
+  it.each(disallowedReplayInputCases)('preflights disallowed replay actions at start, middle, or end', (inputs) => {
+    const identity = { ...l01ReplayBindings, seed: 'replay-policy', ordered_input_log: inputs };
+    try {
+      replayInputs(identity, inputs, 3);
+      throw new Error('Expected replay to reject.');
+    } catch (error) {
+      expect(error).toBeInstanceOf(CanonicalInputContractError);
+      expect((error as CanonicalInputContractError).reason_code).toBe('REPLAY_ACTION_DISALLOWED');
+    }
   });
 });

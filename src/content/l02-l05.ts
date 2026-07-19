@@ -6,7 +6,7 @@ export const L04_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim',
 export const L05_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'decision_pass', 'decision_wait', 'decision_return', 'pause', 'resume', 'reset'] as const;
 
 type LessonId = 'L02' | 'L03' | 'L04' | 'L05';
-type LessonAction = (typeof L02_SEMANTIC_ACTIONS)[number] | (typeof L03_SEMANTIC_ACTIONS)[number] | (typeof L04_SEMANTIC_ACTIONS)[number] | (typeof L05_SEMANTIC_ACTIONS)[number];
+export type LessonAction = (typeof L02_SEMANTIC_ACTIONS)[number] | (typeof L03_SEMANTIC_ACTIONS)[number] | (typeof L04_SEMANTIC_ACTIONS)[number] | (typeof L05_SEMANTIC_ACTIONS)[number];
 
 export interface DraftLessonManifest extends Omit<L01Manifest, 'lesson_id' | 'validation_record_id' | 'initial_state' | 'permitted_actions'> {
   lesson_id: LessonId;

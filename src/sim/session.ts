@@ -1,7 +1,8 @@
 import type { ReplayIdentity } from '../contracts/replay.js';
+import { isLessonActionAllowed, type DeclaredLessonAction } from '../content/lesson-manifest.js';
 
 export type HelmCommand = 'neutral' | 'port' | 'starboard';
-export type SessionAction = 'helm_port' | 'helm_starboard' | 'main_trim' | 'jib_trim' | 'reef' | 'decision_pass' | 'decision_wait' | 'decision_return' | 'pause' | 'reset' | 'resume';
+export type SessionAction = DeclaredLessonAction;
 export type LifecycleReason = 'focus_lost' | 'visibility_hidden';
 
 export interface CanonicalInput {
@@ -51,9 +52,12 @@ export interface DeterministicSession {
 }
 
 export class CanonicalInputContractError extends Error {
-  constructor(message: string) {
+  readonly reason_code: 'REPLAY_ACTION_DISALLOWED' | 'CANONICAL_INPUT_CONTRACT_VIOLATION';
+
+  constructor(message: string, reasonCode: 'REPLAY_ACTION_DISALLOWED' | 'CANONICAL_INPUT_CONTRACT_VIOLATION' = 'CANONICAL_INPUT_CONTRACT_VIOLATION') {
     super(message);
     this.name = 'CanonicalInputContractError';
+    this.reason_code = reasonCode;
   }
 }
 
@@ -139,6 +143,7 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
 }
 
 export function applyCanonicalInput(session: DeterministicSession, input: CanonicalInput): DeterministicSession {
+  if (!isLessonActionAllowed(session.identity, input.input.action)) return session;
   if (input.logical_tick !== session.raw.logical_tick) return session;
   if (input.input.action === 'reset') return createSession({ ...session.identity, ordered_input_log: session.identity.ordered_input_log });
   if (session.paused && input.input.action !== 'resume') return session;
@@ -184,8 +189,12 @@ export function replayInputs(identity: ReplayIdentity, inputs: readonly Canonica
   if (!Number.isSafeInteger(terminalTicks) || terminalTicks < 0) {
     throw new CanonicalInputContractError('terminalTicks must be a non-negative safe integer.');
   }
-  let session = createSession(identity);
   const ordered = [...inputs].sort((left, right) => left.logical_tick - right.logical_tick || left.sequence - right.sequence);
+  for (const input of ordered) {
+    if (!isLessonActionAllowed(identity, input.input.action)) {
+      throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
+    }
+  }
   for (let index = 1; index < ordered.length; index += 1) {
     const previous = ordered[index - 1];
     const input = ordered[index];
@@ -194,6 +203,7 @@ export function replayInputs(identity: ReplayIdentity, inputs: readonly Canonica
       throw new CanonicalInputContractError('Input sequence collision at one logical tick.');
     }
   }
+  let session = createSession(identity);
   let index = 0;
   while (session.raw.logical_tick < terminalTicks) {
     while (ordered[index]?.logical_tick === session.raw.logical_tick) {

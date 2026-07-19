@@ -1,3 +1,5 @@
+import { isLessonActionAllowed } from '../content/lesson-manifest.js';
+
 export const REPLAY_IDENTITY_FIELDS = [
   'scenario_version',
   'seed',
@@ -42,7 +44,7 @@ export type ReplayResolution =
   | { outcome: 'accepted'; replay: ReplayIdentity }
   | {
       outcome: 'rejected';
-      reason_code: 'REPLAY_IDENTITY_MISSING' | 'REPLAY_IDENTITY_INCOMPATIBLE' | 'REPLAY_PAYLOAD_CORRUPT';
+      reason_code: 'REPLAY_IDENTITY_MISSING' | 'REPLAY_IDENTITY_INCOMPATIBLE' | 'REPLAY_PAYLOAD_CORRUPT' | 'REPLAY_ACTION_DISALLOWED';
       /** The untouched stored payload is retained for diagnostics/migration. */
       stored_payload: unknown;
     };
@@ -73,6 +75,13 @@ function isStrictlyOrderedInputLog(value: readonly OrderedInput[]): boolean {
       (entry.logical_tick === previous.logical_tick && entry.sequence > previous.sequence)
     );
   });
+}
+
+function isCanonicalLessonActionInput(identity: ReplayIdentity, value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return Object.keys(candidate).length === 1 && Object.hasOwn(candidate, 'action') &&
+    isLessonActionAllowed(identity, candidate.action);
 }
 
 export function isReplayIdentity(value: unknown): value is ReplayIdentity {
@@ -114,6 +123,9 @@ export function resolveStoredReplay(
       return { outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: storedPayload };
     }
   }
+  if (!storedPayload.ordered_input_log.every((entry) => isCanonicalLessonActionInput(storedPayload, entry.input))) {
+    return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
+  }
   return { outcome: 'accepted', replay: storedPayload };
 }
 
@@ -127,6 +139,9 @@ export function resolveExactReplayIdentity(storedPayload: unknown, expectedIdent
     if (JSON.stringify(storedPayload[field]) !== JSON.stringify(expectedIdentity[field])) {
       return { outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: storedPayload };
     }
+  }
+  if (!storedPayload.ordered_input_log.every((entry) => isCanonicalLessonActionInput(storedPayload, entry.input))) {
+    return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
   }
   return { outcome: 'accepted', replay: storedPayload };
 }

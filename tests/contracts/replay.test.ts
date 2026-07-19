@@ -14,6 +14,12 @@ const replay: ReplayIdentity = {
   comparison_policy_version: prototypeVersionBindings.comparison_policy_version,
 };
 
+const disallowedActionReplayCases: readonly (readonly [ReplayIdentity['ordered_input_log']])[] = [
+  [[{ logical_tick: 0, sequence: 1, input: { action: 'reef' } }]],
+  [[{ logical_tick: 0, sequence: 1, input: { action: 'helm_port' } }, { logical_tick: 1, sequence: 2, input: { action: 'reef' } }]],
+  [[{ logical_tick: 0, sequence: 1, input: { action: 'helm_port' } }, { logical_tick: 2, sequence: 2, input: { action: 'reef' } }]],
+];
+
 describe('replay identity contract', () => {
   it('requires exactly the canonical identity fields', () => {
     expect(isReplayIdentity(replay)).toBe(true);
@@ -57,5 +63,32 @@ describe('replay identity contract', () => {
   it('rejects corrupt but complete raw payloads with a stable code', () => {
     const corrupt = { ...replay, ordered_input_log: 'not-an-array' };
     expect(resolveStoredReplay(corrupt, prototypeVersionBindings)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_PAYLOAD_CORRUPT', stored_payload: corrupt });
+  });
+
+  it.each(disallowedActionReplayCases)('rejects an entire replay with a disallowed action without changing its stored payload', (ordered_input_log) => {
+    const storedPayload = { ...replay, ordered_input_log };
+    expect(resolveStoredReplay(storedPayload, prototypeVersionBindings)).toEqual({
+      outcome: 'rejected',
+      reason_code: 'REPLAY_ACTION_DISALLOWED',
+      stored_payload: storedPayload,
+    });
+  });
+
+  it('rejects a full-identity replay containing a policy-disallowed or non-canonical action input without changing its stored payload', () => {
+    const storedPayload = { ...replay, ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { action: 'reef', extra: true } }] };
+    expect(resolveExactReplayIdentity(storedPayload, storedPayload)).toEqual({
+      outcome: 'rejected',
+      reason_code: 'REPLAY_ACTION_DISALLOWED',
+      stored_payload: storedPayload,
+    });
+  });
+
+  it('preserves exact-identity mismatch precedence over a disallowed action', () => {
+    const storedPayload = { ...replay, model_version: 'different-model', ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { action: 'reef' } }] };
+    expect(resolveExactReplayIdentity(storedPayload, replay)).toEqual({
+      outcome: 'rejected',
+      reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE',
+      stored_payload: storedPayload,
+    });
   });
 });

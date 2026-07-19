@@ -1,7 +1,7 @@
 import { isReleaseEligible, type ValidationRecord } from '../contracts/release.js';
 import { resolveStoredReplay, type ReplayIdentity } from '../contracts/replay.js';
 import { TRAINING_SLOOP_PROFILE_ID, l01Manifest, l01ReplayBindings } from '../content/l01.js';
-import { executableLessonManifests } from '../content/l02-l05.js';
+import { getLessonManifest, isLessonActionAllowed } from '../content/lesson-manifest.js';
 
 export type GateReason =
   | 'UNSUPPORTED_LESSON'
@@ -11,6 +11,7 @@ export type GateReason =
   | 'REPLAY_IDENTITY_MISSING'
   | 'REPLAY_IDENTITY_INCOMPATIBLE'
   | 'REPLAY_PAYLOAD_CORRUPT'
+  | 'REPLAY_ACTION_DISALLOWED'
   | 'UNVALIDATED_PROTOTYPE'
   | 'RELEASE_VALIDATION_NOT_APPROVED'
   | 'RELEASE_P1_ARTIFACTS_MISSING'
@@ -31,10 +32,29 @@ function exactBinding(
     expectedKeys.every((key) => identity[key as keyof typeof expected] === expected[key as keyof typeof expected]);
 }
 
-/**
- * AP-0B has one executable runtime path only: the L01 vertical slice.
- * Any other lesson identifier fails closed and has no manifest or binding.
- */
+function bindingsForManifest(manifest: ReturnType<typeof getLessonManifest>): Omit<ReplayIdentity, 'seed' | 'ordered_input_log'> | undefined {
+  if (!manifest) return undefined;
+  const {
+    scenario_version,
+    model_version,
+    boat_profile_version,
+    contract_version,
+    coordinate_contract_version,
+    determinism_contract_version,
+    comparison_policy_version,
+  } = manifest;
+  return {
+    scenario_version,
+    model_version,
+    boat_profile_version,
+    contract_version,
+    coordinate_contract_version,
+    determinism_contract_version,
+    comparison_policy_version,
+  };
+}
+
+/** Legacy L01 entry point retains its L01-only compatibility contract. */
 export function evaluateL01Load(
   lessonId: unknown,
   profileId: unknown,
@@ -47,7 +67,25 @@ export function evaluateL01Load(
   if (!actions.every((action) => typeof action === 'string' && l01Manifest.permitted_actions.includes(action as never))) {
     reasons.push('UNSUPPORTED_ACTION');
   }
-  if (!exactBinding(identity, l01ReplayBindings)) {
+  if (!exactBinding(identity, l01ReplayBindings)) reasons.push('INCOMPATIBLE_BINDING');
+  return { eligible: reasons.length === 0, mode: 'prototype', reasons };
+}
+
+function evaluateManifestLoad(
+  lessonId: unknown,
+  profileId: unknown,
+  actions: readonly unknown[],
+  identity: Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>,
+): Eligibility {
+  const lesson = getLessonManifest(lessonId);
+  const reasons: GateReason[] = [];
+  if (!lesson) reasons.push('UNSUPPORTED_LESSON');
+  if (profileId !== TRAINING_SLOOP_PROFILE_ID) reasons.push('UNSUPPORTED_PROFILE');
+  if (lesson && !actions.every((action) => typeof action === 'string' && lesson.permitted_actions.includes(action as never))) {
+    reasons.push('UNSUPPORTED_ACTION');
+  }
+  const bindings = bindingsForManifest(lesson);
+  if (bindings && !exactBinding(identity, bindings)) {
     reasons.push('INCOMPATIBLE_BINDING');
   }
   return { eligible: reasons.length === 0, mode: 'prototype', reasons };
@@ -59,14 +97,7 @@ export function evaluateLessonLoad(
   actions: readonly unknown[],
   identity: Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>,
 ): Eligibility {
-  if (lessonId === 'L01') return evaluateL01Load(lessonId, profileId, actions, identity);
-  const lesson = executableLessonManifests.find((candidate) => candidate.lesson_id === lessonId);
-  const reasons: GateReason[] = [];
-  if (!lesson) reasons.push('UNSUPPORTED_LESSON');
-  if (profileId !== TRAINING_SLOOP_PROFILE_ID) reasons.push('UNSUPPORTED_PROFILE');
-  if (lesson && !actions.every((action) => typeof action === 'string' && lesson.permitted_actions.includes(action as never))) reasons.push('UNSUPPORTED_ACTION');
-  if (lesson && !exactBinding(identity, lesson)) reasons.push('INCOMPATIBLE_BINDING');
-  return { eligible: reasons.length === 0, mode: 'prototype', reasons };
+  return evaluateManifestLoad(lessonId, profileId, actions, identity);
 }
 
 /** Assumption content is allowed only as visibly-labelled prototype content. */
@@ -95,7 +126,7 @@ export function validateL01ReplayPayload(payload: unknown): Eligibility {
     const candidate = entry.input;
     return typeof candidate === 'object' && candidate !== null &&
       'action' in candidate &&
-      ['helm_port', 'helm_starboard', 'pause', 'reset', 'resume'].includes((candidate as { action?: unknown }).action as string);
+      isLessonActionAllowed(accepted, (candidate as { action?: unknown }).action);
   });
   return exactBinding(binding, l01ReplayBindings) && validActions
     ? { eligible: true, mode: 'prototype', reasons: [] }

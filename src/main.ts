@@ -5,6 +5,7 @@ import { createWorldProjection } from './render/world-projection.js';
 import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayRecord } from './storage/replays.js';
 import { l01ReplayBindings } from './content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindings } from './content/l02-l05.js';
+import { getLessonManifest, isLessonActionAllowed } from './content/lesson-manifest.js';
 import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
 import { projectDebrief, projectScore } from './scoring/projection.js';
@@ -14,13 +15,13 @@ if (!app) throw new Error('Application mount point is missing.');
 const mount = app;
 
 type ReplayBindings = Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>;
-type LessonRuntime = { id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05'; bindings: ReplayBindings; controls: string };
+type LessonRuntime = { id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05'; bindings: ReplayBindings; actions: readonly CanonicalInput['input']['action'][]; controls: string };
 const lessons: readonly LessonRuntime[] = [
-  { id: 'L01', bindings: l01ReplayBindings, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
-  { id: 'L02', bindings: l02ReplayBindings, controls: 'M adjusts declared main trim; J adjusts declared jib trim; Left/Right helm; Space pause/resume.' },
-  { id: 'L03', bindings: l03ReplayBindings, controls: 'F records a conservative synthetic reef mitigation; Left/Right helm; Space pause/resume.' },
-  { id: 'L04', bindings: l04ReplayBindings, controls: 'Left records a recoverable synthetic miss; Right records a slower valid correction; Space pause/resume.' },
-  { id: 'L05', bindings: l05ReplayBindings, controls: 'P/W/B record synthetic pass/wait/return decisions; Space pause/resume.' },
+  { id: 'L01', bindings: l01ReplayBindings, actions: getLessonManifest('L01')!.permitted_actions, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
+  { id: 'L02', bindings: l02ReplayBindings, actions: getLessonManifest('L02')!.permitted_actions, controls: 'M adjusts declared main trim; J adjusts declared jib trim; Left/Right helm; Space pause/resume.' },
+  { id: 'L03', bindings: l03ReplayBindings, actions: getLessonManifest('L03')!.permitted_actions, controls: 'F records a conservative synthetic reef mitigation; Left/Right helm; Space pause/resume.' },
+  { id: 'L04', bindings: l04ReplayBindings, actions: getLessonManifest('L04')!.permitted_actions, controls: 'Left records a recoverable synthetic miss; Right records a slower valid correction; Space pause/resume.' },
+  { id: 'L05', bindings: l05ReplayBindings, actions: getLessonManifest('L05')!.permitted_actions, controls: 'P/W/B record synthetic pass/wait/return decisions; Space pause/resume.' },
 ];
 let currentLesson = lessons[0]!;
 let seed = 'l01-prototype-seed';
@@ -75,7 +76,7 @@ function replayPayload(): unknown {
 }
 
 function render(): void {
-  const load = evaluateLessonLoad(currentLesson.id, 'training-sloop-v1', currentLesson.id === 'L01' ? ['helm_port', 'helm_starboard', 'pause', 'reset'] : [], currentLesson.bindings);
+  const load = evaluateLessonLoad(currentLesson.id, 'training-sloop-v1', currentLesson.actions, currentLesson.bindings);
   const prototype = evaluatePrototypeEligibility();
   eligibility.textContent = load.eligible && prototype.eligible
     ? `${currentLesson.id} prototype eligibility: allowed only with the persistent unvalidated notice.`
@@ -182,6 +183,7 @@ async function saveAttemptThenReset(): Promise<void> {
 }
 
 function applyAction(action: CanonicalInput['input']['action']): void {
+  if (!isLessonActionAllowed(currentLesson.bindings, action)) return;
   if (action === 'reset') { void saveAttemptThenReset(); return; }
   const input: CanonicalInput = { logical_tick: session.raw.logical_tick, sequence: nextSequence++, input: { action } };
   inputLog = [...inputLog, input];
@@ -195,7 +197,7 @@ const scheduler = createLogicalScheduler(() => { session = advanceLogicalTick(se
 
 function processBrowserSignal(signal: PendingBrowserSignal): void {
   if (signal.kind === 'keyboard') {
-    const action = normalizeKeyboardAction(signal.key, signal.repeat, session.paused);
+    const action = normalizeKeyboardAction(signal.key, signal.repeat, session.paused, currentLesson.actions);
     if (action) applyAction(action);
     return;
   }
@@ -203,7 +205,7 @@ function processBrowserSignal(signal: PendingBrowserSignal): void {
 }
 
 window.addEventListener('keydown', (event) => {
-  const action = normalizeKeyboardAction(event.key, event.repeat, session.paused);
+  const action = normalizeKeyboardAction(event.key, event.repeat, session.paused, currentLesson.actions);
   if (!action) return;
   event.preventDefault();
   const signal: PendingBrowserSignal = { kind: 'keyboard', key: event.key, repeat: event.repeat };
