@@ -41,6 +41,7 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 - [PRD](prd.md)
 - [현재 진행상황](docs/PROJECT_STATUS.md)
 - [기본 구현 handoff](docs/HANDOFF.md)
+- [다음 개인용 prototype handoff](docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md)
 - [개인용 G1 self-review record](docs/content/personal-use-g1-self-review-record-v1.md)
 - [deferred external-review packet](docs/content/sailing-coach-domain-review-packet-v1.md)
 - [MVP 구현 계획](docs/architecture/mvp-technical-plan.md)

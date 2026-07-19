@@ -1,5 +1,11 @@
 # DEVLOG
 
+## 2026-07-19 — Next-session personal-prototype handoff
+
+- Created `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md` from pushed baseline `14d10bc0fda51f45be62e049e0677c7e4f030c8b`.
+- The handoff makes the bounded user-approved personal prototype scope the sole future-work authorization and preserves all synthetic/non-navigation/local-only boundaries.
+- Historical `.agent/plans/` directories remain intentionally untracked and excluded from the documentation checkpoint.
+
 ## 2026-07-19 — External-gate retirement for personal prototype work
 
 - User decision: external reviewer qualification, authority, controlled apply, G1/G2/G3 approval, P1, and public-release evidence are not current or future prerequisites for this personal, browser-local prototype.

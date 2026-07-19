@@ -37,11 +37,11 @@
 
 - [x] Personal-use limitation acknowledgement is retained at `docs/content/personal-use-g1-self-review-record-v1.md`; it is not a gate or prerequisite.
 - [x] L01 external-review packet and all reviewer/qualification/authority/controlled-apply materials are archived references. They cannot block, wait for, or automatically resume personal prototype work.
-- [x] P1, release authority, public-release evidence, and browser support matrix materials are archived references for this personal-use project.
+- [x] Personal-use external-gate retirement documented and pushed at `14d10bc`; current next-session handoff: `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md`.
 
 ## Next
 
 1. Preserve personal-use boundaries: all records remain `assumption`; non-navigation/local-only notices remain mandatory.
-2. Any next personal prototype implementation requires only an explicit user-approved bounded scope, with no external-review/qualification/authority/controlled-apply prerequisite.
+2. Any next personal prototype implementation requires only an explicit user-approved bounded scope, with no external-review/qualification/authority/controlled-apply prerequisite. Begin from `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md`.
 3. Archived external-release materials cannot become a blocker, waiting state, required input, or automatic next step.
 4. Do not treat absence of formal gates as expert validation, registry promotion, or release authority.
