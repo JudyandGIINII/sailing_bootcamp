@@ -28,6 +28,10 @@
 
 사용자 명시 구현 승인이 필요하다. 승인 범위는 code/dependency/worktree bootstrap으로 한정되며 release 권한은 포함하지 않는다.
 
+## 4.1 버전 관리 checkpoint
+
+프로젝트는 Git `main` 브랜치로 초기화되었고 `origin`은 `https://github.com/JudyandGIINII/sailing_bootcamp`로 지정되어 있다. 원격의 기존 초기 README 이력은 로컬 baseline과 병합했다. 이 checkpoint 작업에서는 **원격 push를 수행하지 않았다**.
+
 ## 5. 첫 구현 slice
 
 1. coordinate/determinism/replay/gate contract를 code schema·negative tests로 동결

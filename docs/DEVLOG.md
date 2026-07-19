@@ -11,6 +11,7 @@
 - Official-source-backed technical option comparison and MVP implementation plan.
 - Coordinate, determinism/replay, and prototype/release gate technical contracts.
 - Project status, Kanban fallback, AGENTS handoff, and implementation handoff documents.
+- Git `main` baseline initialized; `origin` set to `https://github.com/JudyandGIINII/sailing_bootcamp`; remote initial README history merged locally. This operation did not push.
 
 ### Decisions preserved
 

@@ -11,7 +11,7 @@
 - [x] Browser technical option research and architecture recommendation
 - [x] Coordinate/determinism/replay/prototype-release technical contracts
 - [x] MVP implementation plan and documentation handoff
-- [x] Initial project Git documentation checkpoint preparation
+- [x] Local Git documentation checkpoint created; `origin` configured (push pending)
 
 ## Blocked / Waiting
 
