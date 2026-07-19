@@ -1,8 +1,12 @@
-# Prototype and Release Gate Model
+# Prototype, Personal-Use, and Future Public-Distribution Gate Model
+
+> **Active operating path (2026-07-19):** personal, browser-local synthetic training use. G1 is a project-owner self-review/limitation-acknowledgement checkpoint; it is not expert validation, independent review, certification, authority approval, registry promotion, or release approval.
+>
+> **Deferred path:** external review, controlled apply, P1, deployment, and release apply only if a future public-distribution decision is explicitly made.
 
 ## 목적
 
-prototype을 만들 수 있는 조건과 제품을 release할 수 있는 조건을 분리한다. 도메인 검증 레지스트리와 P1 gate를 무시하거나 release claim을 앞당기지 않는다.
+prototype을 만들 수 있는 조건, 개인용 self-review checkpoint, 그리고 미래 public-distribution을 위한 release 조건을 분리한다. 개인용 G1 완료가 도메인 검증 또는 실제 안전/항법 권위를 만들지 않도록 한다.
 
 ## gate definitions
 
@@ -22,7 +26,13 @@ scenario, lesson, profile, coordinate, determinism, comparison, replay schema가
 - 사용자는 local replay 목록을 보고 개별 record를 삭제할 수 있으며 reset은 이전 attempt를 암묵적으로 삭제하지 않음
 - release mode로 표시·배포·주장하지 않음
 
-### 3. Release gate
+### 3. Personal-use G1 checkpoint
+
+Personal-use G1 is complete when the project owner has explicitly acknowledged that L01–L05 are synthetic, assumption-only, non-navigation training content and that replay/telemetry remains local-only. The durable record is `docs/content/personal-use-g1-self-review-record-v1.md`.
+
+This checkpoint does **not** require certification, qualified reviewer identity, independence, external authority, formal submission, controlled apply, P1 evidence, or release approval. It also does **not** change a registry disposition, add a domain value, claim factual sailing/safety correctness, or enable public distribution.
+
+### 4. Future public-distribution release gate
 
 다음 중 하나라도 불충족이면 release-check는 fail해야 한다.
 
@@ -34,7 +44,7 @@ scenario, lesson, profile, coordinate, determinism, comparison, replay schema가
 
 release mode에 force override는 없다. `validated` registry 상태도 P1 gate와 release approval을 대신하지 않는다.
 
-### 4. P1 artifact manifest 최소 요건
+### 5. Future public-distribution P1 artifact manifest 최소 요건
 
 release check는 단순 파일 존재가 아니라 아래 필드를 갖는 versioned P1 artifact manifest를 요구한다. 값이 `TBD`, missing, stale, rejected, unapproved이면 해당 gate는 통과할 수 없다.
 
@@ -52,8 +62,9 @@ release check는 단순 파일 존재가 아니라 아래 필드를 갖는 versi
 |---|---|
 | load | version/schema/profile/action compatibility report |
 | prototype | unvalidated label presence, registry linkage, full replay-identity/load rejection, input lifecycle, local-only network/storage checks |
-| release | validation disposition report, versioned P1 artifact manifest, approval/stale references, no override assertion |
+| personal-use G1 | owner limitation acknowledgement, assumption status, non-navigation/local-only boundary |
+| future public release | validation disposition report, versioned P1 artifact manifest, approval/stale references, no override assertion |
 
 ## implementation boundary
 
-이 문서는 실제 reviewer acceptance, registry controlled apply, P1 approval, release를 수행하지 않는다. 그 절차는 `docs/content/sailing-coach-domain-review-qualification-controlled-apply-runbook-v1.md`를 따른다.
+이 문서는 개인용 G1 record를 제외하고 실제 reviewer acceptance, registry controlled apply, P1 approval, release를 수행하지 않는다. 외부 검토/controlled apply 절차는 미래 public-distribution path에서만 `docs/content/sailing-coach-domain-review-qualification-controlled-apply-runbook-v1.md`를 따른다.

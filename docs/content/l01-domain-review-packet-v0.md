@@ -1,5 +1,7 @@
 # L01 Domain Review Packet v0 — Preparation Only
 
+> **Current reconciliation (2026-07-19):** active scope is personal local use. The project-owner self-review is recorded in `personal-use-g1-self-review-record-v1.md`; it acknowledges limitations only and does not fill any reviewer/qualification/authority/signature field below. External review remains deferred for a future public-distribution decision.
+
 > **Packet status:** `PREPARATION_ONLY` · **not a review submission** · **not frozen**
 >
 > **Registry status:** `VR-L01-v0 = assumption` · all listed **non-profile version bindings** remain `-draft`; `boat_profile_version` remains `training-sloop-v1`

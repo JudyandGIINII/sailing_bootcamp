@@ -1,5 +1,7 @@
 # Next-Session Handoff — G1 L01 Domain Review Preparation
 
+> **Current reconciliation (2026-07-19):** This handoff preserves the historical external-review preparation account below. The active product path is now personal/local use: personal-use G1 is complete via `docs/content/personal-use-g1-self-review-record-v1.md`; external qualification, controlled apply, P1, and release are deferred to a future public-distribution decision. All registry records remain `assumption`.
+
 > **Handoff date:** 2026-07-19 KST
 >
 > **Session stop point:** user requested the current task be terminated after the G1 L01 packet preparation. Do not resume mutation automatically; await an explicit new user instruction.

@@ -1,5 +1,7 @@
 # Sailing Coach / Instructor 도메인 검토 패킷 v1
 
+> **Current status (2026-07-19):** **DEFERRED — future public-distribution-only.** The active product is personal/local synthetic use and uses `personal-use-g1-self-review-record-v1.md` for limitation acknowledgement. This packet has not been submitted, completed, or used to validate any claim.
+
 > **상태:** 검토 요청용 초안. 이 문서는 제품 출시, 실제 항해, 안전 판단, 자격/인증 또는 계약 변경을 승인하지 않는다.
 > **대상:** 합성 가상 수역의 `training-sloop-v1` · 필수 레슨 L01–L05
 > **패킷 ID:** `SCDRP-20260719-v1`

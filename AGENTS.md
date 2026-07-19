@@ -6,14 +6,14 @@ This workspace defines a browser-based educational sailing simulator, not an act
 
 ## Current phase
 
-AP-0A through AP-0C are verified and integrated. Prototype scope is complete; any further work requires explicit new authorization. Release remains separately blocked. See `docs/PROJECT_STATUS.md` and `docs/HANDOFF.md`.
+AP-0A through AP-0E are verified and integrated. Personal-use G1 self-review is complete: it records the project owner's acknowledgement of the assumption-only/non-navigation limits, not expert validation. Public distribution, certification, external-review qualification, controlled apply, P1, and release are deferred unless the user explicitly reopens that product path.
 
-## Authority gates
+## Personal-use and public-distribution boundaries
 
-- **AP-0:** User must explicitly authorize implementation before creating source code, dependencies, package manifests, or Orca worktrees.
-- An AP-0 prototype authorization is not release authorization.
-- Release remains blocked unless lesson validation records are `validated`, P1 artifacts are approved, and separate release authority evidence exists.
-- Never use force overrides for release gates.
+- **Personal local use:** project-owner self-review is sufficient only to acknowledge limitations. It never creates credentials, independent review, factual domain validation, registry promotion, or real-world authority.
+- **Future public distribution:** requires an explicit new product decision; the preserved external-review/P1/release workflow remains fail-closed for that separate path.
+- **Code work:** user must explicitly authorize implementation before creating source code, dependencies, package manifests, or Orca worktrees.
+- Never use a personal-use checkpoint to claim certification, supported-browser coverage, deployment readiness, or release eligibility.
 
 ## Implementation routing
 
@@ -48,7 +48,7 @@ Do not edit code in the shared checkout. Do not add, commit, push, deploy, reset
 - Golden replay equality and renderer cadence independence
 - Playwright keyboard-only, focus/non-color/reduced-motion, local-only network tests
 - Static `src/sim` boundary check rejects wall-clock, `Math.random`, DOM/Pixi/storage/network imports
-- Release check must fail while registry records are `assumption`
+- The TypeScript release check must remain fail-closed while registry records are `assumption`; it is a future public-distribution guard and does not block personal local use.
 
 ## Source documents
 

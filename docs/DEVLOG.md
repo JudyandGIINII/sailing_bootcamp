@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-07-19 — Personal-use product reframe and G1 reconciliation
+
+- The project owner explicitly selected personal, browser-local use as the active product model. Certification, external reviewer qualification, independent authority, formal controlled apply, public distribution, deployment, and release are no longer active product goals.
+- Completed personal-use G1 with `docs/content/personal-use-g1-self-review-record-v1.md`: it records limitation acknowledgement only. L01–L05 registry records remain `assumption` with draft bindings; no credential, expert validation, domain fact, registry promotion, or release claim was created.
+- Preserved non-navigation, synthetic-training, and local-only boundaries. The existing fail-closed release tooling remains a deferred public-distribution guard.
+- QA for this documentation checkpoint: YAML templates and registry parsed with the system parser; `git diff --check`, strict typecheck, 13 Vitest files / 102 tests, 8 Chromium smokes, and production build passed. No code, registry, release-tooling, P1 artifact, deployment, or release state changed.
+
 ## 2026-07-19 — G1 packet checkpoint / evidence-guidance reconciliation
 
 - Scoped documentation reconciliation records the verified AP-0E G0 `main` integration and push, the Chromium-only prototype evidence baseline, and the L01 packet as a version-controlled **preparation-only** artifact.

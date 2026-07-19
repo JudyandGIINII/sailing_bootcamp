@@ -4,6 +4,8 @@
 >
 > 작성일: 2026-07-19 KST · 기준 커밋: `aaf1db8` (`main`, clean at audit start)
 
+**Current reconciliation (2026-07-19):** This historical plan's external-review G1/G2/G3 sequence is deferred to a future public-distribution decision. The active path is personal local use; G1 is complete only as project-owner limitation acknowledgement in `docs/content/personal-use-g1-self-review-record-v1.md`. All registry records remain `assumption`; no expert validation or release claim follows.
+
 **Goal:** 현재 `training-sloop-v1` L01–L05 assumption-only prototype의 실제 구현 범위를 PRD와 분리해 확정하고, 도메인 검증 → P1 품질 근거 → 제한적 release 후보 평가로 이어지는 승인-의존 후속 경로를 만든다.
 
 **Architecture:** 현 구현은 Strict TypeScript/Vite 기반의 renderer-independent deterministic core, PixiJS projection, DOM HUD/debrief, IndexedDB local replay로 구성된 **교육용 prototype shell**이다. 실제 항해/안전/항법 수치가 아닌 선언형 synthetic state와 versioned replay identity를 다루며, release gate는 fail-closed여야 한다.

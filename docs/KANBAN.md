@@ -35,15 +35,15 @@
 
 ## Blocked / Waiting
 
-- [ ] Domain review evidence and reviewer/authority acceptance — release blocker only
+- [x] Personal-use G1 self-review completed: project-owner limitation acknowledgement is recorded in `docs/content/personal-use-g1-self-review-record-v1.md`; it creates no credential, independent validation, registry promotion, or release claim.
 - [x] G1 L01 preparation packet completed, independently re-reviewed, and version-controlled: `docs/content/l01-domain-review-packet-v0.md` cannot act as a submission, qualification decision, registry apply, or release authority.
-- [ ] Concrete model/contract/coordinate/determinism/comparison-policy version bindings — required before validation can become `validated`
-- [ ] Versioned P1 browser/accessibility/pilot/operations/replay-compatibility/privacy artifact manifest and approvals — release blocker only
-- [ ] Concrete domain validation, P1 approval artifacts, release authority, and WebKit/Firefox candidate configuration — release blocker
+- [ ] Future public-distribution-only: concrete model/contract/coordinate/determinism/comparison-policy version bindings required before any record can become `validated`.
+- [ ] Future public-distribution-only: versioned P1 browser/accessibility/pilot/operations/replay-compatibility/privacy artifact manifest and approvals.
+- [ ] Future public-distribution-only: external qualification/control-apply, concrete domain validation, P1 approval artifacts, release authority, and WebKit/Firefox candidate configuration.
 
 ## Next
 
-1. Keep release check fail-closed while every registry record remains `assumption`.
-2. Next session: read `docs/HANDOFF_NEXT_SESSION_G1_L01_2026-07-19.md`, rediscover Git/untracked state, then continue only under an explicit G1 scope decision.
-3. The version-controlled L01 packet is preparation-only; reviewer outreach/evidence freeze/qualification/controlled apply require separate external evidence and authority.
-4. Domain validation and P1 artifact approval remain independent release gates; do not treat AP-0D/AP-0E hygiene or the G1 packet as release authority.
+1. Preserve personal-use boundaries: all records remain `assumption`; non-navigation/local-only notices remain mandatory.
+2. Future semantic prototype work requires an explicit scoped user authorization and must not invent domain values.
+3. External-review, qualification, controlled apply, P1, deployment, and release are deferred to a future public-distribution product decision.
+4. Do not treat AP-0D/AP-0E or personal-use G1 as expert validation, registry promotion, or release authority.

@@ -1,4 +1,6 @@
 schema_version: 1
+template_scope: deferred_future_public_distribution_only
+active_for_personal_local_use: false
 template_version: 1-draft
 request_id: null
 request_status: draft

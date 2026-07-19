@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: AP-0E G0 prototype hardening이 shared `main`에 검증·통합·push되었고, L01–L05 assumption-only prototype scope는 완료 상태입니다.** Chromium만 현재 검증된 prototype baseline이며, domain validation·P1·release는 계속 차단됩니다.
+> **현재 상태: 개인·로컬 사용 전용 G1 self-review가 완료된 assumption-only prototype입니다.** AP-0E G0는 shared `main`에 검증·통합·push되었고 Chromium만 현재 검증된 prototype baseline입니다. public distribution, certification, deployment, release는 비활성 범위이며 실제 항해·안전·항법 권위를 주장하지 않습니다.
 
 ## MVP 한 줄 정의
 
@@ -24,11 +24,11 @@
 |---|---|
 | 제품 결정·PRD | 완료 — Draft v0.3 |
 | L01–L05 콘텐츠 계약 | 완료 — 도메인 검증 전 초안 |
-| 코치/강사 검토·controlled apply 체계 | 완료 — 문서/양식만 존재 |
-| 기술 옵션·구현 계획 | 완료 — 구현 전 권고 |
+| 코치/강사 검토·controlled apply 체계 | deferred — future public-distribution-only documents |
+| 기술 옵션·구현 계획 | 완료 — 개인용 prototype 범위 |
 | 코드 bootstrap / AP-0E G0 L01–L05 prototype | integrated/pushed — assumption-only prototype scope complete |
-| G1 domain review | L01 preparation packet version-controlled; reviewer/evidence/authority input 대기 |
-| 도메인 검증·P1·release | **차단됨** |
+| G1 personal-use self-review | 완료 — owner limitation acknowledgement; registry promotion 없음 |
+| Public distribution / certification / release | 비활성·범위 밖 — 별도 제품 결정이 있어야 재개 |
 
 ## 권고 기술 방향
 
@@ -41,7 +41,8 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 - [PRD](prd.md)
 - [현재 진행상황](docs/PROJECT_STATUS.md)
 - [기본 구현 handoff](docs/HANDOFF.md)
-- [G1 L01 domain-review handoff](docs/HANDOFF_NEXT_SESSION_G1_L01_2026-07-19.md)
+- [개인용 G1 self-review record](docs/content/personal-use-g1-self-review-record-v1.md)
+- [deferred external-review packet](docs/content/sailing-coach-domain-review-packet-v1.md)
 - [MVP 구현 계획](docs/architecture/mvp-technical-plan.md)
 - [기술 옵션 비교](docs/architecture/technical-options.md)
 - [L01–L05 콘텐츠 명세](docs/content/mandatory-lessons-l01-l05.md)
@@ -53,6 +54,6 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 
 ## 현재 권한 게이트
 
-AP-0A–AP-0E prototype 구현은 완료되었지만, semantic learning behavior·registry promotion·P1·release는 별도 gate다. 현재 모든 validation record가 `assumption`이고 version binding은 draft이므로 제품 release는 불가하다. G1은 qualified reviewer, source/evidence, qualification decision, controlled-apply authority를 각각 요구하며, 준비 packet이나 테스트 통과만으로 이를 대체할 수 없다.
+AP-0A–AP-0E prototype 구현과 개인용 G1 self-review는 완료되었다. semantic learning behavior는 여전히 assumption-only이며 registry promotion은 일어나지 않았다. 현 제품은 개인·로컬 사용으로 한정되며, public distribution/certification/independent authority/P1/release는 비활성 범위다. non-navigation·local-only 경계와 explicit user authorization for future code work는 계속 적용된다.
 
 향후 코드 변경은 명시된 사용자 승인 뒤에만 Orca worktree에서 Codex를 primary builder로 수행하며, Claude는 read-only architecture/diff review, Hermes는 독립 QA를 수행한다. 자세한 규칙은 [AGENTS.md](AGENTS.md)를 따른다.
