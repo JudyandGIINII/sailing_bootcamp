@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: AP-0C L01–L05 assumption-only prototype이 integrated/committed 되었고 prototype scope가 완료되었습니다.** release는 계속 차단됩니다.
+> **현재 상태: AP-0D P0 hardening이 isolated integration candidate에서 검증되었으며, L01–L05 assumption-only prototype scope는 완료 상태입니다.** shared `main` 적용·push 전까지 release는 계속 차단됩니다.
 
 ## MVP 한 줄 정의
 
@@ -47,6 +47,7 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 - [Prototype / release gate](docs/quality/prototype-and-release-gates.md)
 - [DEVLOG](docs/DEVLOG.md)
 - [프로젝트 Kanban 스냅샷](docs/KANBAN.md)
+- [구현 감사 및 승인-의존 후속 계획](docs/plans/2026-07-19-prototype-audit-and-next-steps.md)
 
 ## 구현 시작 전 게이트
 

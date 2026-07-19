@@ -1,7 +1,7 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-19 KST
-> 상태: **AP-0C L01–L05 prototype integrated and verified / release blocked**
+> 상태: **AP-0D P0 hardening integration candidate verified / shared main pending / release blocked**
 
 ## 1. 현재 위치
 
@@ -21,13 +21,13 @@
 
 | Gate | 상태 | 의미 |
 |---|---|---|
-| Load | planned | 향후 schema/version/profile/action compatibility로 판정 |
-| Prototype | planned | unvalidated assumption을 명시한 내부 prototype은 가능 |
+| Load | implemented / verified (prototype bindings) | AP-0A–AP-0C L01–L05 load eligibility, replay identity, and fail-closed incompatible-record behavior are tested; this is not a release-support claim |
+| Prototype | implemented / verified | L01–L05 assumption-only local prototype is integrated; current deterministic/Chromium evidence is recorded, while domain correctness remains unvalidated |
 | Release | blocked | L01–L05 registry가 모두 `assumption`, P1 artifacts 미승인 |
 
 ## 4. 구현 전 AP-0
 
-AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence)는 2026-07-19 integrated/verified 되었다. AP-0C release-evidence는 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 기록했다. prototype 이후 작업이나 release remediation은 별도 승인이 필요하다.
+AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence)는 2026-07-19 integrated/verified 되었다. 별도 AP-0D P0 hardening은 `00c34b3`으로 local commit되고 `0e84d85` fresh integration candidate에서 검증되었으나, shared `main`에는 아직 적용하지 않았다. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
 
 ## 4.1 버전 관리 checkpoint
 

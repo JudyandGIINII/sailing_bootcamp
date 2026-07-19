@@ -1,5 +1,37 @@
 # DEVLOG
 
+## 2026-07-19 — AP-0D P0 local commit and fresh integration verification
+
+- Under the user's next-step authority, committed the approved source diff in isolated worktree branch `JudyandGIINII/sailing-ap0d-p0-authority-evidence` as `00c34b3` (`feat: harden lesson action and evidence contracts`).
+- Fetched `origin/main` and confirmed the feature was exactly one commit ahead of `aaf1db8`, with no upstream divergence. Merged it into clean Orca integration worktree `sailing-ap0d-p0-integration` as `0e84d85`.
+- Fresh integration verification passed: `npm run typecheck`; `npm test` (**87 tests**); `npm run test:smoke` (**7 Chromium smokes**); `npm run build`; and `git diff --check`. Historical AP-0C evidence hashes remained unchanged.
+- The shared `main` checkout has pre-existing uncommitted audit/documentation changes, so it was deliberately not merged, reset, or force-moved. No push/deploy/release occurred; release remains `BLOCKED`.
+
+## 2026-07-19 — AP-0D P0 independent-review correction (isolated worktree; pending re-review)
+
+- The first independent P0 review correctly rejected the initial evidence design because a tracked report, exact-HEAD binding, and dirty-worktree validation made post-commit validation self-invalidating. It also found non-strict timestamp validation and a policy gap in `resolveExactReplayIdentity`.
+- Replanned through validated Alfred task `ALF-20260719-1510-sailing-p0-evidence-repair` (**PLAN_APPROVED 50/50**). The corrected CLI requires explicit `--subject-revision` and paths: generate only from a clean exact-HEAD checkout to an external or ignored `artifacts/release-evidence/generated/` output; validate is no-write and validates the explicit artifact against an existing subject commit without requiring clean HEAD.
+- Historical tracked AP-0C report and observations remain immutable historical records. Controller SHA-256 checks before/after correction confirmed both are unchanged.
+- Added strict RFC3339 timestamp rejection; temporary-Git-fixture coverage for clean/dirty generation, clean/dirty validation, tracked/historical/traversal rejection, revision mismatch, and hash invariants; and exact-replay policy rejection after exact-identity comparison with incompatibility precedence preserved.
+- Controller verification passed: `npm run typecheck`; focused P0 contracts (**61 tests**); `npm test` (**87 tests**); `npm run test:smoke` (**7 Chromium smokes**); `npm run build`; and `git diff --check`. Final independent read-only re-review returned **APPROVE** with no CRITICAL/HIGH/MEDIUM finding. Release remains `BLOCKED`; no commit, integration, push, or deployment occurred.
+
+## 2026-07-19 — AP-0D P0 implementation (isolated worktree; pending integration)
+
+- Under explicit user authorization, created isolated Orca worktree `sailing-ap0d-p0-authority-evidence` from `aaf1db8` and implemented only the approved P0 bounds: manifest-authoritative keyboard/direct/replay action acceptance, plus explicit release-evidence generate/validate modes and exact-source-revision freshness fields.
+- Added fail-closed coverage for lesson-disallowed actions at keyboard normalization, direct canonical input, stored replay resolution, whole replay preflight, manifest gate evaluation, and a Chromium L01–L05 disallowed-key smoke path. Legacy `evaluateL01Load` remains L01-only for compatibility; generic `evaluateLessonLoad` serves the manifest registry.
+- Controller verification in the isolated worktree passed: `npm run typecheck`; `npm test` (**84 tests**); `npm run test:smoke` (**7 Chromium smoke tests**); `npm run build`; and `git diff --check`.
+- The two tracked release-evidence files were hash-checked before/after verification and remained unchanged. `node scripts/build-release-evidence.mjs --validate` returns expected `EVIDENCE_WORKTREE_DIRTY` in the uncommitted remediation worktree; no generate mode or evidence artifact update occurred.
+- Release remains fail-closed (`BLOCKED`): registry records remain assumptions, P1/release authority are absent, and this uncommitted worktree has not been committed, integrated, pushed, or deployed.
+
+## 2026-07-19 — Controller implementation audit and next-step plan
+
+- Re-read `prd.md`, contracts, registry, AP-0C handoff/status, source/tests, and current release evidence; saved the approval-aware follow-up plan at `docs/plans/2026-07-19-prototype-audit-and-next-steps.md`.
+- Re-ran controller verification on clean `main`: `npm run typecheck`, `npm test` (**61 tests**), `npm run test:smoke` (**6 Chromium smoke tests**), `npm run build`, `git diff --check`, and `node scripts/build-release-evidence.mjs --validate` all passed.
+- Confirmed the actual product boundary: L01–L05 are an assumption-only deterministic prototype; environment/score semantics are not validated sailing-domain behavior, and release remains blocked by five assumption records, missing P1 approvals, missing release authority, and unconfigured WebKit/Firefox named projects.
+- Independent Alfred read-only audit `ALF-20260719-1405-sailing-code-status-plan` validated the same conclusion and identified a stale `PROJECT_STATUS` Load/Prototype table; the table now records the integrated/verified prototype state while retaining the blocked release state.
+- The independent source-level FR audit additionally identified P0 input-authority leakage (global keyboard mapping can ledger a lesson-disallowed action), stale-base/write-on-test release-evidence hygiene, and missing numeric environment/safety/score model behavior. These are incorporated in the follow-up plan; no release assertion was changed.
+- No application code, dependency, release gate, commit, push, or deployment was changed by this audit/plan pass.
+
 ## 2026-07-19 — AP-0C completion and release evidence
 
 - Integrated AP-0C commit `6395746`: L02–L05 synthetic assumption-only lesson paths, deterministic/golden replay coverage, storage driver resilience checks, accessibility/network browser checks, and release-evidence schema/generator/report.
