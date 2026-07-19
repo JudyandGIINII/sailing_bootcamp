@@ -1,0 +1,233 @@
+
+┌─ Reasoning ──────────────────────────────────────────────────────────────────┐
+**Loading mandatory Ouroboros skill****Loading skill and reading files****Loading mandatory Ouroboros skill**
+**Loading skill and reading files****Planning parallel file reading****Planning parallel file reading**
+**Resolving header planning_mode discrepancy****Classifying and prioritizing proposal groups**
+**Designing fixed timestep versioning requirement****Defining deterministic test priorities and coordinate conventions**
+**Defining units, coordinate systems, and vector conventions****Establishing scoring and safety precedence rules**
+**Defining event severity categories****Establishing release gating criteria****Confirming P1 release gating for thresholds**
+**Defining local replay data boundaries****Defining local diagnostic log and updating scope terminology**
+**Refining training sloop profile scope****Defining MVP boat selection scope****Revising MVP scope and post-MVP features**
+**Formulating contract language categories****Defining unverified timestep gating requirement**
+**Clarifying update order requirement scope****Defining event tie-break semantics**
+**Standardizing unit conventions and lesson schema****Defining event deduplication rules**
+**Confirming local replay storage policy****Revising document section assignments**
+**Confirming release gate conditions****Establishing accessibility and release protocols**
+**Rejecting hard-coded parameters****Classifying model as P1 gate with unverified assumptions**
+**Listing training and compliance gate requirements****Aligning header fields with exact specifications**
+**Resolving header planning_mode discrepancy**
+**Classifying and prioritizing proposal groups**
+**Designing fixed timestep versioning requirement**
+
+**Defining deterministic test priorities and coordinate conventions**
+**Defining units, coordinate systems, and vector conventions**
+**Establishing scoring and safety precedence rules**
+
+**Defining event severity categories**
+**Establishing release gating criteria**
+**Confirming P1 release gating for thresholds**
+
+**Defining local replay data boundaries**
+**Defining local diagnostic log and updating scope terminology**
+**Refining training sloop profile scope**
+
+**Defining MVP boat selection scope**
+**Revising MVP scope and post-MVP features**
+
+**Formulating contract language categories**
+**Defining unverified timestep gating requirement**
+**Clarifying update order requirement scope**
+
+**Defining event tie-break semantics**
+**Standardizing unit conventions and lesson schema**
+
+**Defining event deduplication rules**
+**Confirming local replay storage policy**
+**Revising document section assignments**
+
+**Confirming release gate conditions**
+**Establishing accessibility and release protocols**
+**Rejecting hard-coded parameters**
+
+**Classifying model as P1 gate with unverified assumptions**
+**Listing training and compliance gate requirements**
+alfred_response:
+  schema_version: 1
+  task_id: ALF-20260719-0030-prd-three-turn-turn2
+  plan_version: 1
+  status: READY_FOR_HERMES_REVIEW
+  planning_mode: LIGHT
+  ambiguity_score: 0.0
+  confidence: high
+  risk_level: low
+  user_approval_required: false
+  ouroboros_used: false
+  evidence_complete: true
+  critical_open_questions: []
+
+reconciliation_findings:
+
+  P0_required_prd_changes:
+
+    - id: P0-1
+      proposal: 결정론적 실행·replay 계약
+      disposition: ACCEPT
+      section_delta: "§8에 ‘결정론적 실행 계약’ 추가"
+      contract_language: |
+        각 model version은 고정 simulation timestep, 입력의 tick 귀속과 순서,
+        seed 기반 PRNG 및 소비 순서, 상태 업데이트 단계, 같은 tick의 event
+        tie-break, reset semantics를 하나의 versioned execution contract로 선언한다.
+        동일 scenario/seed/model/profile/input log의 replay는 event ID·순서,
+        checkpoint 판정, 차원별 점수 및 최종 결과가 일치해야 한다. 연속값 비교는
+        model version에 기록된 정밀도·허용오차와 golden fixture를 따른다.
+        timestep·정밀도·허용오차 또는 실행 순서 변경은 model version 변경과
+        golden replay 재승인을 요구한다. Reset은 clock, PRNG, 상태, event 및
+        score store를 초기 상태로 복구하며 이전 run의 상태를 승계하지 않는다.
+
+    - id: P0-2
+      proposal: 단위·좌표·방향 규약
+      disposition: ACCEPT
+      section_delta: "§8.1 앞에 ‘공통 단위와 기준 프레임’ 추가"
+      contract_language: |
+        시뮬레이션 내부의 거리·수심·시간·속도는 각각 m, m, s, m/s를 사용한다.
+        UI 변환값은 단위를 표시한다. 가상 수역은 x=동, y=북인 로컬 좌표계를
+        사용하고, heading/bearing은 가상 진북 0도에서 시계방향으로 증가한다.
+        풍향 입력은 `direction_from`, 조류와 파도는 `direction_to`로 명명한다.
+        계산 전에 모든 방향을 진행 벡터로 정규화한다.
+        ground velocity = water-relative vessel velocity + current vector이며,
+        apparent wind = true-air velocity − vessel ground velocity이다.
+        charted depth, tide height 및 draft는 동일한 versioned virtual datum을
+        참조하고, clearance = charted depth + tide height − draft로 계산한다.
+
+    - id: P0-3
+      proposal: L01–L05 레슨 계약
+      disposition: ACCEPT
+      section_delta: "§7.2의 각 필수 레슨에 동일한 normative schema 적용"
+      contract_language: |
+        각 레슨은 learning claim, initial state와 version 참조, required
+        observations, permitted/blocked actions, scripted events, checkpoints,
+        pass/fail 조건, safety violation, safe-recovery semantics, hint trigger,
+        debrief cause mapping, same-seed retry 및 mastery rule, 관련 claim/threshold
+        register 항목을 선언해야 한다. 필드가 누락되거나 UNVERIFIED threshold가
+        release disposition을 받지 못한 레슨은 content-complete로 간주하지 않는다.
+
+    - id: P0-4
+      proposal: 안전 우선 채점 실행 규칙
+      disposition: ACCEPT
+      section_delta: "§7.3을 비보상적 안전 게이트로 강화"
+      contract_language: |
+        안전 점수는 가중합으로 보상할 수 없는 progression gate다. 레슨이 선언한
+        safety violation 또는 terminal event가 발생하면 속도, 목표 달성 또는
+        다른 차원의 고득점으로 pass를 회복할 수 없다. Recovery는 별도 근거로
+        기록하되 기존 위반을 삭제하지 않는다. 모든 event는 ID, tick, source
+        condition, severity, dedupe key 및 cause reference를 가진다. 같은 active
+        condition의 같은 dedupe key는 한 번만 기록하고, condition 해제 후
+        재진입은 새 event로 기록한다. 같은 tick의 판정은 모든 event를 수집한
+        뒤 safety/terminal을 pass 및 성능 보상보다 먼저 적용하며, pass/fail
+        충돌에서는 fail이 우선한다. 모든 점수 변화는 debrief의 원인 event로
+        추적 가능해야 한다.
+
+    - id: P0-5
+      proposal: 로컬 replay·데이터 최소화 경계
+      disposition: ACCEPT
+      section_delta: "§10 데이터 최소화 및 FR-08 강화"
+      contract_language: |
+        MVP replay와 진단 event data는 브라우저 로컬에만 보관하며 서버 또는
+        제3자 analytics로 전송하지 않는다. 저장 범위는 scenario/seed/app/model/
+        profile version, ticked input log, checkpoint/event/score output으로 제한한다.
+        계정 식별자, 실제 정밀 위치 및 자유 입력 개인정보는 수집하지 않는다.
+        사용자는 모든 로컬 replay를 삭제할 수 있어야 하며, 비호환 version은
+        묵시적으로 재해석하지 않고 재생 불가 사유를 표시해야 한다.
+
+    - id: P0-6
+      proposal: Sloop-only MVP 범위 정합성
+      disposition: ACCEPT
+      section_delta:
+        - "§3.2의 ‘보트 프로필 선택’ 행은 §5.3 후속 확장으로 이동한다."
+        - "§7.1의 ‘선택한 보트 프로필’은 ‘지정된 training-sloop-v1’로 교체한다."
+        - "§7.1·FR-12·§10 수용 기준의 ‘프로필 차이’는 ‘training-sloop-v1 모델·조작이 결과에 미친 영향’으로 교체한다."
+        - "FR-03의 ‘선택한 프로필’은 ‘레슨에 지정된 training-sloop-v1’로 교체한다."
+      contract_language: |
+        MVP는 profile 선택 또는 profile 간 비교를 제공하지 않는다. L01–L05는
+        모두 지정된 `training-sloop-v1`으로 시작하며, debrief는 이 profile의
+        모델·세일·조작·환경 입력이 결과에 미친 원인만 설명한다.
+
+    - id: P0-7
+      proposal: 기능적 접근성 기준
+      disposition: ACCEPT
+      section_delta: "§10 접근성 요구 강화"
+      contract_language: |
+        L01–L05의 모든 필수 조작과 공통 학습 루프는 keyboard-only로 완료할 수
+        있어야 한다. Focus는 항상 식별 가능해야 하고, 안전·상태 정보는 색상
+        하나에만 의존하지 않으며, motion을 줄인 동등한 표현을 제공한다.
+
+  P1_release_gated_additions:
+
+    - id: P1-1
+      proposal: 도메인 claim·threshold 검증
+      disposition: ACCEPT
+      section_delta: "§12에 release-blocking domain review gate 추가"
+      contract_language: |
+        lesson별 claim/threshold register는 claim 또는 값, 적용 model/content
+        version, 출처 또는 simulation-specific assumption 표시, 사용자 노출 문구,
+        reviewer와 검토일, `approved/revise/reject` disposition을 기록한다.
+        Training Sloop의 세일 구성·polar·draft·보정계수·안전/reef/레슨/mastery
+        threshold는 도메인 검토가 승인되지 않으면 출시할 수 없다.
+
+    - id: P1-2
+      proposal: 브라우저 품질·pilot·rollout·rollback
+      disposition: CONDITIONALLY_ACCEPT
+      condition: "측정값을 현재 발명하지 않고 release gate의 필수 산출물로 둔다."
+      section_delta: "§10과 §12에 release readiness gate 추가"
+      contract_language: |
+        Release candidate 전에 승인 browser/OS/hardware matrix, 측정 가능한
+        rendering·input response·lesson-start·stability 예산과 측정 절차를
+        확정하고 각 matrix 항목을 통과해야 한다. 접근성 준수 주장은 적용 표준,
+        수준, 범위와 검증 방법을 먼저 승인받아야 한다. 입문 교육 수강생 pilot은
+        L01–L05의 용어·조작·안전 고지·인과 debrief 이해와 same-seed 오류 변화를
+        측정하며 owner, stop condition 및 release disposition을 기록한다.
+        배포 전 이전 승인 app/model/content version으로 복귀하는 절차와
+        version-incompatible replay 처리 방식을 검증한다.
+
+  post_mvp:
+
+    - id: PM-1
+      proposal: 한국 연안 맥락 고정 라벨
+      disposition: CONDITIONALLY_ACCEPT
+      condition: "한국 연안 맥락 시나리오가 실제 release scope에 들어올 때만 적용"
+      section_delta: "§6.3의 후속 콘텐츠 release gate로 추가"
+      contract_language: |
+        briefing, 플레이 화면 및 결과에는
+        ‘교육용 정적 시나리오 — 실제 해도·예보·항법 자료가 아닙니다.’
+        라벨을 지속적으로 표시한다. Export/share 기능이 존재하면 산출물에도
+        같은 라벨을 포함하며, scenario version·출처·단순화를 함께 제공한다.
+
+    - id: PM-2
+      proposal: profile 선택·profile 간 비교
+      disposition: REJECT
+      rationale: "D5/C1의 Sloop-only MVP와 충돌하므로 MVP에는 포함하지 않는다."
+      future_gate: "새 profile의 model·control·lesson compatibility와 domain review가 승인된 뒤 별도 범위로 재검토한다."
+
+  rejected_now:
+
+    - proposal: 근거 없는 수치의 PRD 확정
+      disposition: REJECT
+      rejected_values:
+        - reef 시점과 안전 임계값
+        - polar·draft·trim/wave 보정값
+        - lesson pass/mastery threshold
+        - replay 연속값 허용오차
+        - browser FPS·input latency·hardware 예산
+        - WCAG 수준 또는 pilot 성공 수치
+      rationale: "출처나 검증 결과 없이 제품 사실로 고정하지 않고 아래 UNVERIFIED gate로 유지한다."
+
+  residual_UNVERIFIED_gates:
+
+    - "Model execution spec: timestep, numeric precision, replay tolerance, update order 및 golden fixture 승인"
+    - "L01–L05: 완전한 lesson contract, pass/fail/recovery/mastery 규칙과 adversarial fixture"
+    - "Training Sloop: sail inventory, polar, draft, trim/reef/wave 계수와 모든 안전 threshold의 출처·도메인 disposition"
+    - "Release matrix: 지원 browser/OS/hardware와 rendering·input·start·stability 예산 및 측정법"
+    - "Accessibility: 적용 conformance 표준·수준·범위·audit 방식"
+    - "Pilot: owner, participant/sample 기준, 성공·중단 threshold 및 release disposition"
+    - "Rollback: 이전 승인 app/model/content 복귀와 incompatible replay 처리 검증"
+    - "한국 연안 맥락: 실제 release 시 자료 출처·단순화·라벨 노출 검증"

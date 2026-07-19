@@ -1,0 +1,42 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260718-2340-sailing-prd",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "세일링 시뮬레이션 게임을 개발하려 한다. 목적은 바람, 조류, 날씨, 파도, 조석간만 등 자연환경 변화에 대응해 세일을 선택·트리밍하고 요트를 조종하는 법을 익히는 것이다. 유사 게임/시뮬레이터/요트 교육 프로그램을 조사하고, 고려 요소와 개발 방향을 정리해 Alfred와 협력하여 prd.md 초안을 준비한다.",
+    "desired_outcome": "구현을 승인하거나 시작하지 않는, 근거 기반 PRD 초안의 제품 범위·MVP·학습 루프·시뮬레이션 충실도 경계·검증 기준을 제안한다. 사용자 의사결정이 필요한 항목은 명시한다.",
+    "known_context": [
+      "작업공간은 /Users/hipgiinii/.hermes/projects/Sailing_training 이며 현재 비어 있고 Git 저장소가 아니다.",
+      "벤치마크 조사 결과는 docs/research/benchmark-sources.md에 있으며, Sailaway(실시간 세일 공기흐름/트림, 예보 기반 풍·구름·파도), World Sailing eSailing(저진입장벽·브라우저/모바일/태블릿), NOAA(바람·조석·밀도 기반 조류, 조석·수위 안전성)를 사실 근거로 정리했다.",
+      "초기 제안은 재현 가능한 시나리오 기반 교육 루프이며, 실시간 전 지구 기상·고정밀 CFD·공인 자격 대체는 MVP 범위 밖이다.",
+      "사용자는 PRD 초안을 원했으며, 플랫폼/첫 페르소나/선박 클래스/지리 범위/첫 레슨은 아직 확정하지 않았다."
+    ],
+    "constraints": [
+      "계획·문서화만 수행하고 구현, 배포, 외부 계정/결제, 비밀정보 처리는 하지 않는다.",
+      "실제 항해 안전 또는 자격 교육을 대체한다고 주장하지 않는다.",
+      "물리 모델은 설명 가능하고 테스트 가능한 결정론적 단계부터 설계한다.",
+      "PRD는 한국어로 작성하며, 각 핵심 기능은 학습 목표·사용자 행동·측정 가능한 성공/실패 신호와 연결한다.",
+      "벤치마크의 제품 주장과 설계 해석을 분리한다."
+    ],
+    "current_architecture": [
+      "아직 코드·엔진·플랫폼·데이터 제공자 선택이 없다.",
+      "문서만 존재: docs/research/benchmark-sources.md."
+    ],
+    "repository_paths": [
+      "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/research/benchmark-sources.md"
+    ],
+    "existing_decisions": [
+      "교육 목적은 자연환경 대응을 통한 세일 선택, 트리밍, 요트 조종 학습이다.",
+      "자연환경 범위에는 바람, 조류, 날씨, 파도, 조석간만이 포함된다.",
+      "PRD 초안 작성 전 벤치마크 조사를 수행한다."
+    ],
+    "prohibited_actions": [
+      "코드 수정 또는 구현자 배정", "Git 작업", "배포", "실시간 항해 데이터 또는 외부 API 계약/키 사용", "공식 자격·안전 인증 주장"
+    ],
+    "requested_planning_mode": "DEEP",
+    "expected_executors": ["codex", "claude", "agy"],
+    "user_answers": [],
+    "previous_review_findings": []
+  }
+}

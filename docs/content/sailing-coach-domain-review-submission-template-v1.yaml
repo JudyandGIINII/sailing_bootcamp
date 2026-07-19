@@ -1,0 +1,239 @@
+schema_version: 1
+template_version: 1-draft
+submission_id: null
+submission_status: draft
+review_packet_id: SCDRP-20260719-v1
+review_packet_version: 1
+target_registry_schema_version: 1
+target_registry_version: 0-draft
+source_snapshot_digests:
+  prd.md: fb4c5f9b9ea51ef7c2233a7d9f3657b1c5d0a87d2a62e435d5d4c52931a3314a
+  docs/content/mandatory-lessons-l01-l05.md: 0660c87b904aa41e5788aa5ce6a5b0ef86728bd01f83bce6de5a8f38a0af2b56
+  docs/content/domain-validation-registry.yaml: ca0bc9eba69b0bdc39728e2be5ad799c71bb33dae6ad43a68bb08c113915e330
+allowed_review_outcomes:
+  - validated
+  - partially_validated
+  - rejected
+  - needs_evidence
+reviewer_qualification_declaration:
+  reviewer_name: null
+  professional_role: null
+  qualification_basis: null
+  relevant_experience_scope: null
+  conflict_of_interest_declaration: null
+  limitations: null
+  declaration_accepted: false
+  signature_name: null
+  signed_at: null
+  excluded_personal_data:
+    - postal_address
+    - telephone_number
+    - government_identifier
+    - credential_or_certificate_images
+    - unrelated_biography
+claim_reviews:
+  - validation_record_id: VR-L01-v0
+    lesson_id: L01
+    reviewed_claim_snapshot: >-
+      Relative-wind/course fixture, course-maintenance semantics, recoverable deviation,
+      boundary predicate, score and retry comparison semantics for training-sloop-v1.
+    reviewed_coverage_snapshot:
+      - true/apparent-wind relationship
+      - heading/COG/course objective semantics
+      - helm correction and recoverable deviation
+      - course boundary and score/retry semantics
+    scenario_version: l01-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    review_outcome: null
+    coverage_findings:
+      - coverage_item: true/apparent-wind relationship
+        outcome: null
+        rationale: null
+      - coverage_item: heading/COG/course objective semantics
+        outcome: null
+        rationale: null
+      - coverage_item: helm correction and recoverable deviation
+        outcome: null
+        rationale: null
+      - coverage_item: course boundary and score/retry semantics
+        outcome: null
+        rationale: null
+    rationale: null
+    evidence_references: []
+    evidence_gaps: []
+    limitations: null
+    requested_clarifications_or_changes: []
+    reviewer_confirmation: false
+  - validation_record_id: VR-L02-v0
+    lesson_id: L02
+    reviewed_claim_snapshot: >-
+      Representative main/jib configuration, trim response, polar effect, stable-trim,
+      recovery, score and retry comparison semantics for training-sloop-v1.
+    reviewed_coverage_snapshot:
+      - main and jib trim feedback
+      - polar and stability assumptions
+      - recoverable unstable state
+      - speed non-offsettable safety invariant
+    scenario_version: l02-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    review_outcome: null
+    coverage_findings:
+      - coverage_item: main and jib trim feedback
+        outcome: null
+        rationale: null
+      - coverage_item: polar and stability assumptions
+        outcome: null
+        rationale: null
+      - coverage_item: recoverable unstable state
+        outcome: null
+        rationale: null
+      - coverage_item: speed non-offsettable safety invariant
+        outcome: null
+        rationale: null
+    rationale: null
+    evidence_references: []
+    evidence_gaps: []
+    limitations: null
+    requested_clarifications_or_changes: []
+    reviewer_confirmation: false
+  - validation_record_id: VR-L03-v0
+    lesson_id: L03
+    reviewed_claim_snapshot: >-
+      Gust/wave episode effects, reef or sail-reduction meaning, terminal/recoverable
+      boundary, safety-first score and retry semantics for training-sloop-v1.
+    reviewed_coverage_snapshot:
+      - gust and wave cues
+      - reef timing/effect assumptions
+      - simulated safety recovery and terminality
+      - conservative mitigation pass eligibility
+    scenario_version: l03-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    review_outcome: null
+    coverage_findings:
+      - coverage_item: gust and wave cues
+        outcome: null
+        rationale: null
+      - coverage_item: reef timing/effect assumptions
+        outcome: null
+        rationale: null
+      - coverage_item: simulated safety recovery and terminality
+        outcome: null
+        rationale: null
+      - coverage_item: conservative mitigation pass eligibility
+        outcome: null
+        rationale: null
+    rationale: null
+    evidence_references: []
+    evidence_gaps: []
+    limitations: null
+    requested_clarifications_or_changes: []
+    reviewer_confirmation: false
+  - validation_record_id: VR-L04-v0
+    lesson_id: L04
+    reviewed_claim_snapshot: >-
+      Current-to vector composition, heading/COG and STW/SOG divergence, drift,
+      mark acceptance, recovery, score and retry comparison semantics.
+    reviewed_coverage_snapshot:
+      - current-to direction convention
+      - vector composition and drift
+      - mark acceptance and recoverable miss
+      - slower valid correction acceptance
+    scenario_version: l04-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    review_outcome: null
+    coverage_findings:
+      - coverage_item: current-to direction convention
+        outcome: null
+        rationale: null
+      - coverage_item: vector composition and drift
+        outcome: null
+        rationale: null
+      - coverage_item: mark acceptance and recoverable miss
+        outcome: null
+        rationale: null
+      - coverage_item: slower valid correction acceptance
+        outcome: null
+        rationale: null
+    rationale: null
+    evidence_references: []
+    evidence_gaps: []
+    limitations: null
+    requested_clarifications_or_changes: []
+    reviewer_confirmation: false
+  - validation_record_id: VR-L05-v0
+    lesson_id: L05
+    reviewed_claim_snapshot: >-
+      Synthetic tide/depth/visibility timeline, depth datum, draft and clearance,
+      pass/wait/return policy, terminality, score and retry comparison semantics.
+    reviewed_coverage_snapshot:
+      - synthetic tide and depth datum
+      - draft and clearance assumptions
+      - visibility and route state
+      - pass/wait/return and terminality semantics
+    scenario_version: l05-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    review_outcome: null
+    coverage_findings:
+      - coverage_item: synthetic tide and depth datum
+        outcome: null
+        rationale: null
+      - coverage_item: draft and clearance assumptions
+        outcome: null
+        rationale: null
+      - coverage_item: visibility and route state
+        outcome: null
+        rationale: null
+      - coverage_item: pass/wait/return and terminality semantics
+        outcome: null
+        rationale: null
+    rationale: null
+    evidence_references: []
+    evidence_gaps: []
+    limitations: null
+    requested_clarifications_or_changes: []
+    reviewer_confirmation: false
+final_attestation:
+  covered_validation_record_ids:
+    - VR-L01-v0
+    - VR-L02-v0
+    - VR-L03-v0
+    - VR-L04-v0
+    - VR-L05-v0
+  findings_complete: false
+  non_navigation_acknowledgement: false
+  non_release_approval_acknowledgement: false
+  signature_name: null
+  signed_at: null
+controlled_apply_constraints:
+  submission_directly_changes_registry: false
+  needs_evidence_maps_to_registry_disposition: false
+  required_concrete_bindings_for_validated_application:
+    - model_version
+    - contract_version
+    - coordinate_contract_version
+    - determinism_contract_version
+  allowed_registry_fields_for_separate_authorized_apply:
+    - reviewer
+    - review_date
+    - disposition
+    - source_or_evidence_gap_reason

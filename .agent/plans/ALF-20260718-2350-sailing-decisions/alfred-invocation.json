@@ -1,0 +1,30 @@
+{
+  "task_id": "ALF-20260718-2350-sailing-decisions",
+  "status": "complete",
+  "exit_code": 0,
+  "timed_out": false,
+  "started_at": "2026-07-18T15:07:55.696426+00:00",
+  "elapsed_seconds": 195.046,
+  "timeout_seconds": 900,
+  "toolsets": [
+    "file",
+    "terminal",
+    "skills"
+  ],
+  "max_tool_calls": 6,
+  "command": [
+    "hermes",
+    "-p",
+    "alfred",
+    "chat",
+    "-Q",
+    "-t",
+    "file,terminal,skills",
+    "-q",
+    "[planning packet redacted]"
+  ],
+  "stdout_log": "alfred-stdout.log",
+  "stderr_log": "alfred-stderr.log",
+  "response_written": true,
+  "response_header_found": true
+}

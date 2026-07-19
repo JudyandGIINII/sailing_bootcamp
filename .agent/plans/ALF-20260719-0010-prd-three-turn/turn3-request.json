@@ -1,0 +1,24 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260719-0050-prd-three-turn-turn3",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "Turn 3 (final) of a bounded three-turn, read-only PRD hardening discussion among Alfred, Claude, and agent_robin. Read the canonical PRD and turn-2 synthesis. Audit the proposed P0/P1/Post-MVP minimum robust delta for scope creep, ungrounded claims, internal contradictions, testability and user-decision leakage. Return only: final disposition (approve/revise), at most five concrete corrections, an exact ordered PRD patch outline, and the remaining explicit user decisions. Do not modify files or propose implementation.",
+    "desired_outcome": "Final reconciled PRD hardening delta that preserves Sloop-only browser MVP and avoids invented physical/performance thresholds.",
+    "known_context": [
+      "Canonical PRD: /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md",
+      "Turn-2 synthesis: /Users/hipgiinii/.hermes/projects/Sailing_training/.agent/plans/ALF-20260719-0010-prd-three-turn/turn2-synthesis.md",
+      "Confirmed D1-D6/C1 cannot be reopened."
+    ],
+    "constraints": ["read-only", "no code/Git/deploy/network", "no numerical threshold invention", "final findings only"],
+    "current_architecture": ["Documentation-only project; implementation remains unapproved."],
+    "repository_paths": ["/Users/hipgiinii/.hermes/projects/Sailing_training/prd.md", "/Users/hipgiinii/.hermes/projects/Sailing_training/.agent/plans/ALF-20260719-0010-prd-three-turn/turn2-synthesis.md"],
+    "existing_decisions": ["D1-D6/C1 confirmed", "turn-2 proposes P0/P1/Post-MVP delta"],
+    "prohibited_actions": ["modify files", "code", "Git", "deploy", "external APIs"],
+    "requested_planning_mode": "STANDARD",
+    "expected_executors": ["claude", "agent_robin"],
+    "user_answers": [],
+    "previous_review_findings": ["Turn 1 and turn 2 artifacts are in the planning directory; turn-2 synthesis is canonical for final reconciliation."]
+  }
+}

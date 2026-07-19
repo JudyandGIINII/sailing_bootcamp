@@ -1,0 +1,31 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260719-0110-coach-validation-packet",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "Proceed with the next documented step: create a sailing coach/instructor domain-review packet and a review-form template for validating the draft L01-L05 Training Sloop lesson registry. Documentation only; do not seek, identify, contact, or impersonate a reviewer. The packet must make it easy for an invited qualified reviewer to classify claims as validated, partially_validated, rejected, or needing evidence without converting the product into real navigation or certification guidance.",
+    "desired_outcome": "A review-ready packet and machine-readable review submission template that map one-to-one to VR-L01-v0 through VR-L05-v0, enforce evidence/provenance/version binding, preserve assumption status until a real named reviewer signs, and explain how to apply a review without silently changing scenario/model contracts.",
+    "known_context": [
+      "Canonical PRD: /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md.",
+      "Lesson contracts: /Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/mandatory-lessons-l01-l05.md.",
+      "Registry: /Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/domain-validation-registry.yaml.",
+      "All five current registry records have disposition=assumption and block release.",
+      "Product is browser-based, virtual-water, training-sloop-v1-only, local-only replay/telemetry, and non-certification/non-navigational."
+    ],
+    "constraints": [
+      "Documentation/templates only. Do not change existing registry dispositions, contact people, use external research, write product code, use Git, deploy, or request credentials.",
+      "Do not invent technical sailing numbers, safety thresholds, polars, draft, performance metrics, or regulatory claims.",
+      "Separate a reviewer qualification/declaration from a claim-level technical review. Do not capture unnecessary personal data.",
+      "A reviewer may reject or request evidence; no form response by itself is a product release approval."
+    ],
+    "current_architecture": ["Documentation-only workspace; no application implementation exists."],
+    "repository_paths": ["/Users/hipgiinii/.hermes/projects/Sailing_training/prd.md", "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/mandatory-lessons-l01-l05.md", "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/domain-validation-registry.yaml"],
+    "existing_decisions": ["D1-D6 confirmed", "C1=L01-L05 required", "training-sloop-v1 only", "all validation records initially assumption", "release blocked until validation and P1 artifacts"],
+    "prohibited_actions": ["recruiting/contacting reviewers", "changing release state", "implementation", "Git actions", "deployment", "real navigation advice"],
+    "requested_planning_mode": "STANDARD",
+    "expected_executors": ["codex", "claude", "agent_robin"],
+    "user_answers": [],
+    "previous_review_findings": ["The registry and lesson contracts need an auditable human-review interface with version pinning, per-claim evidence, explicit disposition rationale, and a controlled apply/reject process."]
+  }
+}

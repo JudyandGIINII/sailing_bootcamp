@@ -1,0 +1,363 @@
+
+┌─ Reasoning ──────────────────────────────────────────────────────────────────┐
+**Reconciling packet header modes****Planning parallel skill and file loading****Reconciling packet header modes**
+**Planning parallel skill and file loading****Confirming planned use of DEEP mode**
+**Planning technical options and architecture****Recommending PixiJS with custom simulation**
+**Comparing 2D rendering options****Designing deterministic simulation core****Defining schema validation approach**
+**Testing core components and integration workflows****Planning staged release validation and prototype builds**
+**Outlining staged test-driven development plan****Planning architecture documentation structure**
+**Documenting state update pipeline and rendering choices****Designing rollback and version immutability**
+**Defining handoff boundaries without routing****Resolving header value conflicts for prototype**
+**Formatting final response in structured YAML****Planning technical options documentation**
+**Sequencing phased implementation with placeholders****Allowing synthetic values for prototype**
+**Defining content owner for simulation assumptions****Planning synthetic simulation assumptions**
+**Establishing simulation assumption gating****Defining canonical coordinate conventions**
+**Establishing simulation units and timing approach****Defining release gating and storage strategy**
+**Verifying Playwright no-network assertions****Defining reset and retry semantics**
+**Planning replay envelope and audit strategy****Planning detailed testing matrix**
+**Deciding risk levels and architecture stack****Considering replay step before L01**
+**Planning executor handoff packets****Finalizing gated decision requirements****Confirming planned use of DEEP mode**
+**Planning technical options and architecture**
+**Recommending PixiJS with custom simulation**
+
+**Comparing 2D rendering options**
+**Designing deterministic simulation core**
+**Defining schema validation approach**
+
+**Testing core components and integration workflows**
+**Planning staged release validation and prototype builds**
+**Outlining staged test-driven development plan**
+
+**Planning architecture documentation structure**
+**Documenting state update pipeline and rendering choices**
+**Designing rollback and version immutability**
+
+**Defining handoff boundaries without routing**
+**Resolving header value conflicts for prototype**
+**Formatting final response in structured YAML**
+
+**Planning technical options documentation**
+**Sequencing phased implementation with placeholders**
+**Allowing synthetic values for prototype**
+
+**Defining content owner for simulation assumptions**
+**Planning synthetic simulation assumptions**
+**Establishing simulation assumption gating**
+
+**Defining canonical coordinate conventions**
+**Establishing simulation units and timing approach**
+**Defining release gating and storage strategy**
+
+**Verifying Playwright no-network assertions**
+**Defining reset and retry semantics**
+**Planning replay envelope and audit strategy**
+
+**Planning detailed testing matrix**
+**Deciding risk levels and architecture stack**
+**Considering replay step before L01**
+
+**Planning executor handoff packets**
+alfred_response:
+  schema_version: 1
+  task_id: ALF-20260719-0200-sailing-mvp-technical-plan
+  plan_version: 1
+  status: READY_FOR_HERMES_REVIEW
+  planning_mode: DEEP
+  ambiguity_score: 0.0
+  confidence: high
+  risk_level: low
+  user_approval_required: false
+  ouroboros_used: false
+  evidence_complete: true
+  critical_open_questions: []
+
+## Evidence baseline
+
+- Canonical scope: PRD Draft v0.3.
+- Content scope: `training-sloop-v1`, synthetic virtual water, mandatory L01–L05.
+- All `VR-L01-v0`–`VR-L05-v0` records remain `assumption`; model, coordinate, determinism, and contract versions remain TBD.
+- This does not prevent a clearly labeled prototype, but it prevents release.
+- No repository, manifest, test setup, or source tree currently exists.
+
+## Technical-options comparison
+
+| Option | Advantages | Principal risk | Assessment |
+|---|---|---|---|
+| Phaser + external simulation core | Mature 2D game framework; scenes, input, WebGL/Canvas support | Framework loop, timers, input, or physics can accidentally become authoritative state | Viable if Phaser is strictly a projection adapter |
+| PixiJS + independent application controller | Focused rendering/scene graph; naturally supports renderer-independent simulation | More lifecycle, camera, and input integration must be built explicitly | Recommended balance |
+| Native Canvas 2D + DOM | Minimal dependency surface and full loop control | Custom rendering, camera, asset, and diagnostic infrastructure grows quickly | Acceptable fallback, less efficient for the MVP |
+
+Recommended stack:
+
+- Strict TypeScript.
+- Vite for browser build and development.
+- PixiJS for world rendering only.
+- Semantic keyboard input adapter owned by the application layer.
+- Accessible DOM/CSS HUD, briefing, pause controls, and debrief.
+- Vitest for contracts, simulation, replay, scoring, and integration tests.
+- Playwright for keyboard-only browser workflows and cross-engine evidence.
+- IndexedDB behind a storage interface for local-only replay.
+- No backend, account system, analytics SDK, live-data client, or framework-owned physics.
+- Exact runtime and package versions are selected and locked only during bootstrap, after a current compatibility check.
+
+## Architecture
+
+Dependency direction:
+
+```text
+content/contracts
+       ↓
+deterministic simulation → event ledger → scoring/debrief facts
+       ↓                         ↓
+application controller ← replay/session controller
+       ↓
+renderer projection | DOM HUD | local storage
+```
+
+Mandatory boundaries:
+
+1. `sim`
+   - Pure state transition functions.
+   - No DOM, renderer, storage, wall-clock reads, network, or unseeded randomness.
+   - Receives versioned state, ordered semantic inputs, and logical tick identity.
+   - Produces next state and immutable causal events.
+
+2. `contracts`
+   - Versioned scenario, boat profile, lesson, coordinate, determinism, comparison, and replay schemas.
+   - Rejects missing, malformed, unknown, or incompatible versions before a lesson starts.
+   - Keeps hull and rig contracts separate while exposing only `training-sloop-v1`.
+
+3. `replay`
+   - Envelope includes replay schema, scenario, seed, ordered input log, model, profile, coordinate, determinism, and comparison-policy identities.
+   - Inputs use logical tick plus monotonic sequence; browser event timestamps are not authoritative.
+   - Unknown versions are reported as unsupported rather than replayed approximately.
+
+4. `scoring/debrief`
+   - Consumes simulation events and declared model state, never renderer state.
+   - Every score mutation references its triggering observation, action, state, and event.
+   - Safety violations cannot be offset by speed, progress, or final position.
+   - Debrief records are generated from the same causal ledger used for scoring.
+
+5. `application`
+   - Maps physical keys to permitted semantic actions.
+   - Renderer cadence may schedule ticks but cannot alter fixed-step state evolution.
+   - Speed control changes scheduling rate, not simulation step size or rules.
+   - Pause advances no tick, RNG state, events, or score.
+   - Reset restores declared initial state and seed as a new attempt; the abandoned attempt may be retained only as explicitly marked local metadata.
+   - Retry uses the same identity while preserving attempts for comparison.
+
+6. `render/ui`
+   - PixiJS projects immutable simulation snapshots.
+   - Canonical simulation space is Cartesian and renderer-independent; Canvas/Pixi axis conversion occurs only in the projection adapter.
+   - Wind retains explicit `from` semantics and current explicit `to` semantics.
+   - HUD and debrief remain DOM-based for focus, labels, keyboard access, and non-color status presentation.
+
+7. `storage`
+   - IndexedDB adapter plus in-memory implementation for tests.
+   - Corrupt or incompatible records are quarantined and never partially loaded.
+   - Storage failure does not terminate the active lesson; it produces an explicit “not saved” result.
+   - No replay or telemetry leaves the browser.
+
+## Fail-closed gate model
+
+Three independent decisions must not be conflated:
+
+1. Load eligibility
+   - Schema, identity, permitted actions, and referenced contracts are complete and compatible.
+   - Failure blocks that lesson in every mode.
+
+2. Prototype eligibility
+   - Simulation-only assumptions may be used when versioned, linked to their validation records, and visibly labeled as unvalidated.
+   - Prototype status must not imply release readiness.
+
+3. Release eligibility
+   - Every selected lesson record is `validated`.
+   - Required browser, accessibility, pilot, operations, replay compatibility, and privacy artifacts are approved.
+   - A release-check command must fail on missing, `assumption`, `partially_validated`, `rejected`, or stale dependencies.
+   - There is no release-mode force override.
+
+Engineers may encode supplied synthetic assumptions but must not invent real sailing thresholds, polars, safety limits, or navigation prescriptions.
+
+## Proposed component impact
+
+```text
+docs/architecture/technical-options.md
+docs/architecture/mvp-technical-plan.md
+docs/contracts/coordinate-contract.md
+docs/contracts/determinism-replay-contract.md
+docs/quality/prototype-and-release-gates.md
+
+src/contracts/
+src/content/
+src/sim/
+src/replay/
+src/scoring/
+src/app/
+src/render/
+src/ui/
+src/storage/
+
+tests/unit/
+tests/contracts/
+tests/golden-replays/
+tests/integration/
+tests/e2e/
+```
+
+The existing PRD, mandatory lesson specification, and validation registry remain authoritative inputs rather than duplicated source constants.
+
+## Test-first implementation sequence
+
+### Stage 0 — Freeze technical contracts
+
+Write and review:
+
+- Coordinate/unit/direction contract.
+- Logical tick and input-order contract.
+- RNG algorithm/version and consumption policy.
+- State-update and simultaneous-event ordering.
+- Canonical replay serialization and comparison policy.
+- Prototype versus release gate rules.
+- Simulation-assumption catalog ownership and registry linkage.
+
+Exit: each TBD contract has an explicit version and testable semantics; no domain thresholds are invented.
+
+### Stage 1 — Bootstrap the project
+
+- Perform current compatibility checks.
+- Select and pin TypeScript, Vite, PixiJS, Vitest, and Playwright versions in a lockfile.
+- Establish strict typecheck, unit, contract, browser, and release-check commands.
+- Add no server or telemetry dependency.
+
+Exit: an empty browser shell and all test lanes run successfully without implementing simulation behavior.
+
+### Stage 2 — Contracts and gate evaluator
+
+Start with failing tests for:
+
+- Missing/unknown versions.
+- Non-Sloop profiles.
+- Lesson/profile incompatibility.
+- Unsupported actions.
+- Missing validation records.
+- Prototype acceptance versus release rejection for `assumption`.
+- Rejected or stale records blocking release.
+
+Then implement runtime validation and gate reports.
+
+### Stage 3 — Deterministic core and replay
+
+Start with fixtures for:
+
+- Identical identity/input producing identical state, events, score, and debrief facts.
+- Input sequence tie-breaking.
+- Pause non-progression.
+- Reset restoration.
+- Seeded RNG consumption.
+- Zero-current STW/SOG behavior.
+- Current-vector composition.
+- Single-emission boundary events.
+- Renderer cadence independence.
+
+Implement the pure transition pipeline and canonical replay comparator. Golden replay updates require explicit contract/version review.
+
+### Stage 4 — L01 end-to-end architecture slice
+
+Implement L01 through the complete production path:
+
+- Validated manifest loading.
+- Semantic keyboard input.
+- Pure simulation.
+- Pixi world projection.
+- DOM HUD and briefing.
+- Event-derived scoring/debrief.
+- Local replay, retry, and comparison.
+- Persistent prototype/non-navigation notices.
+
+Exit: L01 completes keyboard-only and replays identically under its declared comparison policy. This validates architecture, not domain correctness or release eligibility.
+
+### Stage 5 — Extend L02–L05
+
+Add one lesson at a time without adding alternate profiles:
+
+- L02: main/jib controls and trim causality.
+- L03: deterministic gust/wave episode and safety-first mitigation events.
+- L04: heading/COG, STW/SOG, drift, and mark acceptance.
+- L05: synthetic tide/depth/visibility observations and pass/wait/return decisions.
+
+Each lesson must first add contract, invariant, replay, scoring, debrief, recovery, and unsupported-action tests.
+
+### Stage 6 — Browser and resilience hardening
+
+- Keyboard focus and key-repeat behavior.
+- Pause when focus is lost according to the declared session policy.
+- Visible focus, text/icon status, and reduced-motion behavior.
+- Storage corruption/quota handling.
+- Unknown replay-version handling.
+- No unexpected network requests.
+- Candidate Playwright runs across Chromium, WebKit, and Firefox without claiming a support matrix before P1 approval.
+
+### Stage 7 — Release evidence assembly
+
+- Generate machine-readable gate reports.
+- Verify all golden replays and replay compatibility policy.
+- Attach browser/accessibility/performance/pilot/rollback evidence.
+- Keep release blocked until registry and P1 artifacts are approved.
+
+## Verification matrix
+
+| Concern | Required evidence |
+|---|---|
+| Determinism | Golden replay equality for canonical state, event, score, and debrief fields |
+| Renderer isolation | Same replay result with renderer absent, irregular render cadence, and multiple render frames per tick |
+| Input ordering | Tick/sequence collision and key-repeat tests |
+| Pause/reset/retry | No pause progression; exact reset restoration; same-identity retry comparison |
+| Content integrity | Runtime contract tests for every L01–L05 manifest |
+| Scoring causality | Every score change resolves to source event/state/action |
+| Safety invariant | Property/integration tests proving speed and progress cannot offset safety violations |
+| Replay compatibility | Known-version load, unknown-version rejection, immutable historical fixture tests |
+| Local-only data | Browser test asserting no replay/telemetry transmission |
+| Accessibility | Keyboard-only lesson completion, focus visibility, non-color indicators, reduced motion |
+| Release gates | Negative tests for every unapproved/missing/stale registry or P1 artifact |
+
+## Risk register
+
+| Risk | Mitigation |
+|---|---|
+| Renderer or framework becomes authoritative | Dependency rules plus headless golden-replay tests |
+| Cross-browser numerical drift | Versioned comparison policy, explicit rounding/clamping, cross-engine replay evidence |
+| Assumption content is mistaken for validated guidance | Persistent labeling and separate prototype/release evaluators |
+| Replay schema changes reinterpret old attempts | Immutable identities, explicit migrations, unknown-version fail-closed behavior |
+| Debrief diverges from scoring | One shared causal event ledger |
+| Keyboard timing changes outcomes | Record semantic action tick/sequence, not wall-clock timestamps |
+| Local storage corruption or quota failure | Adapter isolation, validation, quarantine, explicit save failure |
+| Future boat catalog expands MVP accidentally | Catalog test requiring exactly `training-sloop-v1` for MVP |
+
+## Rollback strategy
+
+- Treat scenario, model, profile, contract, comparison, and replay versions as immutable.
+- Revert dependency regressions through the previously verified lockfile.
+- Remove a defective content/model version from the selectable catalog without rewriting saved replays.
+- Preserve old replay decoders only when compatibility tests pass; otherwise report the version as unsupported.
+- Use copy-on-write storage migrations and retain the prior local schema until verification succeeds.
+- For a released static bundle, rollback means restoring the previous verified bundle and catalog; replay compatibility remains governed by its recorded identities.
+
+## Executor handoff packets
+
+1. Foundation packet
+   - Technical ADRs, bootstrap, schemas, gate evaluator.
+   - Must not add physics values or release overrides.
+
+2. Core packet
+   - Pure simulation, RNG, replay, event ledger, scoring, golden tests.
+   - Must run without PixiJS or DOM.
+
+3. Experience packet
+   - Pixi projection, keyboard adapter, DOM HUD/debrief, IndexedDB.
+   - Must consume core APIs without mutating simulation state.
+
+4. Independent QA packet
+   - Adversarial replay, gate, accessibility, local-only network, and cross-engine checks.
+   - Must reject release claims while current registry/P1 artifacts remain unapproved.
+
+Plan judgment: implementation of a labeled prototype can begin after Stage 0 contract artifacts are accepted. MVP release remains independently and correctly blocked by the current validation registry and P1 gates.

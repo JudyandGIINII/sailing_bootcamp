@@ -1,0 +1,52 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260718-2350-sailing-decisions",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "사용자가 세일링 시뮬레이션 PRD의 D1–D6를 확정했다. 이 결정을 기존 PRD와 조화시키고, 특히 다양한 선체/리그 카탈로그라는 장기 제품 비전과 Dinghy·Sloop 중심 MVP의 범위 경계를 재검토한다. 구현 없이, PRD 갱신에 넣을 확정 결정·변경된 범위·추적 가능한 수용 기준·남은 비차단 가정을 제시하라.",
+    "desired_outcome": "기존 PRD에 삽입 가능한 간결한 reconciliation delta. 선체/리그 확장성을 데이터/콘텐츠 구조 요구로 표현하되, MVP의 물리·콘텐츠 범위 폭발을 막는 단계적 경계를 만든다.",
+    "known_context": [
+      "기존 PRD: /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md",
+      "기존 조사 근거: /Users/hipgiinii/.hermes/projects/Sailing_training/docs/research/benchmark-sources.md",
+      "기존 Alfred 계획은 결정론적 시나리오 기반 교육 루프와 단일 keelboat/sloop를 잠정 권고했지만, 이제 사용자가 D1–D6를 답했다.",
+      "사용자 확정 D1: 브라우저 동작 게임.",
+      "사용자 확정 D2: 입문 교육 수강생.",
+      "사용자 확정 D3: 장기적으로 사용자가 다양한 보트/요트를 선택해 훈련. monohull 계열은 Dinghy, Keelboat, Sloop, Cutter, Ketch, Yawl, Schooner; multihull 계열은 Catamaran, Trimaran. 선체 형태와 마스트 위치·수·종류 차이를 모델/콘텐츠에 반영.",
+      "사용자 확정 D4: 기본은 가상 훈련 수역이며, 한국 연안 특정 해역(영종도 인근, 덕적도 인근 등)을 시나리오로 포함하는 방향.",
+      "사용자 확정 D5: MVP는 가상 훈련 수역에서 Dinghy 또는 Sloop로 구성. 사용자 요청의 ‘or’는 장기 카탈로그와 일관되도록 MVP에서 Dinghy와 Sloop 두 프로필을 선택 가능하게 하는 기본 해석을 검토하되, 반드시 범위 경계를 명시.",
+      "사용자 확정 D6: 물리 훈련 보조 + 약한 게임성. 실제 항해·자격·안전 판단 대체는 계속 금지.",
+      "실시간 해양 API, 고정밀 CFD, 실제 항로 정확성, 멀티플레이/레이스 규칙은 MVP 제외 상태다."
+    ],
+    "constraints": [
+      "계획·문서화만. 코드, 엔진 선택, 배포, Git, 외부 API/비밀정보 사용을 하지 않는다.",
+      "용어상 monohull/multihull을 구분하고, ‘mast position/number/type’는 교육용 추상화 범위와 실제 설계 검증 필요 범위를 구별한다.",
+      "한국 연안은 콘텐츠 시나리오의 지리적 맥락이며, 실제 항법 안전/실시간 예보/해도 정확성 주장으로 확장하지 않는다.",
+      "모든 새 요구사항은 결정론적 replay, 설명 가능성, 안전 고지와 충돌하지 않아야 한다."
+    ],
+    "current_architecture": [
+      "코드·엔진·데이터 제공자 미선택.",
+      "문서만 존재하며, 구현은 아직 승인되지 않았다."
+    ],
+    "repository_paths": [
+      "/Users/hipgiinii/.hermes/projects/Sailing_training/prd.md",
+      "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/research/benchmark-sources.md"
+    ],
+    "existing_decisions": [
+      "환경 관측 → 판단 → 행동 → 결과 → 동일 조건 재도전이라는 학습 루프.",
+      "결정론적 시나리오·버전·seed·입력 로그와 안전 우선 채점.",
+      "실제 항해·자격·안전의 대체가 아님."
+    ],
+    "prohibited_actions": [
+      "코드 수정 또는 구현자 배정", "Git 작업", "배포", "실시간 항해 데이터 또는 외부 API 계약/키 사용", "공식 자격·안전 인증 주장"
+    ],
+    "requested_planning_mode": "STANDARD",
+    "expected_executors": ["codex", "claude", "agy"],
+    "user_answers": [
+      "D1=브라우저 동작 게임", "D2=입문 교육 수강생", "D3=다양한 monohull/multihull 및 mast/rig 차이를 선택 훈련할 수 있게 장기 구성", "D4=가상 훈련 수역 기본 + 영종도/덕적도 인근 한국 연안 시나리오", "D5=MVP는 가상 수역의 Dinghy 또는 Sloop", "D6=물리 훈련 보조 + 약한 게임성"
+    ],
+    "previous_review_findings": [
+      "기존 계획은 PRD 초안 문서화 범위에서 45/50으로 PLAN_APPROVED. D1–D6 확정 후에 레슨 콘텐츠 명세, 상태/좌표계/환경 벡터 계약, 기술 옵션 비교로 진행하도록 되어 있었다."
+    ]
+  }
+}

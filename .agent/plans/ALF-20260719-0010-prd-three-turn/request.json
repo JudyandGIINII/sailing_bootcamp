@@ -1,0 +1,36 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260719-0010-prd-three-turn",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "This is a completed read-only PRD audit, not an audit plan. Audit the canonical Korean PRD at /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md for a browser-based educational sailing simulator. The user explicitly asks for a bounded three-turn discussion among Alfred, Claude, and agent_robin to make it specific and robust. Turn 1 needs concluded findings only: severity-ranked gaps, exact PRD sections/evidence, concrete replacement/addition recommendations, and unverified items. Do not write code or modify any files.",
+    "desired_outcome": "Return at most 8 high-value, evidence-grounded PRD hardening findings across learning design, simulation contract, safety/realism boundaries, content scope, acceptance criteria, browser UX/accessibility, observability, and rollout. Distinguish product decisions already confirmed from assumptions that must remain explicit.",
+    "known_context": [
+      "Canonical PRD: /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md (Draft v0.2, 234 lines).",
+      "Research sources: /Users/hipgiinii/.hermes/projects/Sailing_training/docs/research/benchmark-sources.md.",
+      "Confirmed scope: desktop-first browser game; primary persona is sailing-course beginner; MVP is one virtual training water, one Training Sloop profile, and mandatory lessons L01–L05; weak gamification; live weather/tide API, high-fidelity CFD, actual navigation guidance, certification and multiplayer are excluded.",
+      "Long-term catalogue separates hull configuration from rig configuration. Korea coastal contexts (Yeongjong/Deokjeok) are static post-MVP scenarios only and must never imply navigational accuracy.",
+      "No repository or implementation exists. This audit must not authorize implementation."
+    ],
+    "constraints": [
+      "Read-only audit; no code, Git, deployment, browser interaction, credentials, API calls, or external communication.",
+      "The response body after alfred_response must contain concluded findings only, not an audit procedure or generic checklist.",
+      "Avoid adding claims that need uncollected authoritative sailing-training evidence. Mark such claims UNVERIFIED and phrase them as validation gates.",
+      "Do not reopen confirmed D1–D6 or C1 unless a contradiction is demonstrated from the canonical PRD."
+    ],
+    "current_architecture": ["Documentation-only project; no codebase or Git repository."],
+    "repository_paths": [
+      "/Users/hipgiinii/.hermes/projects/Sailing_training/prd.md",
+      "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/research/benchmark-sources.md"
+    ],
+    "existing_decisions": [
+      "D1 browser game", "D2 sailing-course beginner", "D3 extensible hull/rig catalogue", "D4 virtual water + later Korea-context scenarios", "D5 Training Sloop-only L01-L05 MVP", "D6 physical practice support + weak gamification", "C1 L01-L05 all required with Training Sloop"
+    ],
+    "prohibited_actions": ["modify files", "code generation", "Git actions", "deployment", "credentials", "external API access"],
+    "requested_planning_mode": "DEEP",
+    "expected_executors": ["claude", "agent_robin"],
+    "user_answers": [],
+    "previous_review_findings": []
+  }
+}

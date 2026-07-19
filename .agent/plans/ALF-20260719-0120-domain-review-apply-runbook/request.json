@@ -1,0 +1,30 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260719-0120-domain-review-apply-runbook",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "Proceed with the next documented governance step: author a reviewer-qualification acceptance and controlled-apply runbook plus a machine-readable apply-request template for a future completed sailing-domain review submission. The artifacts must preserve fail-closed behavior: no person is selected or contacted, no reviewer is accepted, no registry disposition changes, no release is approved, and no scenario/model/scoring contract can change through this workflow.",
+    "desired_outcome": "Two documentation-only artifacts that make the future accept/reject/apply decision auditable: a runbook with decision matrix and a blank apply-request template that references a submission by path/digest, requires explicit authority approval, checks concrete bindings, distinguishes evidence review from release/P1 gates, and restricts requested registry deltas to the existing allowlist.",
+    "known_context": [
+      "Canonical registry: docs/content/domain-validation-registry.yaml; exactly five assumption records and all model/contract/coordinate/determinism bindings are TBD.",
+      "Review packet: docs/content/sailing-coach-domain-review-packet-v1.md; template: docs/content/sailing-coach-domain-review-submission-template-v1.yaml.",
+      "Existing controlled-apply allowlist: reviewer, review_date, disposition, source_or_evidence_gap_reason.",
+      "Review submissions do not confer release/P1 approval and needs_evidence is not a registry disposition."
+    ],
+    "constraints": [
+      "Documentation/templates only. Do not modify canonical PRD, lesson contracts, registry, review packet/template, dispositions, release state, or code.",
+      "Do not identify, recruit, contact, or impersonate a reviewer or authority.",
+      "No external research, numerical sailing thresholds, performance values, regulatory claims, or real navigation guidance.",
+      "Explicit user/operating authority is required before any future controlled apply; an apply request is not approval."
+    ],
+    "current_architecture": ["Documentation-only workspace; no product implementation exists."],
+    "repository_paths": ["/Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/domain-validation-registry.yaml", "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/sailing-coach-domain-review-packet-v1.md", "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/sailing-coach-domain-review-submission-template-v1.yaml"],
+    "existing_decisions": ["all initial records assumption", "Sloop-only L01-L05", "local-only replay/telemetry", "separate controlled apply", "P1/release remain separate gates"],
+    "prohibited_actions": ["registry mutation", "authority/reviewer selection", "release authorization", "implementation", "Git actions", "deployment"],
+    "requested_planning_mode": "STANDARD",
+    "expected_executors": ["codex", "claude", "agent_robin"],
+    "user_answers": [],
+    "previous_review_findings": ["Any submission with TBD/null version bindings, missing signatures, incomplete coverage, stale digest, or needs_evidence must preserve assumption. Registry application can change only existing allowlisted fields and must be separately authorized."]
+  }
+}

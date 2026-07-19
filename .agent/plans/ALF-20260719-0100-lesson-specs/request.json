@@ -1,0 +1,31 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260719-0100-lesson-specs",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "Proceed to the next documented product step: prepare concrete content specifications for mandatory Training Sloop lessons L01–L05 and a draft lesson-level domain validation registry. This is planning/documentation only; do not implement code. Reconcile the documents with PRD v0.3 sections 7.2.1, 8.0, 8.3, 10 and 12. Return the minimal document structure, required fields, lesson-specific observable objectives/checkpoints/recovery semantics, and validation-record coverage without inventing sailing thresholds or claiming real navigational safety.",
+    "desired_outcome": "A robust, implementer-ready but domain-validation-gated lesson specification package: one document for all five lesson contracts plus a machine-readable validation registry draft. The content must preserve Sloop-only MVP, local-only replay, virtual water, non-certification, deterministic contract, and safety-first scoring.",
+    "known_context": [
+      "Canonical PRD: /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md (v0.3).",
+      "MVP is desktop-first browser, virtual water, training-sloop-v1 only, mandatory L01-L05.",
+      "L01 relative wind/course; L02 main/jib trim; L03 gust/wave/reef; L04 current correction; L05 tide/depth/visibility.",
+      "All thresholds, polars, draft, safety limits, scoring weights and mastery thresholds are unvalidated simulation assumptions until a lesson-level validation record is approved.",
+      "Required lesson contract fields are enumerated in PRD §7.2.1. Determinism is governed by §8.3. Domain validation and P1 release gates are §12."
+    ],
+    "constraints": [
+      "Documentation only. No code, Git, deployment, API calls, credential handling, or external network research.",
+      "Do not invent numeric values, safety limits, performance polars, real weather rules, or certification claims.",
+      "Use semantic pass/fail/recovery states and validation_record_ids; phrase unapproved claims as assumptions requiring disposition.",
+      "Korea coastal names and live/realtime navigation data remain out of these MVP lesson documents."
+    ],
+    "current_architecture": ["Documentation-only project; no implementation or repository exists."],
+    "repository_paths": ["/Users/hipgiinii/.hermes/projects/Sailing_training/prd.md"],
+    "existing_decisions": ["D1-D6 confirmed", "C1=L01-L05 required", "training-sloop-v1 only", "local-only replay/telemetry"],
+    "prohibited_actions": ["modify application code", "Git actions", "deployment", "real marine API use", "certification/safety authority claims"],
+    "requested_planning_mode": "STANDARD",
+    "expected_executors": ["codex", "claude", "agent_robin"],
+    "user_answers": [],
+    "previous_review_findings": ["PRD v0.3 requires each lesson to declare contract fields and validation_record_id; release is blocked for lessons whose record is rejected or unapproved."]
+  }
+}

@@ -1,0 +1,92 @@
+schema_version: 1
+template_version: 1-draft
+request_id: null
+request_status: draft
+frozen_request_sha256: null
+submission_reference:
+  path: null
+  sha256: null
+review_packet_reference:
+  path: null
+  packet_id: null
+  packet_version: null
+  sha256: null
+target_registry_reference:
+  path: docs/content/domain-validation-registry.yaml
+  expected_schema_version: 1
+  expected_registry_version: 0-draft
+  expected_pre_apply_sha256: null
+qualification_decision:
+  status: pending
+  authority_identity: null
+  authority_scope_reference: null
+  decision_outcome: null
+  rationale: null
+  decision_at: null
+  signed_decision_reference:
+    path: null
+    sha256: null
+gate_evaluations:
+  submission_yaml_parses: false
+  submission_status_completed: false
+  submission_path_and_digest_present: false
+  canonical_source_digests_current: false
+  declaration_and_attestation_identity_match: false
+  signatures_and_attestations_complete: false
+  five_unique_records_in_registry_order: false
+  claim_and_coverage_snapshots_match_current_registry: false
+  all_required_bindings_concrete_and_current: false
+  evidence_and_limitations_complete: false
+  review_outcomes_valid: false
+  needs_evidence_kept_out_of_registry_disposition: false
+  p1_and_release_separation_acknowledged: false
+  requested_deltas_allowlist_only: false
+record_eligibility:
+  - validation_record_id: VR-L01-v0
+    eligibility: pending
+    preserve_assumption_reason: missing_submission_and_concrete_binding_evidence
+  - validation_record_id: VR-L02-v0
+    eligibility: pending
+    preserve_assumption_reason: missing_submission_and_concrete_binding_evidence
+  - validation_record_id: VR-L03-v0
+    eligibility: pending
+    preserve_assumption_reason: missing_submission_and_concrete_binding_evidence
+  - validation_record_id: VR-L04-v0
+    eligibility: pending
+    preserve_assumption_reason: missing_submission_and_concrete_binding_evidence
+  - validation_record_id: VR-L05-v0
+    eligibility: pending
+    preserve_assumption_reason: missing_submission_and_concrete_binding_evidence
+allowed_registry_fields:
+  - reviewer
+  - review_date
+  - disposition
+  - source_or_evidence_gap_reason
+requested_registry_deltas: []
+controlled_apply_authorization:
+  status: pending
+  authority_identity: null
+  authority_scope_reference: null
+  binds_frozen_request_sha256: null
+  binds_expected_pre_apply_registry_sha256: null
+  authorized_at: null
+  signed_authorization_reference:
+    path: null
+    sha256: null
+invariants:
+  request_directly_applies_registry: false
+  needs_evidence_maps_to_registry_disposition: false
+  scenario_model_profile_lesson_coordinate_determinism_scoring_boundary_change_allowed: false
+  p1_approval_conferred: false
+  release_approval_conferred: false
+execution_audit:
+  execution_status: not_started
+  no_op_reason: null
+  rejected_reason: null
+  aborted_reason: null
+  pre_apply_registry_sha256: null
+  preserved_pre_apply_registry_bytes_reference: null
+  actual_registry_deltas: []
+  post_apply_registry_sha256: null
+  post_apply_verification_status: pending
+  rollback_reference: null

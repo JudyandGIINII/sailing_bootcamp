@@ -1,0 +1,32 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260719-0200-sailing-mvp-technical-plan",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "Proceed from PRD/validation planning to the next phase: create a documented technical-options comparison and an implementation-ready MVP technical plan for the browser-based Training Sloop sailing simulator. Planning and documentation only; do not scaffold code, install dependencies, initialize Git, create a worktree, or deploy.",
+    "desired_outcome": "A grounded recommended stack and architecture with a staged, test-first implementation plan. The recommendation must support a deterministic, replayable 2D browser simulation, Sloop-only MVP, virtual water, keyboard controls, explanatory HUD/debrief, local-only replay, and PRD fail-closed validation/release gates.",
+    "known_context": [
+      "Canonical PRD: /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md (Draft v0.3).",
+      "MVP uses training-sloop-v1 only and required L01-L05 on synthetic virtual water. No code/repository exists yet.",
+      "Decision/replay contract requires versioned scenario/seed/input/model/profile/contract identity, deterministic state/event/score/debrief comparison, explicit coordinate convention, pause/reset semantics.",
+      "Current lesson registry dispositions are assumption. Implementation may use versioned simulation assumptions but product release remains blocked pending validation and P1 approvals.",
+      "Official docs observed in browser: Phaser is an HTML5 2D web game framework with WebGL/Canvas and JS/TS; Vite is a modern web build tool; Vitest is Vite-powered testing; Playwright is an E2E web framework across Chromium/WebKit/Firefox; PixiJS documents scene graph/render loop/ticker and scaffolding."
+    ],
+    "constraints": [
+      "Documentation only. No code files, dependency install, Git operation, worktree, build, test, deployment, network service, or real marine-data connection.",
+      "Do not select or prescribe real sailing physics thresholds, polars, safety limits, or navigation behavior.",
+      "Keep simulation core independent of renderer/DOM; no backend/account/telemetry server in MVP.",
+      "Use TypeScript-oriented architecture and a test-first verification matrix, but pin package versions only at implementation bootstrap after a current compatibility check.",
+      "Separate permission to build a prototype from release eligibility; registry/P1 gates remain independent."
+    ],
+    "current_architecture": ["Documentation-only workspace; no source project, Git repository, package manager manifest, or test setup exists."],
+    "repository_paths": ["/Users/hipgiinii/.hermes/projects/Sailing_training/prd.md", "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/mandatory-lessons-l01-l05.md", "/Users/hipgiinii/.hermes/projects/Sailing_training/docs/content/domain-validation-registry.yaml"],
+    "existing_decisions": ["browser MVP", "desktop-first", "training-sloop-v1 only", "L01-L05 mandatory", "virtual water", "local-only replay", "no real navigation/certification", "deterministic replay contract"],
+    "prohibited_actions": ["implementing code", "dependency installation", "Git initialization/commits", "domain threshold invention", "backend/live data", "release approval"],
+    "requested_planning_mode": "DEEP",
+    "expected_executors": ["codex", "claude", "agent_robin"],
+    "user_answers": [],
+    "previous_review_findings": ["Renderer/engine must never own deterministic training state; state evolution, replay comparison, scoring causality and content versions need renderer-independent tests. Safety/domain registry gates block release but should not silently block a labeled prototype from being built."]
+  }
+}

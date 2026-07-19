@@ -1,0 +1,135 @@
+schema_version: 1
+registry_version: 0-draft
+status: unapproved
+scope: training-sloop-v1 mandatory L01-L05 on synthetic virtual water
+allowed_dispositions:
+  - assumption
+  - partially_validated
+  - validated
+  - rejected
+release_rule: >-
+  A lesson is release-ineligible unless its referenced validation record is validated
+  and all dependent P1 approval artifacts are approved. assumption, partially_validated,
+  rejected, missing, or otherwise unapproved records block release.
+common_policy:
+  simulation_only: true
+  real_navigation_or_safety_authority: prohibited
+  local_only_replay_and_telemetry: true
+  server_transmission_before_separate_approval: prohibited
+  no_numeric_thresholds_in_this_draft: true
+required_record_fields:
+  - validation_record_id
+  - lesson_id
+  - claim_or_assumption
+  - source_or_evidence_gap_reason
+  - scenario_version
+  - model_version
+  - boat_profile_version
+  - contract_version
+  - coordinate_contract_version
+  - determinism_contract_version
+  - coverage
+  - reviewer
+  - review_date
+  - disposition
+records:
+  - validation_record_id: VR-L01-v0
+    lesson_id: L01
+    claim_or_assumption: >-
+      Relative-wind/course fixture, course-maintenance semantics, recoverable deviation,
+      boundary predicate, score and retry comparison semantics for training-sloop-v1.
+    source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
+    scenario_version: l01-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    coverage:
+      - true/apparent-wind relationship
+      - heading/COG/course objective semantics
+      - helm correction and recoverable deviation
+      - course boundary and score/retry semantics
+    reviewer: null
+    review_date: null
+    disposition: assumption
+  - validation_record_id: VR-L02-v0
+    lesson_id: L02
+    claim_or_assumption: >-
+      Representative main/jib configuration, trim response, polar effect, stable-trim,
+      recovery, score and retry comparison semantics for training-sloop-v1.
+    source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
+    scenario_version: l02-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    coverage:
+      - main and jib trim feedback
+      - polar and stability assumptions
+      - recoverable unstable state
+      - speed non-offsettable safety invariant
+    reviewer: null
+    review_date: null
+    disposition: assumption
+  - validation_record_id: VR-L03-v0
+    lesson_id: L03
+    claim_or_assumption: >-
+      Gust/wave episode effects, reef or sail-reduction meaning, terminal/recoverable
+      boundary, safety-first score and retry semantics for training-sloop-v1.
+    source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
+    scenario_version: l03-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    coverage:
+      - gust and wave cues
+      - reef timing/effect assumptions
+      - simulated safety recovery and terminality
+      - conservative mitigation pass eligibility
+    reviewer: null
+    review_date: null
+    disposition: assumption
+  - validation_record_id: VR-L04-v0
+    lesson_id: L04
+    claim_or_assumption: >-
+      Current-to vector composition, heading/COG and STW/SOG divergence, drift,
+      mark acceptance, recovery, score and retry comparison semantics.
+    source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
+    scenario_version: l04-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    coverage:
+      - current-to direction convention
+      - vector composition and drift
+      - mark acceptance and recoverable miss
+      - slower valid correction acceptance
+    reviewer: null
+    review_date: null
+    disposition: assumption
+  - validation_record_id: VR-L05-v0
+    lesson_id: L05
+    claim_or_assumption: >-
+      Synthetic tide/depth/visibility timeline, depth datum, draft and clearance,
+      pass/wait/return policy, terminality, score and retry comparison semantics.
+    source_or_evidence_gap_reason: No approved sailing-domain evidence is attached; draft simulation assumptions only.
+    scenario_version: l05-scenario-v0-draft
+    model_version: TBD
+    boat_profile_version: training-sloop-v1
+    contract_version: TBD
+    coordinate_contract_version: TBD
+    determinism_contract_version: TBD
+    coverage:
+      - synthetic tide and depth datum
+      - draft and clearance assumptions
+      - visibility and route state
+      - pass/wait/return and terminality semantics
+    reviewer: null
+    review_date: null
+    disposition: assumption

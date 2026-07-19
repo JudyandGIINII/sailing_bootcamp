@@ -1,0 +1,24 @@
+{
+  "planning_request": {
+    "schema_version": 1,
+    "task_id": "ALF-20260719-0030-prd-three-turn-turn2",
+    "source": "discord",
+    "source_thread": "discord-thread-1528044776362999989",
+    "user_request": "Turn 2 of a bounded three-turn PRD hardening discussion. This is a completed read-only reconciliation, not an implementation plan. Read the canonical PRD and the turn-1 synthesis. Decide which findings become P0 required PRD changes, which become P1 release-gated additions, and which remain post-MVP. Resolve contradictions without reopening confirmed D1-D6/C1. Return concise, concluded reconciliation findings only: accept/conditionally accept/reject each grouped proposal, exact contract language or section delta, and residual UNVERIFIED gates. Do not modify files.",
+    "desired_outcome": "A minimum robust delta that makes the Sloop-only browser MVP implementable and testable without inventing unvalidated sailing thresholds or browser performance numbers.",
+    "known_context": [
+      "Canonical PRD: /Users/hipgiinii/.hermes/projects/Sailing_training/prd.md",
+      "Turn-1 synthesis: /Users/hipgiinii/.hermes/projects/Sailing_training/.agent/plans/ALF-20260719-0010-prd-three-turn/turn1-synthesis.md",
+      "D1-D6 and C1 are confirmed and must remain intact."
+    ],
+    "constraints": ["Read-only", "no code/Git/deployment/network", "do not create numeric sailing or performance assertions without source; make them validation gates", "findings only, not methodology"],
+    "current_architecture": ["Documentation-only; implementation not approved."],
+    "repository_paths": ["/Users/hipgiinii/.hermes/projects/Sailing_training/prd.md", "/Users/hipgiinii/.hermes/projects/Sailing_training/.agent/plans/ALF-20260719-0010-prd-three-turn/turn1-synthesis.md"],
+    "existing_decisions": ["D1-D6/C1 confirmed"],
+    "prohibited_actions": ["modify files", "code", "Git", "deploy", "external APIs"],
+    "requested_planning_mode": "STANDARD",
+    "expected_executors": ["claude", "agent_robin"],
+    "user_answers": [],
+    "previous_review_findings": ["Turn-1 synthesis identifies deterministic contract, lesson contracts, scoring, domain gates, quality/release gates, local replay/data boundary, Korea label policy, and scope coherence."]
+  }
+}
