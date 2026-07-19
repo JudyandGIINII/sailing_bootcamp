@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: AP-0B L01 prototype이 integrated/committed 되었고 AP-0C 승인 대기 중입니다.** release는 계속 차단됩니다.
+> **현재 상태: AP-0C L01–L05 assumption-only prototype이 integrated/committed 되었고 prototype scope가 완료되었습니다.** release는 계속 차단됩니다.
 
 ## MVP 한 줄 정의
 
@@ -26,7 +26,7 @@
 | L01–L05 콘텐츠 계약 | 완료 — 도메인 검증 전 초안 |
 | 코치/강사 검토·controlled apply 체계 | 완료 — 문서/양식만 존재 |
 | 기술 옵션·구현 계획 | 완료 — 구현 전 권고 |
-| 코드 bootstrap / AP-0B L01 prototype | integrated/committed — AP-0C 미승인 |
+| 코드 bootstrap / AP-0C L01–L05 prototype | integrated/committed — prototype scope complete |
 | 도메인 검증·P1·release | **차단됨** |
 
 ## 권고 기술 방향

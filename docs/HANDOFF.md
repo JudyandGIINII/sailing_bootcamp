@@ -1,6 +1,6 @@
 # Implementation Handoff — Training Sloop MVP
 
-> **Handoff status:** AP-0B_COMMITTED_AND_INTEGRATED_PENDING_AP-0C_USER_APPROVAL
+> **Handoff status:** AP-0C_COMMITTED_AND_INTEGRATED_PROTOTYPE_COMPLETE
 > 이 문서는 구현 시작을 자동 승인하지 않는다.
 
 ## 목적
@@ -100,7 +100,9 @@ Task 0A의 완료 증거는 선택한 dependency compatibility record·lockfile�
 - AP-0A 산출물은 isolated worktree에서 strict typecheck, Vitest 15 tests, Playwright Chromium smoke, production build, `git diff --check`를 통과했다.
 - AP-0A source/lockfile은 committed/integrated 되었지만, 이는 release artifact나 release 권한을 의미하지 않는다.
 - AP-0B Task 1–3/L01 vertical slice는 committed/integrated 되었으며 strict typecheck, Vitest 36 tests, Chromium Playwright 3 tests, production build, `git diff --check`를 통과했다.
-- **다음 권한 경계:** user의 AP-0C 승인 없이는 Task 4–6/L02–L05, resilience QA, release-evidence assembly를 시작하지 않는다. AP-0C도 release 권한을 포함하지 않는다.
+- AP-0C Task 4–6는 committed/integrated 되었다. L02–L05 are synthetic assumption-only lessons; strict typecheck, Vitest 61 tests, Chromium Playwright 6 tests, production build, `git diff --check`, and release-evidence validation passed.
+- WebKit/Firefox candidate evidence is `inconclusive` because the current Playwright config has no named projects; both retain `support_claim:false`.
+- **다음 권한 경계:** prototype scope is complete. Any AP-0D or release-evidence remediation requires fresh explicit authorization. AP-0C did not grant release authority.
 
 ## 알려진 출시 blocker
 

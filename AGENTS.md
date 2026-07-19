@@ -6,7 +6,7 @@ This workspace defines a browser-based educational sailing simulator, not an act
 
 ## Current phase
 
-AP-0A and AP-0B are verified and integrated. AP-0C is the next gated implementation ceiling; release remains separately blocked. See `docs/PROJECT_STATUS.md` and `docs/HANDOFF.md`.
+AP-0A through AP-0C are verified and integrated. Prototype scope is complete; any further work requires explicit new authorization. Release remains separately blocked. See `docs/PROJECT_STATUS.md` and `docs/HANDOFF.md`.
 
 ## Authority gates
 

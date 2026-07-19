@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-07-19 — AP-0C completion and release evidence
+
+- Integrated AP-0C commit `6395746`: L02–L05 synthetic assumption-only lesson paths, deterministic/golden replay coverage, storage driver resilience checks, accessibility/network browser checks, and release-evidence schema/generator/report.
+- Independent main verification passed: strict typecheck, Vitest **61 tests**, Chromium Playwright **6 tests**, production build, `git diff --check`, and evidence validation.
+- The evidence report records Chromium `pass` with `support_claim:false`; WebKit/Firefox are `inconclusive` because no named projects are configured. The report remains `release_eligible:false`, `decision:"BLOCKED"`, and `force_override_used:false`.
+- Prototype scope is complete. Current registry assumptions, absent concrete validation/P1 artifacts, and missing release authority continue to block release.
+
 ## 2026-07-19 — AP-0B L01 prototype integration
 
 - Integrated AP-0B commit `12fba02`: L01-only gate evaluator, pure deterministic session/immutable ledger, raw and score/debrief golden fixtures, readonly PixiJS/DOM projection, keyboard/focus lifecycle handling, and IndexedDB local replay lifecycle.
