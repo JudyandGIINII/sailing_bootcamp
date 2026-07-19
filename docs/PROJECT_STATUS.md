@@ -1,7 +1,7 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-19 KST
-> 상태: **AP-0A foundation integrated and verified / AP-0B pending**
+> 상태: **AP-0B L01 prototype integrated and verified / AP-0C pending**
 
 ## 1. 현재 위치
 
@@ -27,7 +27,7 @@
 
 ## 4. 구현 전 AP-0
 
-AP-0A(bootstrap+contract tests)는 2026-07-19 integrated/verified 되었다. 다음 구현은 AP-0B(L01까지) 또는 AP-0C(L05/resilience/release evidence까지) 중 별도 ceiling 승인이 필요하다. 어느 scope도 release 권한을 포함하지 않는다.
+AP-0A와 AP-0B(L01까지)는 2026-07-19 integrated/verified 되었다. 다음 구현은 AP-0C(L02–L05/resilience/release evidence) 별도 ceiling 승인이 필요하며, release 권한을 포함하지 않는다.
 
 ## 4.1 버전 관리 checkpoint
 
@@ -35,10 +35,9 @@ AP-0A(bootstrap+contract tests)는 2026-07-19 integrated/verified 되었다. 다
 
 ## 5. 첫 구현 slice
 
-1. **완료/미통합:** Vite TypeScript shell, lockfile, strict typecheck, Vitest 15 tests, Playwright Chromium smoke, production build, contract negative tests
-2. **다음 AP-0B 후:** Task 1 gate evaluator
-3. renderer 없는 deterministic core + raw golden replay(Task 2A), 이어서 score/debrief causality(Task 2B)
-4. L01 vertical slice: keyboard → sim → PixiJS → DOM HUD/debrief → IndexedDB replay lifecycle
+1. **완료:** Vite TypeScript/PixiJS shell, strict typecheck, Vitest 36 tests, Playwright Chromium 3 tests, production build, contract/gate/sim/replay tests
+2. **완료:** L01 keyboard → pure sim → PixiJS/DOM HUD/debrief → IndexedDB local replay lifecycle
+3. **다음 AP-0C 후:** L02–L05 순차 확장, resilience QA, release-evidence report (release는 계속 차단)
 
 ## 6. launch 전 별도 의존성
 

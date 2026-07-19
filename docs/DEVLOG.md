@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-07-19 — AP-0B L01 prototype integration
+
+- Integrated AP-0B commit `12fba02`: L01-only gate evaluator, pure deterministic session/immutable ledger, raw and score/debrief golden fixtures, readonly PixiJS/DOM projection, keyboard/focus lifecycle handling, and IndexedDB local replay lifecycle.
+- Scope guard corrected before integration: L02–L05 runtime manifests were removed; non-L01 lesson IDs fail closed.
+- Independent evidence: strict `npm run typecheck`, `npm test` (**36 tests**), Playwright Chromium smoke (**3 tests**), `npm run build`, and `git diff --check` passed.
+- AP-0C is now the next implementation gate. Release remains blocked by `assumption` validation records, missing concrete approvals/P1 artifacts, and absent release authority.
+
 ## 2026-07-19 — Claude P1/P2 remediation and AP-0A foundation
 
 ### Completed
