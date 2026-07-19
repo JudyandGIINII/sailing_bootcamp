@@ -42,7 +42,7 @@
 
 ## 0.1 AP-0D P0 execution update (2026-07-19)
 
-The user authorized the bounded G0 P0 remediation. It was committed as `00c34b3` and fresh-integrated as `0e84d85`, with controller evidence of strict typecheck, 87 Vitest tests, 7 Chromium smokes, production build, diff check, unchanged historical evidence hashes, and an independent re-review approval. The worktree implementation enforces manifest action authority across keyboard/direct/replay paths and uses explicit subject-revision evidence commands with external or ignored generated output. It does **not** alter registry dispositions, release authority, domain values, or release status. Shared `main`/remote integration is a separate Git operation.
+The user authorized the bounded G0 P0 remediation. It was committed as `00c34b3`, fresh-integrated as `0e84d85`, and then explicitly synchronized to shared `main` at `20148a1`, with controller evidence of strict typecheck, 87 Vitest tests, 7 Chromium smokes, production build, diff check, unchanged historical evidence hashes, and an independent re-review approval. The implementation enforces manifest action authority across keyboard/direct/replay paths and uses explicit subject-revision evidence commands with external or ignored generated output. It does **not** alter registry dispositions, release authority, domain values, or release status. Remote push/release remain separate Git/product operations.
 
 ## Approval Map
 

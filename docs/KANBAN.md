@@ -19,10 +19,11 @@
 - [x] 2026-07-19 controller + validated Alfred implementation audit and approval-aware next-step plan: current suite re-run (61 Vitest, 6 Chromium smoke, typecheck/build/release-evidence validation); plan recorded at `docs/plans/2026-07-19-prototype-audit-and-next-steps.md`
 - [x] Local Git documentation checkpoint created; `origin` configured (push pending)
 
-## Integration candidate verified
+## Integrated on shared main
 
-- [x] AP-0D P0 remediation committed on isolated source branch as `00c34b3` and merged into fresh integration worktree as `0e84d85`. Integration verification passed: typecheck, **87 Vitest**, **7 Chromium smokes**, production build, diff check, and unchanged historical evidence hashes.
-- [ ] The shared `main` checkout intentionally remains untouched because it contains pre-existing uncommitted audit/documentation changes. Classify and commit those documents separately before moving `main`; do not force the verified code commit into the dirty checkout.
+- [x] AP-0D P0 remediation was committed on isolated source branch as `00c34b3`, merged into fresh integration worktree as `0e84d85`, and user-authorized shared `main` synchronization placed the verified documentation/code candidate at `20148a1`.
+- [x] Shared-main controller verification passed: typecheck, **87 Vitest**, **7 Chromium smokes**, production build, diff check, unchanged historical evidence hashes, and preserved `.agent` coordination-artifact hashes.
+- [ ] Remote push and any deployment/release remain separate, unperformed actions. Release remains blocked by assumption-only domain registry and missing G1/G2/G3 authority.
 
 
 ## Blocked / Waiting

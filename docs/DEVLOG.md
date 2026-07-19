@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-07-19 — AP-0D P0 authorized shared-main synchronization
+
+- After proving candidate ancestry, byte-identical overlapping documentation, and preserved `.agent` coordination-artifact hashes, the user explicitly authorized `git reset --hard 20148a1` for the shared checkout.
+- Shared `main` now points to `20148a1`, containing P0 source commit `00c34b3`, fresh integration commit `0e84d85`, and the committed audit/documentation evidence.
+- Controller reran strict typecheck, **87 Vitest tests**, **7 Chromium smoke tests**, production build, and diff check on shared `main`; historical evidence and `.agent` hash inventories remained unchanged.
+- No remote push, deployment, or release decision occurred. Release remains `BLOCKED`.
+
 ## 2026-07-19 — AP-0D P0 local commit and fresh integration verification
 
 - Under the user's next-step authority, committed the approved source diff in isolated worktree branch `JudyandGIINII/sailing-ap0d-p0-authority-evidence` as `00c34b3` (`feat: harden lesson action and evidence contracts`).

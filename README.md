@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: AP-0D P0 hardening이 isolated integration candidate에서 검증되었으며, L01–L05 assumption-only prototype scope는 완료 상태입니다.** shared `main` 적용·push 전까지 release는 계속 차단됩니다.
+> **현재 상태: AP-0D P0 hardening이 shared `main`에 검증·통합되었으며, L01–L05 assumption-only prototype scope는 완료 상태입니다.** remote push와 release는 별도 단계이며 release는 계속 차단됩니다.
 
 ## MVP 한 줄 정의
 
