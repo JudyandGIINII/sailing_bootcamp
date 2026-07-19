@@ -35,3 +35,67 @@ test('uses visible focus and reduced-motion-safe styles', async ({ page }) => {
   await expect(button).toBeFocused();
   await expect(button).toHaveCSS('outline-style', 'solid');
 });
+
+test('projects L02 through L05 as keyboard-operable, visible assumption-only lessons', async ({ page }) => {
+  await page.goto('/');
+  const lesson = page.getByLabel('Lesson');
+  for (const [id, key, expected] of [
+    ['L02', 'KeyM', 'declared-adjusted'], ['L03', 'KeyF', 'selected'], ['L04', 'ArrowLeft', 'recoverable_miss_recorded'], ['L05', 'KeyW', 'wait_recorded'],
+  ] as const) {
+    await lesson.selectOption(id);
+    await expect(page.getByRole('heading', { name: `Sailing Training Sloop — ${id}` })).toBeVisible();
+    await expect(page.getByText(/Every lesson is an assumption/)).toBeVisible();
+    await page.keyboard.press(key);
+    await expect(page.getByText(expected, { exact: true })).toBeVisible();
+  }
+});
+
+test('fails closed for a malformed native IndexedDB raw payload and retains an aborted write', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('No saved local attempts.')).toBeVisible();
+  await page.evaluate(async () => new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open('sailing-training-local-replays-v1', 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const committed = db.transaction('replays', 'readwrite');
+      committed.oncomplete = () => {
+        const aborted = db.transaction('replays', 'readwrite');
+        aborted.onabort = () => {
+          const verify = db.transaction('replays', 'readonly');
+          const read = verify.objectStore('replays').get('corrupt');
+          read.onerror = () => reject(read.error);
+          verify.onabort = () => reject(verify.error);
+          verify.onerror = () => reject(verify.error);
+          verify.oncomplete = () => {
+            const record = read.result as { payload?: { legacy?: unknown } } | undefined;
+            db.close();
+            if (record?.payload?.legacy !== true) {
+              reject(new Error('Aborted overwrite replaced the persisted malformed record.'));
+              return;
+            }
+            resolve();
+          };
+        };
+        aborted.objectStore('replays').put({ id: 'corrupt', created_at: 'synthetic', payload: {} });
+        aborted.abort();
+      };
+      committed.onerror = () => reject(committed.error);
+      committed.objectStore('replays').put({ id: 'corrupt', created_at: 'synthetic', payload: { legacy: true } });
+    };
+  }));
+  await page.reload();
+  await page.getByRole('button', { name: 'Load corrupt' }).click();
+  await expect(page.getByText(/REPLAY_IDENTITY_MISSING.*Original local payload was preserved/)).toBeVisible();
+});
+
+test('has keyboard focus order and no beacon or websocket traffic', async ({ page }) => {
+  const webSockets: string[] = []; const requests: string[] = [];
+  page.on('websocket', (socket) => webSockets.push(socket.url()));
+  page.on('request', (request) => requests.push(request.url()));
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.getByLabel('Lesson')).toBeFocused();
+  expect(webSockets).toEqual([]);
+  expect(requests.every((url) => url.startsWith('http://127.0.0.1:4173/'))).toBe(true);
+});

@@ -1,0 +1,1 @@
+{ "score": { "status": "draft_causal_checkpoint_recorded", "safety": "clear", "total_points": 0, "causal_event_ids": ["1:1:3"] }, "debrief_fact_kinds": ["contract_status", "environment_episode", "action_recorded", "lesson_checkpoint"] }

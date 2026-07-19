@@ -31,7 +31,7 @@ describe('L01 content and gate eligibility', () => {
   it('validates the complete replay binding and rejects malformed payloads with a stable reason', () => {
     const replay: ReplayIdentity = { ...l01ReplayBindings, seed: 'test', ordered_input_log: [] };
     expect(validateL01ReplayPayload(replay).eligible).toBe(true);
-    expect(validateL01ReplayPayload({ ...replay, comparison_policy_version: 'other' })).toEqual({ eligible: false, mode: 'prototype', reasons: ['REPLAY_VERSION_INCOMPATIBLE'] });
-    expect(validateL01ReplayPayload({ legacy: true })).toEqual({ eligible: false, mode: 'prototype', reasons: ['REPLAY_VERSION_INCOMPATIBLE'] });
+    expect(validateL01ReplayPayload({ ...replay, comparison_policy_version: 'other' })).toEqual({ eligible: false, mode: 'prototype', reasons: ['REPLAY_IDENTITY_INCOMPATIBLE'] });
+    expect(validateL01ReplayPayload({ legacy: true })).toEqual({ eligible: false, mode: 'prototype', reasons: ['REPLAY_IDENTITY_MISSING'] });
   });
 });

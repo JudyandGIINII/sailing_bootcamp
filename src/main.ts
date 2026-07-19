@@ -1,9 +1,11 @@
-import { evaluateL01Load, evaluatePrototypeEligibility, validateL01ReplayPayload } from './gates/eligibility.js';
+import { evaluateLessonLoad, evaluatePrototypeEligibility } from './gates/eligibility.js';
 import { normalizeKeyboardAction } from './app/input.js';
 import { createLogicalScheduler } from './app/scheduler.js';
 import { createWorldProjection } from './render/world-projection.js';
 import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayRecord } from './storage/replays.js';
 import { l01ReplayBindings } from './content/l01.js';
+import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindings } from './content/l02-l05.js';
+import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
 import { projectDebrief, projectScore } from './scoring/projection.js';
 
@@ -11,21 +13,32 @@ const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Application mount point is missing.');
 const mount = app;
 
-const seed = 'l01-prototype-seed';
+type ReplayBindings = Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>;
+type LessonRuntime = { id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05'; bindings: ReplayBindings; controls: string };
+const lessons: readonly LessonRuntime[] = [
+  { id: 'L01', bindings: l01ReplayBindings, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
+  { id: 'L02', bindings: l02ReplayBindings, controls: 'M adjusts declared main trim; J adjusts declared jib trim; Left/Right helm; Space pause/resume.' },
+  { id: 'L03', bindings: l03ReplayBindings, controls: 'F records a conservative synthetic reef mitigation; Left/Right helm; Space pause/resume.' },
+  { id: 'L04', bindings: l04ReplayBindings, controls: 'Left records a recoverable synthetic miss; Right records a slower valid correction; Space pause/resume.' },
+  { id: 'L05', bindings: l05ReplayBindings, controls: 'P/W/B record synthetic pass/wait/return decisions; Space pause/resume.' },
+];
+let currentLesson = lessons[0]!;
+let seed = 'l01-prototype-seed';
 let inputLog: CanonicalInput[] = [];
 let nextSequence = 1;
-let session = createSession({ ...l01ReplayBindings, seed, ordered_input_log: inputLog });
+let session = createSession({ ...currentLesson.bindings, seed, ordered_input_log: inputLog });
 let storageStatus = 'Local replay storage ready.';
 
 mount.innerHTML = `
   <main>
-    <h1>Sailing Training Sloop — L01</h1>
+    <h1 id="lesson-title">Sailing Training Sloop — L01</h1>
     <p class="notice" role="note">Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.</p>
+    <section aria-labelledby="lesson-heading"><h2 id="lesson-heading">Training module selection</h2><label for="lesson-select">Lesson</label><select id="lesson-select"><option>L01</option><option>L02</option><option>L03</option><option>L04</option><option>L05</option></select><p>Every lesson is an <strong>assumption</strong>; labels and text, not color alone, communicate that status.</p></section>
     <p id="eligibility" role="status"></p>
     <section aria-labelledby="world-heading"><h2 id="world-heading">Synthetic training water</h2><div id="world"></div></section>
     <section aria-labelledby="hud-heading"><h2 id="hud-heading">Accessible status HUD</h2>
       <dl id="hud"></dl>
-      <p id="controls">Keyboard: Left/Right record a helm command; Space pauses or explicitly resumes; R saves this attempt then resets.</p>
+      <p id="controls"></p>
       <p id="pause" role="status"></p>
     </section>
     <section aria-labelledby="debrief-heading"><h2 id="debrief-heading">Debrief</h2><ul id="debrief"></ul></section>
@@ -34,7 +47,7 @@ mount.innerHTML = `
 
 function requiredElement<T extends Element>(selector: string): T {
   const element = mount.querySelector<T>(selector);
-  if (!element) throw new Error(`L01 UI is incomplete: ${selector}`);
+  if (!element) throw new Error(`Training Sloop UI is incomplete: ${selector}`);
   return element;
 }
 
@@ -45,6 +58,9 @@ const debrief = requiredElement<HTMLUListElement>('#debrief');
 const replays = requiredElement<HTMLUListElement>('#replays');
 const storage = requiredElement<HTMLElement>('#storage-status');
 const eligibility = requiredElement<HTMLElement>('#eligibility');
+const title = requiredElement<HTMLElement>('#lesson-title');
+const controls = requiredElement<HTMLElement>('#controls');
+const lessonSelect = requiredElement<HTMLSelectElement>('#lesson-select');
 
 type PendingBrowserSignal =
   | { kind: 'keyboard'; key: string; repeat: boolean }
@@ -55,18 +71,20 @@ let applicationReady = false;
 const pendingBrowserSignals: PendingBrowserSignal[] = [];
 
 function replayPayload(): unknown {
-  return { ...l01ReplayBindings, seed, ordered_input_log: inputLog };
+  return { ...currentLesson.bindings, seed, ordered_input_log: inputLog };
 }
 
 function render(): void {
-  const load = evaluateL01Load('L01', 'training-sloop-v1', ['helm_port', 'helm_starboard', 'pause', 'reset'], l01ReplayBindings);
+  const load = evaluateLessonLoad(currentLesson.id, 'training-sloop-v1', currentLesson.id === 'L01' ? ['helm_port', 'helm_starboard', 'pause', 'reset'] : [], currentLesson.bindings);
   const prototype = evaluatePrototypeEligibility();
   eligibility.textContent = load.eligible && prototype.eligible
-    ? 'L01 prototype eligibility: allowed only with the persistent unvalidated notice.'
-    : `L01 blocked: ${[...load.reasons, ...prototype.reasons].join(', ')}`;
+    ? `${currentLesson.id} prototype eligibility: allowed only with the persistent unvalidated notice.`
+    : `${currentLesson.id} blocked: ${[...load.reasons, ...prototype.reasons].join(', ')}`;
+  title.textContent = `Sailing Training Sloop — ${currentLesson.id}`;
+  controls.textContent = `Keyboard: ${currentLesson.controls} R saves this local attempt then resets.`;
   projection.render(session);
   hud.replaceChildren();
-  const fields: readonly [string, string][] = [
+  const fields: [string, string][] = [
     ['Logical tick', String(session.raw.logical_tick)],
     ['Helm command', session.raw.helm_command],
     ['Heading', session.raw.heading],
@@ -75,6 +93,14 @@ function render(): void {
     ['Apparent wind', session.raw.apparent_wind],
     ['Domain status', 'Declared unavailable: validation pending'],
   ];
+  if (session.raw.main_trim) fields.push(['Main trim', session.raw.main_trim]);
+  if (session.raw.jib_trim) fields.push(['Jib trim', session.raw.jib_trim]);
+  if (session.raw.reef_state) fields.push(['Reef state', session.raw.reef_state]);
+  if (session.raw.synthetic_episode) fields.push(['Synthetic episode', session.raw.synthetic_episode]);
+  if (session.raw.declared_navigation_concepts) fields.push(['Synthetic concepts', session.raw.declared_navigation_concepts]);
+  if (session.raw.mark_state) fields.push(['Virtual mark state', session.raw.mark_state]);
+  if (session.raw.synthetic_environment) fields.push(['Synthetic environment', session.raw.synthetic_environment]);
+  if (session.raw.decision_state) fields.push(['Decision state', session.raw.decision_state]);
   for (const [label, value] of fields) {
     const term = document.createElement('dt'); term.textContent = label;
     const description = document.createElement('dd'); description.textContent = value;
@@ -121,15 +147,29 @@ async function refreshReplays(): Promise<void> {
 }
 
 function loadReplay(record: LocalReplayRecord): void {
-  const validation = validateL01ReplayPayload(record.payload);
-  if (!validation.eligible) { storageStatus = 'Replay not run: REPLAY_VERSION_INCOMPATIBLE. Original local payload was preserved.'; render(); return; }
-  const payload = record.payload as typeof l01ReplayBindings & { seed: string; ordered_input_log: CanonicalInput[] };
-  inputLog = [...payload.ordered_input_log];
+  const scenarioVersion = typeof record.payload === 'object' && record.payload !== null && !Array.isArray(record.payload)
+    ? (record.payload as { scenario_version?: unknown }).scenario_version : undefined;
+  const lesson = lessons.find((candidate) => candidate.bindings.scenario_version === scenarioVersion);
+  const validation = resolveStoredReplay(record.payload, lesson?.bindings ?? l01ReplayBindings);
+  if (validation.outcome !== 'accepted') { storageStatus = `Replay not run: ${validation.reason_code}. Original local payload was preserved.`; render(); return; }
+  if (!lesson) { storageStatus = 'Replay not run: REPLAY_IDENTITY_INCOMPATIBLE. Original local payload was preserved.'; render(); return; }
+  const acceptedPayload = validation.replay;
+  const canonicalInputs = acceptedPayload.ordered_input_log.filter(isCanonicalInput);
+  if (canonicalInputs.length !== acceptedPayload.ordered_input_log.length) { storageStatus = 'Replay not run: REPLAY_PAYLOAD_CORRUPT. Original local payload was preserved.'; render(); return; }
+  currentLesson = lesson;
+  lessonSelect.value = lesson.id;
+  inputLog = canonicalInputs;
   nextSequence = inputLog.reduce((highest, input) => Math.max(highest, input.sequence), 0) + 1;
   const terminalTick = inputLog.reduce((highest, input) => Math.max(highest, input.logical_tick), 0) + 1;
-  session = replayInputs({ ...l01ReplayBindings, seed: payload.seed, ordered_input_log: inputLog }, inputLog, terminalTick);
+  seed = acceptedPayload.seed;
+  session = replayInputs({ ...currentLesson.bindings, seed, ordered_input_log: inputLog }, inputLog, terminalTick);
   storageStatus = `Loaded local replay ${record.id}; replay inputs were validated and applied.`;
   render();
+}
+
+function isCanonicalInput(input: ReplayIdentity['ordered_input_log'][number]): input is CanonicalInput {
+  return typeof input.input === 'object' && input.input !== null && 'action' in input.input &&
+    ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'reef', 'decision_pass', 'decision_wait', 'decision_return', 'pause', 'resume', 'reset'].includes((input.input as { action?: unknown }).action as string);
 }
 
 async function saveAttemptThenReset(): Promise<void> {
@@ -137,7 +177,7 @@ async function saveAttemptThenReset(): Promise<void> {
   try { await saveLocalReplay(record); storageStatus = `Saved local attempt ${record.id}.`; }
   catch { storageStatus = 'Local storage failure: reset did not alter canonical simulation history.'; }
   inputLog = []; nextSequence = 1;
-  session = createSession({ ...l01ReplayBindings, seed, ordered_input_log: inputLog });
+  session = createSession({ ...currentLesson.bindings, seed, ordered_input_log: inputLog });
   await refreshReplays();
 }
 
@@ -182,6 +222,17 @@ function receiveLifecyclePause(reason: 'focus_lost' | 'visibility_hidden'): void
 }
 window.addEventListener('blur', () => receiveLifecyclePause('focus_lost'));
 document.addEventListener('visibilitychange', () => { if (document.hidden) receiveLifecyclePause('visibility_hidden'); });
+lessonSelect.addEventListener('change', () => {
+  const next = lessons.find((lesson) => lesson.id === lessonSelect.value);
+  if (!next || next.id === currentLesson.id) return;
+  scheduler.stop();
+  currentLesson = next;
+  seed = `${next.id.toLowerCase()}-prototype-seed`;
+  inputLog = []; nextSequence = 1;
+  session = createSession({ ...next.bindings, seed, ordered_input_log: inputLog });
+  scheduler.start();
+  render();
+});
 
 projection = await createWorldProjection(world);
 applicationReady = true;

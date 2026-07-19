@@ -33,7 +33,7 @@ export async function createWorldProjection(container: HTMLElement): Promise<{ r
   return {
     render(session) {
       helm.clear().rect(258, 38, 2, 36).fill(session.raw.helm_command === 'neutral' ? 0xfde68a : 0x86efac);
-      title.text = `Synthetic L01 • logical tick ${session.raw.logical_tick}`;
+      title.text = `Synthetic ${session.raw.lesson_id ?? 'L01'} • logical tick ${session.raw.logical_tick}`;
       command.text = `helm command: ${session.raw.helm_command}`;
       application.render();
     },

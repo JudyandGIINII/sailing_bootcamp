@@ -1,0 +1,96 @@
+{
+  "task_id": "ALF-20260719-1207-sailing-ap0c-r2",
+  "base": "ac9b43f",
+  "command_outcomes": [
+    {
+      "command": "npm run typecheck",
+      "outcome": "pass",
+      "detail": "TypeScript typecheck passed"
+    },
+    {
+      "command": "npm test",
+      "outcome": "pass",
+      "detail": "Vitest passed: 61 tests"
+    },
+    {
+      "command": "npm run test:smoke",
+      "outcome": "pass",
+      "detail": "Chromium smoke suite passed: 6 tests"
+    },
+    {
+      "command": "npm run build",
+      "outcome": "pass",
+      "detail": "Production build passed"
+    },
+    {
+      "command": "git diff --check",
+      "outcome": "pass",
+      "detail": "no whitespace errors"
+    },
+    {
+      "command": "node scripts/build-release-evidence.mjs --validate",
+      "outcome": "pass",
+      "detail": "release-evidence valid"
+    },
+    {
+      "command": "node_modules/.bin/playwright test --browser=webkit",
+      "outcome": "inconclusive",
+      "detail": "Current Playwright config has no named projects; WebKit is not a configured test target."
+    },
+    {
+      "command": "node_modules/.bin/playwright test --browser=firefox",
+      "outcome": "inconclusive",
+      "detail": "Current Playwright config has no named projects; Firefox is not a configured test target."
+    }
+  ],
+  "browser_candidates": [
+    {
+      "browser": "Chromium",
+      "outcome": "pass",
+      "support_claim": false
+    },
+    {
+      "browser": "WebKit",
+      "outcome": "inconclusive",
+      "support_claim": false,
+      "detail": "Current Playwright config has no named projects; WebKit is not a configured test target."
+    },
+    {
+      "browser": "Firefox",
+      "outcome": "inconclusive",
+      "support_claim": false,
+      "detail": "Current Playwright config has no named projects; Firefox is not a configured test target."
+    }
+  ],
+  "storage_evidence": {
+    "driver_injection": true,
+    "stable_codes": [
+      "STORAGE_READ_FAILED",
+      "STORAGE_WRITE_FAILED",
+      "REPLAY_PAYLOAD_CORRUPT"
+    ],
+    "prior_records_preserved": true,
+    "explicit_per_record_delete": true
+  },
+  "unexpected_network_count": 0,
+  "registry_assumptions_count": 5,
+  "reason_codes": [
+    "DOMAIN_ASSUMPTIONS_PRESENT",
+    "RELEASE_AUTHORITY_MISSING",
+    "P1_ARTIFACTS_UNAPPROVED"
+  ],
+  "force_override_used": false,
+  "replay_identity_fields": [
+    "scenario_version",
+    "seed",
+    "ordered_input_log",
+    "model_version",
+    "boat_profile_version",
+    "contract_version",
+    "coordinate_contract_version",
+    "determinism_contract_version",
+    "comparison_policy_version"
+  ],
+  "release_eligible": false,
+  "decision": "BLOCKED"
+}

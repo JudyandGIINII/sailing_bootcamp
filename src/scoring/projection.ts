@@ -1,7 +1,7 @@
 import type { LedgerEvent, RawSimulationState } from '../sim/session.js';
 
 export interface ScoreProjection {
-  status: 'unavailable_pending_validation' | 'blocked_by_safety_contract';
+  status: 'unavailable_pending_validation' | 'blocked_by_safety_contract' | 'draft_causal_checkpoint_recorded';
   safety: 'clear' | 'blocked';
   total_points: 0;
   causal_event_ids: readonly string[];
@@ -9,7 +9,7 @@ export interface ScoreProjection {
 
 export interface DebriefFact {
   id: string;
-  kind: 'action_recorded' | 'contract_status' | 'safety_blocked';
+  kind: 'action_recorded' | 'contract_status' | 'safety_blocked' | 'lesson_checkpoint' | 'environment_episode';
   cause_event_id?: string;
   contract_status?: RawSimulationState['contract_status'];
 }
@@ -25,6 +25,8 @@ export function projectScore(_raw: RawSimulationState, ledger: readonly LedgerEv
       causal_event_ids: Object.freeze([safetyEvent.id]),
     });
   }
+  const checkpoints = ledger.filter((event) => event.type === 'LESSON_CHECKPOINT');
+  if (checkpoints.length > 0) return Object.freeze({ status: 'draft_causal_checkpoint_recorded', safety: 'clear', total_points: 0, causal_event_ids: Object.freeze(checkpoints.map((event) => event.id)) });
   return Object.freeze({
     status: 'unavailable_pending_validation',
     safety: 'clear',
@@ -43,6 +45,8 @@ export function projectDebrief(raw: RawSimulationState, ledger: readonly LedgerE
     seen.add(event.id);
     if (event.type === 'SAFETY_BLOCKED') facts.push({ id: `safety:${event.id}`, kind: 'safety_blocked', cause_event_id: event.id });
     if (event.type === 'ACTION_ACCEPTED') facts.push({ id: `action:${event.id}`, kind: 'action_recorded', cause_event_id: event.id });
+    if (event.type === 'LESSON_CHECKPOINT') facts.push({ id: `checkpoint:${event.id}`, kind: 'lesson_checkpoint', cause_event_id: event.id });
+    if (event.type === 'ENVIRONMENT_EPISODE') facts.push({ id: `episode:${event.id}`, kind: 'environment_episode', cause_event_id: event.id });
   }
   return Object.freeze(facts.map((fact) => Object.freeze(fact)));
 }

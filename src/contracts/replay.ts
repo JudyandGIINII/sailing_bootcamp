@@ -42,7 +42,7 @@ export type ReplayResolution =
   | { outcome: 'accepted'; replay: ReplayIdentity }
   | {
       outcome: 'rejected';
-      reason_code: 'REPLAY_VERSION_INCOMPATIBLE';
+      reason_code: 'REPLAY_IDENTITY_MISSING' | 'REPLAY_IDENTITY_INCOMPATIBLE' | 'REPLAY_PAYLOAD_CORRUPT';
       /** The untouched stored payload is retained for diagnostics/migration. */
       stored_payload: unknown;
     };
@@ -102,13 +102,30 @@ export function resolveStoredReplay(
   supportedBindings: Readonly<Pick<ReplayIdentity, Exclude<ReplayIdentityField, 'seed' | 'ordered_input_log'>>>,
 ): ReplayResolution {
   if (!isReplayIdentity(storedPayload)) {
-    return { outcome: 'rejected', reason_code: 'REPLAY_VERSION_INCOMPATIBLE', stored_payload: storedPayload };
+    const object = typeof storedPayload === 'object' && storedPayload !== null && !Array.isArray(storedPayload)
+      ? storedPayload as Record<string, unknown> : undefined;
+    const hasMissingIdentityField = object !== undefined && REPLAY_IDENTITY_FIELDS.some((field) => !Object.hasOwn(object, field));
+    return { outcome: 'rejected', reason_code: hasMissingIdentityField ? 'REPLAY_IDENTITY_MISSING' : 'REPLAY_PAYLOAD_CORRUPT', stored_payload: storedPayload };
   }
 
   for (const field of REPLAY_IDENTITY_FIELDS) {
     if (field === 'seed' || field === 'ordered_input_log') continue;
     if (storedPayload[field] !== supportedBindings[field]) {
-      return { outcome: 'rejected', reason_code: 'REPLAY_VERSION_INCOMPATIBLE', stored_payload: storedPayload };
+      return { outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: storedPayload };
+    }
+  }
+  return { outcome: 'accepted', replay: storedPayload };
+}
+
+/** Full-identity comparison for a declared replay fixture; no aliases or migrations. */
+export function resolveExactReplayIdentity(storedPayload: unknown, expectedIdentity: ReplayIdentity): ReplayResolution {
+  if (!isReplayIdentity(storedPayload)) {
+    const candidate = typeof storedPayload === 'object' && storedPayload !== null && !Array.isArray(storedPayload) ? storedPayload as Record<string, unknown> : undefined;
+    return { outcome: 'rejected', reason_code: candidate && REPLAY_IDENTITY_FIELDS.some((field) => !Object.hasOwn(candidate, field)) ? 'REPLAY_IDENTITY_MISSING' : 'REPLAY_PAYLOAD_CORRUPT', stored_payload: storedPayload };
+  }
+  for (const field of REPLAY_IDENTITY_FIELDS) {
+    if (JSON.stringify(storedPayload[field]) !== JSON.stringify(expectedIdentity[field])) {
+      return { outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: storedPayload };
     }
   }
   return { outcome: 'accepted', replay: storedPayload };

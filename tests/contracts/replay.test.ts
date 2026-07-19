@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { prototypeVersionBindings } from '../../src/contracts/versions.js';
-import { isReplayIdentity, resolveStoredReplay, type ReplayIdentity } from '../../src/contracts/replay.js';
+import { REPLAY_IDENTITY_FIELDS, isReplayIdentity, resolveExactReplayIdentity, resolveStoredReplay, type ReplayIdentity } from '../../src/contracts/replay.js';
 
 const replay: ReplayIdentity = {
   scenario_version: prototypeVersionBindings.scenario_version,
@@ -35,23 +35,27 @@ describe('replay identity contract', () => {
     ).toBe(false);
   });
 
-  it('rejects an incompatible replay without changing its stored payload', () => {
-    const incompatible = { ...replay, model_version: 'other-model' };
-    const result = resolveStoredReplay(incompatible, prototypeVersionBindings);
-    expect(result).toEqual({
-      outcome: 'rejected',
-      reason_code: 'REPLAY_VERSION_INCOMPATIBLE',
-      stored_payload: incompatible,
-    });
+  it.each(REPLAY_IDENTITY_FIELDS)('rejects a missing %s identity field fail-closed without changing the payload', (field) => {
+    const { [field]: omitted, ...missing } = replay;
+    expect(omitted).toBeDefined();
+    expect(resolveStoredReplay(missing, prototypeVersionBindings)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_MISSING', stored_payload: missing });
+  });
+
+  it.each(REPLAY_IDENTITY_FIELDS)('rejects an incompatible %s identity field', (field) => {
+    const incompatible = field === 'ordered_input_log'
+      ? { ...replay, ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { kind: 'different' } }] }
+      : { ...replay, [field]: 'other-version' };
+    expect(resolveExactReplayIdentity(incompatible, replay)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: incompatible });
   });
 
   it('rejects an unknown replay with the same stable, non-sensitive reason code', () => {
     const unknown = { legacy: true };
     const result = resolveStoredReplay(unknown, prototypeVersionBindings);
-    expect(result).toEqual({
-      outcome: 'rejected',
-      reason_code: 'REPLAY_VERSION_INCOMPATIBLE',
-      stored_payload: unknown,
-    });
+    expect(result).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_MISSING', stored_payload: unknown });
+  });
+
+  it('rejects corrupt but complete raw payloads with a stable code', () => {
+    const corrupt = { ...replay, ordered_input_log: 'not-an-array' };
+    expect(resolveStoredReplay(corrupt, prototypeVersionBindings)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_PAYLOAD_CORRUPT', stored_payload: corrupt });
   });
 });

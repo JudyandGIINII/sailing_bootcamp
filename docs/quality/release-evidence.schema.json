@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sailing AP-0C release evidence",
+  "type": "object",
+  "required": ["task_id", "base", "replay_identity_fields", "command_outcomes", "browser_candidates", "storage_evidence", "unexpected_network_count", "registry_assumptions_count", "release_eligible", "decision", "reason_codes", "force_override_used"],
+  "properties": {
+    "task_id": { "const": "ALF-20260719-1207-sailing-ap0c-r2" },
+    "base": { "const": "ac9b43f" },
+    "replay_identity_fields": { "type": "array", "minItems": 9, "maxItems": 9, "items": { "type": "string" } },
+    "command_outcomes": { "type": "array", "minItems": 1, "items": { "type": "object", "required": ["command", "outcome"], "properties": { "command": { "type": "string" }, "outcome": { "enum": ["pass", "fail", "unavailable", "inconclusive"] } } } },
+    "browser_candidates": { "type": "array", "minItems": 3, "items": { "type": "object", "required": ["browser", "outcome", "support_claim"], "properties": { "browser": { "enum": ["Chromium", "WebKit", "Firefox"] }, "outcome": { "enum": ["pass", "fail", "unavailable", "inconclusive"] }, "support_claim": { "const": false } } } },
+    "storage_evidence": { "type": "object" },
+    "unexpected_network_count": { "const": 0 },
+    "registry_assumptions_count": { "type": "integer", "minimum": 1 },
+    "release_eligible": { "const": false },
+    "decision": { "const": "BLOCKED" },
+    "reason_codes": { "type": "array", "contains": { "enum": ["DOMAIN_ASSUMPTIONS_PRESENT"] }, "minItems": 2 },
+    "force_override_used": { "const": false }
+  }
+}

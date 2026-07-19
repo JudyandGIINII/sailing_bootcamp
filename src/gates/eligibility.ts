@@ -1,17 +1,16 @@
 import { isReleaseEligible, type ValidationRecord } from '../contracts/release.js';
-import { isReplayIdentity, type ReplayIdentity } from '../contracts/replay.js';
-import {
-  TRAINING_SLOOP_PROFILE_ID,
-  l01Manifest,
-  l01ReplayBindings,
-} from '../content/l01.js';
+import { resolveStoredReplay, type ReplayIdentity } from '../contracts/replay.js';
+import { TRAINING_SLOOP_PROFILE_ID, l01Manifest, l01ReplayBindings } from '../content/l01.js';
+import { executableLessonManifests } from '../content/l02-l05.js';
 
 export type GateReason =
   | 'UNSUPPORTED_LESSON'
   | 'UNSUPPORTED_PROFILE'
   | 'UNSUPPORTED_ACTION'
   | 'INCOMPATIBLE_BINDING'
-  | 'REPLAY_VERSION_INCOMPATIBLE'
+  | 'REPLAY_IDENTITY_MISSING'
+  | 'REPLAY_IDENTITY_INCOMPATIBLE'
+  | 'REPLAY_PAYLOAD_CORRUPT'
   | 'UNVALIDATED_PROTOTYPE'
   | 'RELEASE_VALIDATION_NOT_APPROVED'
   | 'RELEASE_P1_ARTIFACTS_MISSING'
@@ -54,6 +53,22 @@ export function evaluateL01Load(
   return { eligible: reasons.length === 0, mode: 'prototype', reasons };
 }
 
+export function evaluateLessonLoad(
+  lessonId: unknown,
+  profileId: unknown,
+  actions: readonly unknown[],
+  identity: Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>,
+): Eligibility {
+  if (lessonId === 'L01') return evaluateL01Load(lessonId, profileId, actions, identity);
+  const lesson = executableLessonManifests.find((candidate) => candidate.lesson_id === lessonId);
+  const reasons: GateReason[] = [];
+  if (!lesson) reasons.push('UNSUPPORTED_LESSON');
+  if (profileId !== TRAINING_SLOOP_PROFILE_ID) reasons.push('UNSUPPORTED_PROFILE');
+  if (lesson && !actions.every((action) => typeof action === 'string' && lesson.permitted_actions.includes(action as never))) reasons.push('UNSUPPORTED_ACTION');
+  if (lesson && !exactBinding(identity, lesson)) reasons.push('INCOMPATIBLE_BINDING');
+  return { eligible: reasons.length === 0, mode: 'prototype', reasons };
+}
+
 /** Assumption content is allowed only as visibly-labelled prototype content. */
 export function evaluatePrototypeEligibility(): Eligibility {
   return {
@@ -72,11 +87,11 @@ export function evaluateReleaseEligibility(record: ValidationRecord | undefined)
 }
 
 export function validateL01ReplayPayload(payload: unknown): Eligibility {
-  if (!isReplayIdentity(payload)) {
-    return { eligible: false, mode: 'prototype', reasons: ['REPLAY_VERSION_INCOMPATIBLE'] };
-  }
-  const { seed: _seed, ordered_input_log: _log, ...binding } = payload;
-  const validActions = payload.ordered_input_log.every((entry) => {
+  const resolution = resolveStoredReplay(payload, l01ReplayBindings);
+  if (resolution.outcome === 'rejected') return { eligible: false, mode: 'prototype', reasons: [resolution.reason_code] };
+  const accepted = resolution.replay;
+  const { seed: _seed, ordered_input_log: _log, ...binding } = accepted;
+  const validActions = accepted.ordered_input_log.every((entry) => {
     const candidate = entry.input;
     return typeof candidate === 'object' && candidate !== null &&
       'action' in candidate &&
@@ -84,5 +99,5 @@ export function validateL01ReplayPayload(payload: unknown): Eligibility {
   });
   return exactBinding(binding, l01ReplayBindings) && validActions
     ? { eligible: true, mode: 'prototype', reasons: [] }
-    : { eligible: false, mode: 'prototype', reasons: ['REPLAY_VERSION_INCOMPATIBLE'] };
+    : { eligible: false, mode: 'prototype', reasons: [validActions ? 'REPLAY_IDENTITY_INCOMPATIBLE' : 'REPLAY_PAYLOAD_CORRUPT'] };
 }
