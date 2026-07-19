@@ -53,6 +53,32 @@ test('projects L02 through L05 as keyboard-operable, manifest-only observation H
   }
 });
 
+test('reaches the L03 trace and debrief by keyboard with textual evidence and boundaries', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('select#lesson-select').selectOption('L03');
+  await page.keyboard.press('Space');
+
+  await expect(page.getByRole('heading', { name: 'Sailing Training Sloop — L03' })).toBeVisible();
+  await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'L03 trace' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Static lesson-manifest declaration' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Current runtime trace' })).toBeVisible();
+  await expect(page.locator('#l03-static-trace')).toContainText('not a runtime record');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Unavailable: no runtime record.');
+
+  await page.keyboard.press('Space');
+  await page.keyboard.press('KeyF');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Synthetic episode evidence');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Registered reef action evidence');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Declared checkpoint evidence');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Event ID:');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Recorded cause reference:');
+  await expect(page.locator('#debrief')).toContainText('Static lesson-manifest declaration');
+  await expect(page.locator('#debrief')).toContainText('Current runtime trace');
+  await expect(page.locator('#l03-trace-boundary')).toHaveText('Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance.');
+  await expect(page.locator('#l03-trace-section')).not.toContainText(/\b(?:knot|meter|mile|degree|second|minute|hour|bearing|threshold)\b/i);
+});
+
 test('ignores globally mapped keyboard actions disallowed by the selected lesson', async ({ page }) => {
   await page.goto('/');
   const lesson = page.getByLabel('Lesson');

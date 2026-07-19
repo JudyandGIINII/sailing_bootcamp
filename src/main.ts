@@ -9,7 +9,7 @@ import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindi
 import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
 import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
-import { projectDebrief, projectScore } from './scoring/projection.js';
+import { projectDebrief, projectL03RuntimeTrace, projectScore, type L03TraceEvidence } from './scoring/projection.js';
 
 // Install before any app-owned bootstrap work can initiate a browser transport.
 installLocalOnlyTransportGuard();
@@ -46,6 +46,12 @@ mount.innerHTML = `
       <label for="cadence-select">Browser update cadence</label><select id="cadence-select" aria-describedby="cadence-note"><option value="125">125 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option></select><p id="cadence-note">Browser rendering cadence only; logical tick order is unchanged.</p>
       <p id="controls"></p>
       <p id="pause" role="status"></p>
+      <section id="l03-trace-section" aria-labelledby="l03-trace-heading" hidden>
+        <h3 id="l03-trace-heading">L03 trace</h3>
+        <h4 id="l03-static-heading">Static lesson-manifest declaration</h4><dl id="l03-static-trace"></dl>
+        <h4 id="l03-runtime-heading">Current runtime trace</h4><dl id="l03-runtime-trace"></dl>
+        <p id="l03-trace-boundary" role="note"></p>
+      </section>
     </section>
     <section aria-labelledby="debrief-heading"><h2 id="debrief-heading">Debrief</h2><ul id="debrief"></ul></section>
     <section aria-labelledby="replays-heading"><h2 id="replays-heading">Local replays</h2><p id="storage-status" role="status"></p><ul id="replays"></ul></section>
@@ -68,6 +74,10 @@ const title = requiredElement<HTMLElement>('#lesson-title');
 const controls = requiredElement<HTMLElement>('#controls');
 const lessonSelect = requiredElement<HTMLSelectElement>('#lesson-select');
 const cadenceSelect = requiredElement<HTMLSelectElement>('#cadence-select');
+const l03TraceSection = requiredElement<HTMLElement>('#l03-trace-section');
+const l03StaticTrace = requiredElement<HTMLDListElement>('#l03-static-trace');
+const l03RuntimeTrace = requiredElement<HTMLDListElement>('#l03-runtime-trace');
+const l03TraceBoundary = requiredElement<HTMLElement>('#l03-trace-boundary');
 
 type PendingBrowserSignal =
   | { kind: 'keyboard'; key: string; repeat: boolean }
@@ -79,6 +89,17 @@ const pendingBrowserSignals: PendingBrowserSignal[] = [];
 
 function replayPayload(): unknown {
   return { ...currentLesson.bindings, seed, ordered_input_log: inputLog };
+}
+
+function appendTraceEntry(target: HTMLDListElement, label: string, description: string): void {
+  const term = document.createElement('dt'); term.textContent = label;
+  const detail = document.createElement('dd'); detail.textContent = description;
+  target.append(term, detail);
+}
+
+function traceEvidenceText(evidence: L03TraceEvidence): string {
+  if (evidence.status === 'unavailable_no_runtime_record') return 'Unavailable: no runtime record.';
+  return `Recorded runtime evidence. Event ID: ${evidence.event_id ?? 'unavailable'}. Recorded cause reference: ${evidence.recorded_cause ?? 'unavailable'}.`;
 }
 
 function render(): void {
@@ -96,6 +117,20 @@ function render(): void {
     const description = document.createElement('dd'); description.textContent = observation.status;
     hud.append(term, description);
   }
+  const l03Trace = projectL03RuntimeTrace(session.raw, session.ledger);
+  l03TraceSection.hidden = !l03Trace;
+  l03StaticTrace.replaceChildren();
+  l03RuntimeTrace.replaceChildren();
+  if (l03Trace) {
+    appendTraceEntry(l03StaticTrace, l03Trace.static_declaration.episode_label, 'Declared synthetic in the trusted L03 lesson manifest; not a runtime record.');
+    appendTraceEntry(l03StaticTrace, l03Trace.static_declaration.reef_action_label, 'Registered in the trusted L03 lesson manifest; not a runtime record.');
+    appendTraceEntry(l03RuntimeTrace, l03Trace.runtime_trace.episode.label, traceEvidenceText(l03Trace.runtime_trace.episode));
+    appendTraceEntry(l03RuntimeTrace, l03Trace.runtime_trace.reef_action.label, traceEvidenceText(l03Trace.runtime_trace.reef_action));
+    appendTraceEntry(l03RuntimeTrace, l03Trace.runtime_trace.checkpoint.label, traceEvidenceText(l03Trace.runtime_trace.checkpoint));
+    l03TraceBoundary.textContent = l03Trace.boundary_copy;
+  } else {
+    l03TraceBoundary.textContent = '';
+  }
   pause.textContent = session.paused ? 'PAUSED — explicit resume required; logical state is not progressing.' : 'RUNNING — logical tick scheduler active.';
   const score = projectScore(session.raw, session.ledger);
   debrief.replaceChildren();
@@ -109,6 +144,19 @@ function render(): void {
   const scoreItem = document.createElement('li');
   scoreItem.textContent = `Score status: ${score.status}; no validated numeric score is claimed.`;
   debrief.append(scoreItem);
+  if (l03Trace) {
+    const staticItem = document.createElement('li');
+    staticItem.textContent = `${l03Trace.static_declaration.heading}: ${l03Trace.static_declaration.episode_label} and ${l03Trace.static_declaration.reef_action_label} are declarations, not runtime records.`;
+    debrief.append(staticItem);
+    for (const evidence of [l03Trace.runtime_trace.episode, l03Trace.runtime_trace.reef_action, l03Trace.runtime_trace.checkpoint]) {
+      const item = document.createElement('li');
+      item.textContent = `${l03Trace.runtime_trace.heading} — ${evidence.label}: ${traceEvidenceText(evidence)}`;
+      debrief.append(item);
+    }
+    const boundaryItem = document.createElement('li');
+    boundaryItem.textContent = l03Trace.boundary_copy;
+    debrief.append(boundaryItem);
+  }
   storage.textContent = storageStatus;
 }
 

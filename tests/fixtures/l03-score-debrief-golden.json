@@ -1,1 +1,33 @@
-{ "score": { "status": "draft_causal_checkpoint_recorded", "safety": "clear", "total_points": 0, "causal_event_ids": ["1:1:3"] }, "debrief_fact_kinds": ["contract_status", "environment_episode", "action_recorded", "lesson_checkpoint"] }
+{
+  "score": { "status": "draft_causal_checkpoint_recorded", "safety": "clear", "total_points": 0, "causal_event_ids": ["1:1:3"] },
+  "debrief_fact_kinds": ["contract_status", "environment_episode", "action_recorded", "lesson_checkpoint"],
+  "l03_runtime_trace": {
+    "static_declaration": {
+      "heading": "Static lesson-manifest declaration",
+      "status": "declared_synthetic",
+      "episode_label": "Synthetic gust/wave episode declaration",
+      "reef_action_label": "Registered reef action declaration"
+    },
+    "runtime_trace": {
+      "heading": "Current runtime trace",
+      "episode": {
+        "label": "Synthetic episode evidence",
+        "status": "recorded",
+        "event_id": "0:0:1",
+        "recorded_cause": "deterministic synthetic gust/wave cue"
+      },
+      "reef_action": {
+        "label": "Registered reef action evidence",
+        "status": "recorded",
+        "event_id": "1:1:2"
+      },
+      "checkpoint": {
+        "label": "Declared checkpoint evidence",
+        "status": "recorded",
+        "event_id": "1:1:3",
+        "recorded_cause": "conservative synthetic reef mitigation recorded"
+      }
+    },
+    "boundary_copy": "Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance."
+  }
+}
