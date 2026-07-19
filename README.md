@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: AP-0D P0 hardening이 shared `main`에 검증·통합되었으며, L01–L05 assumption-only prototype scope는 완료 상태입니다.** remote push와 release는 별도 단계이며 release는 계속 차단됩니다.
+> **현재 상태: AP-0E G0 prototype hardening이 shared `main`에 검증·통합·push되었고, L01–L05 assumption-only prototype scope는 완료 상태입니다.** Chromium만 현재 검증된 prototype baseline이며, domain validation·P1·release는 계속 차단됩니다.
 
 ## MVP 한 줄 정의
 
@@ -26,7 +26,8 @@
 | L01–L05 콘텐츠 계약 | 완료 — 도메인 검증 전 초안 |
 | 코치/강사 검토·controlled apply 체계 | 완료 — 문서/양식만 존재 |
 | 기술 옵션·구현 계획 | 완료 — 구현 전 권고 |
-| 코드 bootstrap / AP-0C L01–L05 prototype | integrated/committed — prototype scope complete |
+| 코드 bootstrap / AP-0E G0 L01–L05 prototype | integrated/pushed — assumption-only prototype scope complete |
+| G1 domain review | L01 preparation packet version-controlled; reviewer/evidence/authority input 대기 |
 | 도메인 검증·P1·release | **차단됨** |
 
 ## 권고 기술 방향
@@ -39,7 +40,8 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 
 - [PRD](prd.md)
 - [현재 진행상황](docs/PROJECT_STATUS.md)
-- [다음 구현 handoff](docs/HANDOFF.md)
+- [기본 구현 handoff](docs/HANDOFF.md)
+- [G1 L01 domain-review handoff](docs/HANDOFF_NEXT_SESSION_G1_L01_2026-07-19.md)
 - [MVP 구현 계획](docs/architecture/mvp-technical-plan.md)
 - [기술 옵션 비교](docs/architecture/technical-options.md)
 - [L01–L05 콘텐츠 명세](docs/content/mandatory-lessons-l01-l05.md)
@@ -49,8 +51,8 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 - [프로젝트 Kanban 스냅샷](docs/KANBAN.md)
 - [구현 감사 및 승인-의존 후속 계획](docs/plans/2026-07-19-prototype-audit-and-next-steps.md)
 
-## 구현 시작 전 게이트
+## 현재 권한 게이트
 
-코드 bootstrap, dependency install, Git worktree 생성은 사용자 명시 **AP-0 구현 승인** 뒤에만 진행합니다. 승인 scope는 AP-0A(bootstrap+contract tests), AP-0B(L01까지), AP-0C(L05/resilience/release evidence까지) 중 하나를 지정하며, 생략 시 AP-0A만 허용합니다. 각 task는 독립 evidence 검증 뒤에만 진행됩니다. 구현 prototype은 가능하더라도 현재 모든 validation record가 `assumption`이므로 제품 release는 불가합니다.
+AP-0A–AP-0E prototype 구현은 완료되었지만, semantic learning behavior·registry promotion·P1·release는 별도 gate다. 현재 모든 validation record가 `assumption`이고 version binding은 draft이므로 제품 release는 불가하다. G1은 qualified reviewer, source/evidence, qualification decision, controlled-apply authority를 각각 요구하며, 준비 packet이나 테스트 통과만으로 이를 대체할 수 없다.
 
-구현이 승인되면 Orca worktree에서 Codex CLI를 primary builder로 사용하고, Claude는 read-only architecture/diff review, Hermes는 독립 QA를 수행합니다. 자세한 규칙은 [AGENTS.md](AGENTS.md)를 따릅니다.
+향후 코드 변경은 명시된 사용자 승인 뒤에만 Orca worktree에서 Codex를 primary builder로 수행하며, Claude는 read-only architecture/diff review, Hermes는 독립 QA를 수행한다. 자세한 규칙은 [AGENTS.md](AGENTS.md)를 따른다.

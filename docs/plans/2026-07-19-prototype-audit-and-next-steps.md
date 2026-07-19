@@ -22,7 +22,7 @@
 | Chromium prototype flow | `npm run test:smoke`: **6 passed**; keyboard-only L01, L02–L05 selection/controls, local replay delete/preservation, focus/reduced-motion, no beacon/WebSocket check | Pass for the stated prototype target only |
 | Deterministic/replay boundary | `src/sim/session.ts`, `src/contracts/replay.ts`, `tests/contracts/replay.test.ts`, `tests/contracts/sim-boundary.test.ts` | Implemented as a contract/prototype mechanism |
 | Local-only persistence | `src/storage/replays.ts`, smoke tests, no backend/account/analytics dependencies | Implemented for the tested browser flow |
-| Release fail-closed behavior | `src/contracts/release.ts`, `src/gates/eligibility.ts`, `artifacts/release-evidence/ap-0c.json`, `node scripts/build-release-evidence.mjs --validate` | Correctly **BLOCKED** |
+| Release fail-closed behavior | `src/contracts/release.ts`, `src/gates/eligibility.ts`, historical `artifacts/release-evidence/ap-0c.json`, and revision-bound evidence CLI contract tests | Correctly **BLOCKED**; historical artifact is not current-HEAD proof |
 
 ### Documentation reconciliation completed during this audit
 
@@ -178,7 +178,9 @@ npm test
 npm run test:smoke
 npm run build
 git diff --check
-node scripts/build-release-evidence.mjs --validate
+node scripts/build-release-evidence.mjs --validate \
+  --input <generated-or-external-artifact.json> \
+  --subject-revision <40-character-commit>
 git status --short --branch
 ```
 

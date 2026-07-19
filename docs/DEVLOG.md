@@ -1,5 +1,18 @@
 # DEVLOG
 
+## 2026-07-19 — G1 packet checkpoint / evidence-guidance reconciliation
+
+- Scoped documentation reconciliation records the verified AP-0E G0 `main` integration and push, the Chromium-only prototype evidence baseline, and the L01 packet as a version-controlled **preparation-only** artifact.
+- Corrected current release-evidence operation guidance: validation is no-write and requires an explicit input artifact plus an existing 40-character subject revision. The preserved AP-0C report lacks hardened `source_revision` provenance and is historical evidence only, not current-HEAD release proof.
+- No registry disposition, domain value, reviewer identity/qualification/decision, controlled apply, P1 artifact, code, deployment, or release changed. `assumption` records and `BLOCKED` release state remain intact.
+
+## 2026-07-19 — G1 L01 review-packet preparation and session handoff
+
+- User authorized only G1 L01 document preparation. Alfred plan `ALF-20260719-1935-sailing-g1-l01-review-packet` validated **READY_FOR_HERMES_REVIEW**; Hermes review scored **50/50 PLAN_APPROVED** for document-only scope.
+- Created uncommitted `docs/content/l01-domain-review-packet-v0.md`: preserves `VR-L01-v0=assumption`, draft non-profile bindings, unresolved reviewer/evidence/authority fields, canonical source-digest instructions, and fail-closed controlled-apply/release boundaries.
+- Independent first review found a missing `prd.md` canonical digest requirement and an inaccurate all-bindings-draft header. Correction loop added all three canonical source digest requirements and distinguished `training-sloop-v1`; final independent re-review returned **APPROVE**.
+- No registry, code, test, package, historical evidence, release-gate, commit, push, deployment, reviewer outreach, qualification, evidence freeze, controlled apply, or release action occurred. Session stop handoff: `docs/HANDOFF_NEXT_SESSION_G1_L01_2026-07-19.md`.
+
 ## 2026-07-19 — AP-0E G0 shared-main synchronization and push
 
 - After preservation checks confirmed `.agent` coordination artifacts unchanged, user explicitly authorized `git reset --hard 038aece` for shared `main`.

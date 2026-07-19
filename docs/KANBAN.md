@@ -30,18 +30,20 @@
 
 - [x] AP-0D P0 remediation was committed on isolated source branch as `00c34b3`, merged into fresh integration worktree as `0e84d85`, and user-authorized shared `main` synchronization placed the verified documentation/code candidate at `20148a1`.
 - [x] Shared-main controller verification passed: typecheck, **87 Vitest**, **7 Chromium smokes**, production build, diff check, unchanged historical evidence hashes, and preserved `.agent` coordination-artifact hashes.
-- [ ] Remote push and any deployment/release remain separate, unperformed actions. Release remains blocked by assumption-only domain registry and missing G1/G2/G3 authority.
+- [x] AP-0D P0 and AP-0E G0 are pushed to `origin/main`; deployment/release remain separate and unperformed. Release remains blocked by assumption-only domain registry and missing G1/G2/G3 authority.
 
 
 ## Blocked / Waiting
 
 - [ ] Domain review evidence and reviewer/authority acceptance — release blocker only
+- [x] G1 L01 preparation packet completed, independently re-reviewed, and version-controlled: `docs/content/l01-domain-review-packet-v0.md` cannot act as a submission, qualification decision, registry apply, or release authority.
 - [ ] Concrete model/contract/coordinate/determinism/comparison-policy version bindings — required before validation can become `validated`
 - [ ] Versioned P1 browser/accessibility/pilot/operations/replay-compatibility/privacy artifact manifest and approvals — release blocker only
 - [ ] Concrete domain validation, P1 approval artifacts, release authority, and WebKit/Firefox candidate configuration — release blocker
 
 ## Next
 
-1. Keep release check fail-closed while registry remains `assumption`.
-2. Complete independent review of the isolated AP-0D P0 diff, then obtain explicit integration/commit authority before any main-branch change.
-3. Domain validation and P1 artifact approval remain independent release gates; do not treat the P0 hygiene work as release authority.
+1. Keep release check fail-closed while every registry record remains `assumption`.
+2. Next session: read `docs/HANDOFF_NEXT_SESSION_G1_L01_2026-07-19.md`, rediscover Git/untracked state, then continue only under an explicit G1 scope decision.
+3. The version-controlled L01 packet is preparation-only; reviewer outreach/evidence freeze/qualification/controlled apply require separate external evidence and authority.
+4. Domain validation and P1 artifact approval remain independent release gates; do not treat AP-0D/AP-0E hygiene or the G1 packet as release authority.
