@@ -1,0 +1,31 @@
+{
+  "identity": {
+    "scenario_version": "l01-scenario-v0-draft",
+    "seed": "l01-golden-seed",
+    "ordered_input_log": [],
+    "model_version": "training-sloop-model-v0-draft",
+    "boat_profile_version": "training-sloop-v1",
+    "contract_version": "lesson-model-contract-v0-draft",
+    "coordinate_contract_version": "coordinate-contract-v1-draft",
+    "determinism_contract_version": "determinism-replay-contract-v1-draft",
+    "comparison_policy_version": "comparison-policy-v1-draft"
+  },
+  "inputs": [{ "logical_tick": 0, "sequence": 1, "input": { "action": "helm_starboard" } }],
+  "terminal_ticks": 2,
+  "expected": {
+    "raw": {
+      "logical_tick": 2,
+      "rng_state": 1733031982,
+      "helm_command": "starboard",
+      "heading": "declared-unavailable",
+      "cog": "declared-unavailable",
+      "true_wind": "declared-unavailable",
+      "apparent_wind": "declared-unavailable",
+      "contract_status": "UNVALIDATED_DOMAIN_MODEL"
+    },
+    "ledger": [
+      { "id": "0:0:0", "tick": 0, "sequence": 0, "type": "SESSION_STARTED", "contract_status": "UNVALIDATED_DOMAIN_MODEL" },
+      { "id": "0:1:1", "tick": 0, "sequence": 1, "type": "ACTION_ACCEPTED", "action": "helm_starboard", "contract_status": "UNVALIDATED_DOMAIN_MODEL" }
+    ]
+  }
+}

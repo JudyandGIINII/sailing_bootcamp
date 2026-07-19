@@ -38,6 +38,16 @@ describe('release fail-closed contract', () => {
     expect(hasValidReleaseEligibility(candidate)).toBe(false);
   });
 
+  it.each(['assumption', 'partially_validated', 'rejected', 'missing', 'stale'] as const)(
+    'rejects a release assertion for the %s registry disposition',
+    (disposition) => {
+      const candidate = record();
+      candidate.disposition = disposition;
+      expect(isReleaseEligible(candidate)).toBe(false);
+      expect(hasValidReleaseEligibility(candidate)).toBe(false);
+    },
+  );
+
   it.each(['draft', 'tbd', 'incompatible', 'missing'] as const)(
     'rejects a release assertion with a %s binding',
     (approval) => {

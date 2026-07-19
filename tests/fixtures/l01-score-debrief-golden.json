@@ -1,0 +1,9 @@
+{
+  "score": {
+    "status": "unavailable_pending_validation",
+    "safety": "clear",
+    "total_points": 0,
+    "causal_event_ids": ["0:1:1"]
+  },
+  "debrief_fact_kinds": ["contract_status", "action_recorded"]
+}

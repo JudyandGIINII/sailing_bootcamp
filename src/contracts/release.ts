@@ -1,4 +1,11 @@
-export type ValidationDisposition = 'validated' | 'rejected' | 'pending';
+export type ValidationDisposition =
+  | 'validated'
+  | 'rejected'
+  | 'pending'
+  | 'assumption'
+  | 'partially_validated'
+  | 'missing'
+  | 'stale';
 export type VersionApproval =
   | 'approved'
   | 'draft'
@@ -57,7 +64,13 @@ function isVersionBinding(value: unknown): value is VersionBinding {
 export function isValidationRecord(value: unknown): value is ValidationRecord {
   if (!isRecord(value) || !isRecord(value.version_bindings)) return false;
   return (
-    (value.disposition === 'validated' || value.disposition === 'rejected' || value.disposition === 'pending') &&
+    (value.disposition === 'validated' ||
+      value.disposition === 'rejected' ||
+      value.disposition === 'pending' ||
+      value.disposition === 'assumption' ||
+      value.disposition === 'partially_validated' ||
+      value.disposition === 'missing' ||
+      value.disposition === 'stale') &&
     typeof value.release_eligible === 'boolean' &&
     Object.values(value.version_bindings).every(isVersionBinding)
   );

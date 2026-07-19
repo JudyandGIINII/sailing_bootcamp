@@ -1,10 +1,192 @@
-const app = document.querySelector<HTMLDivElement>('#app');
+import { evaluateL01Load, evaluatePrototypeEligibility, validateL01ReplayPayload } from './gates/eligibility.js';
+import { normalizeKeyboardAction } from './app/input.js';
+import { createLogicalScheduler } from './app/scheduler.js';
+import { createWorldProjection } from './render/world-projection.js';
+import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayRecord } from './storage/replays.js';
+import { l01ReplayBindings } from './content/l01.js';
+import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
+import { projectDebrief, projectScore } from './scoring/projection.js';
 
-if (app === null) {
-  throw new Error('Application mount point is missing.');
+const app = document.querySelector<HTMLDivElement>('#app');
+if (!app) throw new Error('Application mount point is missing.');
+const mount = app;
+
+const seed = 'l01-prototype-seed';
+let inputLog: CanonicalInput[] = [];
+let nextSequence = 1;
+let session = createSession({ ...l01ReplayBindings, seed, ordered_input_log: inputLog });
+let storageStatus = 'Local replay storage ready.';
+
+mount.innerHTML = `
+  <main>
+    <h1>Sailing Training Sloop — L01</h1>
+    <p class="notice" role="note">Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.</p>
+    <p id="eligibility" role="status"></p>
+    <section aria-labelledby="world-heading"><h2 id="world-heading">Synthetic training water</h2><div id="world"></div></section>
+    <section aria-labelledby="hud-heading"><h2 id="hud-heading">Accessible status HUD</h2>
+      <dl id="hud"></dl>
+      <p id="controls">Keyboard: Left/Right record a helm command; Space pauses or explicitly resumes; R saves this attempt then resets.</p>
+      <p id="pause" role="status"></p>
+    </section>
+    <section aria-labelledby="debrief-heading"><h2 id="debrief-heading">Debrief</h2><ul id="debrief"></ul></section>
+    <section aria-labelledby="replays-heading"><h2 id="replays-heading">Local replays</h2><p id="storage-status" role="status"></p><ul id="replays"></ul></section>
+  </main>`;
+
+function requiredElement<T extends Element>(selector: string): T {
+  const element = mount.querySelector<T>(selector);
+  if (!element) throw new Error(`L01 UI is incomplete: ${selector}`);
+  return element;
 }
 
-app.innerHTML = `
-  <h1>Sailing Training Sloop</h1>
-  <p>Prototype foundation. Chromium is the development-only baseline.</p>
-`;
+const world = requiredElement<HTMLElement>('#world');
+const hud = requiredElement<HTMLElement>('#hud');
+const pause = requiredElement<HTMLElement>('#pause');
+const debrief = requiredElement<HTMLUListElement>('#debrief');
+const replays = requiredElement<HTMLUListElement>('#replays');
+const storage = requiredElement<HTMLElement>('#storage-status');
+const eligibility = requiredElement<HTMLElement>('#eligibility');
+
+type PendingBrowserSignal =
+  | { kind: 'keyboard'; key: string; repeat: boolean }
+  | { kind: 'lifecycle'; reason: 'focus_lost' | 'visibility_hidden' };
+
+let projection: Awaited<ReturnType<typeof createWorldProjection>>;
+let applicationReady = false;
+const pendingBrowserSignals: PendingBrowserSignal[] = [];
+
+function replayPayload(): unknown {
+  return { ...l01ReplayBindings, seed, ordered_input_log: inputLog };
+}
+
+function render(): void {
+  const load = evaluateL01Load('L01', 'training-sloop-v1', ['helm_port', 'helm_starboard', 'pause', 'reset'], l01ReplayBindings);
+  const prototype = evaluatePrototypeEligibility();
+  eligibility.textContent = load.eligible && prototype.eligible
+    ? 'L01 prototype eligibility: allowed only with the persistent unvalidated notice.'
+    : `L01 blocked: ${[...load.reasons, ...prototype.reasons].join(', ')}`;
+  projection.render(session);
+  hud.replaceChildren();
+  const fields: readonly [string, string][] = [
+    ['Logical tick', String(session.raw.logical_tick)],
+    ['Helm command', session.raw.helm_command],
+    ['Heading', session.raw.heading],
+    ['COG', session.raw.cog],
+    ['True wind', session.raw.true_wind],
+    ['Apparent wind', session.raw.apparent_wind],
+    ['Domain status', 'Declared unavailable: validation pending'],
+  ];
+  for (const [label, value] of fields) {
+    const term = document.createElement('dt'); term.textContent = label;
+    const description = document.createElement('dd'); description.textContent = value;
+    hud.append(term, description);
+  }
+  pause.textContent = session.paused ? 'PAUSED — explicit resume required; logical state is not progressing.' : 'RUNNING — logical tick scheduler active.';
+  const score = projectScore(session.raw, session.ledger);
+  debrief.replaceChildren();
+  for (const fact of projectDebrief(session.raw, session.ledger)) {
+    const item = document.createElement('li');
+    item.textContent = fact.kind === 'contract_status'
+      ? 'Simulation contract status: unvalidated domain model.'
+      : `${fact.kind.replaceAll('_', ' ')} caused by raw event ${fact.cause_event_id ?? 'none'}.`;
+    debrief.append(item);
+  }
+  const scoreItem = document.createElement('li');
+  scoreItem.textContent = `Score status: ${score.status}; no validated numeric score is claimed.`;
+  debrief.append(scoreItem);
+  storage.textContent = storageStatus;
+}
+
+async function refreshReplays(): Promise<void> {
+  try {
+    const records = await listLocalReplays();
+    replays.replaceChildren();
+    for (const record of records) {
+      const item = document.createElement('li');
+      const load = document.createElement('button');
+      load.type = 'button'; load.textContent = `Load ${record.id}`;
+      load.addEventListener('click', () => loadReplay(record));
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.textContent = `Delete ${record.id}`;
+      remove.addEventListener('click', async () => {
+        try { await deleteLocalReplay(record.id); storageStatus = `Deleted local replay ${record.id}.`; await refreshReplays(); }
+        catch { storageStatus = 'Local storage failure: replay was not changed.'; render(); }
+      });
+      item.append(load, remove); replays.append(item);
+    }
+    storageStatus = records.length === 0 ? 'No saved local attempts.' : `Saved local attempts: ${records.length}.`;
+  } catch {
+    storageStatus = 'Local storage unavailable: canonical simulation continues without saving.';
+  }
+  render();
+}
+
+function loadReplay(record: LocalReplayRecord): void {
+  const validation = validateL01ReplayPayload(record.payload);
+  if (!validation.eligible) { storageStatus = 'Replay not run: REPLAY_VERSION_INCOMPATIBLE. Original local payload was preserved.'; render(); return; }
+  const payload = record.payload as typeof l01ReplayBindings & { seed: string; ordered_input_log: CanonicalInput[] };
+  inputLog = [...payload.ordered_input_log];
+  nextSequence = inputLog.reduce((highest, input) => Math.max(highest, input.sequence), 0) + 1;
+  const terminalTick = inputLog.reduce((highest, input) => Math.max(highest, input.logical_tick), 0) + 1;
+  session = replayInputs({ ...l01ReplayBindings, seed: payload.seed, ordered_input_log: inputLog }, inputLog, terminalTick);
+  storageStatus = `Loaded local replay ${record.id}; replay inputs were validated and applied.`;
+  render();
+}
+
+async function saveAttemptThenReset(): Promise<void> {
+  const record: LocalReplayRecord = { id: `attempt-${crypto.randomUUID()}`, created_at: new Date().toISOString(), payload: replayPayload() };
+  try { await saveLocalReplay(record); storageStatus = `Saved local attempt ${record.id}.`; }
+  catch { storageStatus = 'Local storage failure: reset did not alter canonical simulation history.'; }
+  inputLog = []; nextSequence = 1;
+  session = createSession({ ...l01ReplayBindings, seed, ordered_input_log: inputLog });
+  await refreshReplays();
+}
+
+function applyAction(action: CanonicalInput['input']['action']): void {
+  if (action === 'reset') { void saveAttemptThenReset(); return; }
+  const input: CanonicalInput = { logical_tick: session.raw.logical_tick, sequence: nextSequence++, input: { action } };
+  inputLog = [...inputLog, input];
+  session = applyCanonicalInput(session, input);
+  if (action === 'pause') scheduler.stop();
+  if (action === 'resume') scheduler.start();
+  render();
+}
+
+const scheduler = createLogicalScheduler(() => { session = advanceLogicalTick(session); render(); });
+
+function processBrowserSignal(signal: PendingBrowserSignal): void {
+  if (signal.kind === 'keyboard') {
+    const action = normalizeKeyboardAction(signal.key, signal.repeat, session.paused);
+    if (action) applyAction(action);
+    return;
+  }
+  lifecyclePause(signal.reason);
+}
+
+window.addEventListener('keydown', (event) => {
+  const action = normalizeKeyboardAction(event.key, event.repeat, session.paused);
+  if (!action) return;
+  event.preventDefault();
+  const signal: PendingBrowserSignal = { kind: 'keyboard', key: event.key, repeat: event.repeat };
+  if (!applicationReady) { pendingBrowserSignals.push(signal); return; }
+  processBrowserSignal(signal);
+});
+function lifecyclePause(reason: 'focus_lost' | 'visibility_hidden'): void {
+  scheduler.stop();
+  session = pauseForLifecycle(session, reason, nextSequence);
+  render();
+}
+function receiveLifecyclePause(reason: 'focus_lost' | 'visibility_hidden'): void {
+  const signal: PendingBrowserSignal = { kind: 'lifecycle', reason };
+  if (!applicationReady) { pendingBrowserSignals.push(signal); return; }
+  processBrowserSignal(signal);
+}
+window.addEventListener('blur', () => receiveLifecyclePause('focus_lost'));
+document.addEventListener('visibilitychange', () => { if (document.hidden) receiveLifecyclePause('visibility_hidden'); });
+
+projection = await createWorldProjection(world);
+applicationReady = true;
+for (const signal of pendingBrowserSignals) processBrowserSignal(signal);
+
+render();
+void refreshReplays();
+scheduler.start();
