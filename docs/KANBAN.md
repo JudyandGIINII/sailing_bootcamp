@@ -49,6 +49,7 @@
 ## Evidence closure — Training Ground documentation
 
 - [x] This working tree contains `docs/architecture/training-ground-completion-matrix.md`, reconciling L01–L05 against prototype evidence facets. This is evidence closure only: it is not product, domain, safety, navigation, browser-support, certification, deployment, or release completion.
+- [x] `ALF-20260720-2240-l01-synthetic-semantic-slice` produced a reviewed L01 synthetic wind/course semantic-slice plan. Its repository handoff is `docs/plans/2026-07-20-l01-synthetic-semantic-slice-plan.md`; it is planning-only and does not authorize source implementation.
 
 ## Next — Training Ground first
 
@@ -57,3 +58,4 @@
 3. P1/P1B environment values remain scenario/replay/UI-only. Do not add physical core coupling, historical source import, date/place reconstruction, live marine/weather access, or a distinct Main Game mode before the Training Ground is completed and the user authorizes a separate scope.
 4. Any next implementation requires an explicit user-approved bounded Training Ground scope and isolated-worktree QA. Archived external-review/release materials cannot become a blocker, waiting state, required input, or automatic next step.
 5. Do not treat the GitHub prerelease, absence of formal gates, or passing prototype tests as expert validation, registry promotion, navigation/safety correctness, or deployed-service readiness.
+6. The next proposed source scope is L01 versioned synthetic wind/course semantics. It may start only after a separate explicit approval naming `ALF-20260720-2240-l01-synthetic-semantic-slice`; it must not be inferred from this docs-only planning reconciliation.

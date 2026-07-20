@@ -7,6 +7,10 @@
 > **Verified P1/P1B foundation:** versioned synthetic scenario selection, strict content hash, deterministic variation trace, Replay V2 snapshot freeze, directions, dominant wave period, visibility, synthetic datum water level/tide phase, and exact synthetic start/mark/finish templates are present. These are declared/unvalidated scenario/replay/UI values only and do not change session physics, scoring, action authority, ticks, renderer truth, or storage format. Replay V2 rejects incomplete, historical, unregistered-binding, and malformed extension payloads; V1 does not fabricate P1B values.
 >
 > **Personal-use boundary:** current work remains personal, browser-local, synthetic, and non-navigation. Registry records remain `assumption`; no real-world sailing, safety, certification, physical-model, or historical-environment claim is asserted.
+>
+> **Post-sync status (2026-07-20):** `56b13c6584cc32b1cf700f05f29d6abe0e02534c` (`56b13c6`) is the post-closure integration commit now synchronized to `main` and `origin/main`. It contains the Training Ground evidence matrix and the L01 immutable helm-correction checkpoint; it does **not** add L01 wind/course semantics, domain validation, release readiness, or deployment.
+>
+> **Current planning boundary:** Alfred plan `ALF-20260720-2240-l01-synthetic-semantic-slice` and `docs/plans/2026-07-20-l01-synthetic-semantic-slice-plan.md` define a proposed L01 versioned synthetic wind/course semantic slice. They are planning artifacts only. Source/test implementation requires a separate explicit user authorization naming that bounded slice.
 
 ## 목적
 
@@ -64,10 +68,11 @@ contracts/content → pure deterministic sim → immutable event ledger → scor
 ## Active priority — Training Ground before Main Game
 
 1. Treat L01–L05 and their synthetic scenario selection/replay lifecycle as the Training Ground product surface.
-2. First next slice is a **bounded Training Ground completion audit and acceptance matrix**: identify remaining lesson-flow, synthetic-course, control, feedback, accessibility, and local-replay gaps before authorizing further source changes.
-3. Keep P1/P1B fields scenario/replay/UI-only unless a separately approved physical-model slice explicitly changes the pure simulation core with units, invariants, golden traces, sensitivity tests, and a validity envelope.
-4. Defer, without automatic resumption: historical data providers/licences/provenance ingestion; date/place observation packages; actual physical-environment coupling; live APIs; and any distinct Main Game mode/UI.
-5. Any Training Ground implementation still requires an explicit user-approved bounded scope, isolated Orca worktree, deterministic/replay QA, and independent source review.
+2. The bounded Training Ground completion audit and acceptance matrix are complete at `56b13c6`; they identify remaining semantic gaps without claiming a completed physical/environment model.
+3. The next proposed source slice is the planning-only L01 versioned synthetic wind/course semantic slice in `docs/plans/2026-07-20-l01-synthetic-semantic-slice-plan.md`. It needs a separate explicit source-slice approval before any implementation.
+4. Keep P1/P1B fields scenario/replay/UI-only unless a separately approved physical-model slice explicitly changes the pure simulation core with units, invariants, golden traces, sensitivity tests, and a validity envelope.
+5. Defer, without automatic resumption: historical data providers/licences/provenance ingestion; date/place observation packages; actual physical-environment coupling; live APIs; and any distinct Main Game mode/UI.
+6. Any Training Ground implementation still requires an explicit user-approved bounded scope, isolated Orca worktree, deterministic/replay QA, and independent source review.
 
 ## Historical architecture task order
 
@@ -112,11 +117,12 @@ Task 0A의 완료 증거는 선택한 dependency compatibility record·lockfile�
 
 ## 현재 handoff 위치
 
-- **Capture-time reference:** Before this uncommitted reconciliation diff, `HEAD`/`origin/main` were `646ac19`; this does not claim the ref remains current. `92a8613` is the ancestor P1/P1B synthetic scenario/catalog code-feature baseline, verified there with strict typecheck, 127 Vitest tests, 14 Playwright smoke tests, production build, diff check, and independent source review.
+- **Capture-time reference:** `646ac19` is the historical pre-evidence-closure parent; it does not claim that ref remains current. `92a8613` is the ancestor P1/P1B synthetic scenario/catalog code-feature baseline, verified there with strict typecheck, 127 Vitest tests, 14 Playwright smoke tests, production build, diff check, and independent source review.
 - **Historical prerelease record:** GitHub prerelease `v0.1.0-p1b` targets `92a8613`. It communicates a synthetic prototype source milestone only; it does not deploy a web application, demonstrate release readiness, or alter the local-only, non-navigation boundary.
-- **Training Ground state:** P1/P1B provides synthetic environment/course choices plus deterministic replay identity. It is foundation work, not a completed physical-environment model and not a historical scenario importer.
+- **Evidence closure state:** `56b13c6` added `docs/architecture/training-ground-completion-matrix.md` and the L01 record-only helm checkpoint. Fresh integration verification at that commit passed strict typecheck, 128 Vitest tests, 14 Chromium smoke tests, production build, and diff check. This is prototype evidence closure, not semantic or physical-model completion.
+- **Training Ground state:** P1/P1B provides synthetic environment/course choices plus deterministic replay identity. It remains foundation work, not a completed physical-environment model and not a historical scenario importer.
 - **Deferred Main Game state:** no separate Main Game mode exists. Historical environment packages, source licences, date/place provenance, physics coupling, and live data are deliberately not started.
-- **Next authorization boundary:** approve only a bounded Training Ground completion/audit slice first. Do not use this handoff to start physical or historical environment work automatically.
+- **Next authorization boundary:** the L01 synthetic wind/course semantic slice is planned only. Do not use this handoff or its docs-only commit to start source changes, physical/historical environment work, registry changes, L02–L05 expansion, deployment, or release automatically. A separate explicit source-slice approval is required.
 
 ## Public-distribution reference
 
