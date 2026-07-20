@@ -3,12 +3,26 @@
     "scenario_version": "l01-scenario-v0-draft",
     "seed": "l01-golden-seed",
     "ordered_input_log": [],
-    "model_version": "training-sloop-model-v0-draft",
+    "model_version": "l01-synthetic-kinematics-v1",
     "boat_profile_version": "training-sloop-v1",
     "contract_version": "lesson-model-contract-v0-draft",
     "coordinate_contract_version": "coordinate-contract-v1-draft",
     "determinism_contract_version": "determinism-replay-contract-v1-draft",
-    "comparison_policy_version": "comparison-policy-v1-draft"
+    "comparison_policy_version": "comparison-policy-v1-draft",
+    "l01_synthetic_environment": {
+      "environment_id": "l01-synthetic-training-ground",
+      "environment_version": 1,
+      "model_id": "l01-synthetic-kinematics",
+      "model_version": 1,
+      "logical_step_seconds": 1,
+      "initial_position_m": { "x": 12, "y": -8 },
+      "initial_heading_rad": 0,
+      "forward_speed_mps": 2,
+      "true_wind_from_rad": 1.5707963267948966,
+      "true_wind_speed_mps": 3,
+      "full_helm_turn_rad_per_step": 0.39269908169872414,
+      "canonical_precision_version": "l01-precision-v1"
+    }
   },
   "inputs": [{ "logical_tick": 0, "sequence": 1, "input": { "action": "helm_starboard" } }],
   "terminal_ticks": 2,
@@ -17,16 +31,63 @@
       "logical_tick": 2,
       "rng_state": 1733031982,
       "helm_command": "starboard",
-      "heading": "declared-unavailable",
-      "cog": "declared-unavailable",
-      "true_wind": "declared-unavailable",
-      "apparent_wind": "declared-unavailable",
-      "contract_status": "UNVALIDATED_DOMAIN_MODEL"
+      "heading": 0.785398,
+      "cog": 0.785398,
+      "true_wind": { "from_rad": 1.570796, "speed_mps": 3 },
+      "apparent_wind": { "from_rad": 1.260751, "speed_mps": 4.635221 },
+      "contract_status": "UNVALIDATED_DOMAIN_MODEL",
+      "l01_synthetic_state": {
+        "logical_tick": 2,
+        "position_m": { "x": 14.17958, "y": -4.738027 },
+        "heading_rad": 0.785398,
+        "helm_command": "starboard"
+      },
+      "l01_last_helm_sequence": 1
     },
     "ledger": [
       { "id": "0:0:0", "tick": 0, "sequence": 0, "type": "SESSION_STARTED", "contract_status": "UNVALIDATED_DOMAIN_MODEL" },
       { "id": "0:1:1", "tick": 0, "sequence": 1, "type": "ACTION_ACCEPTED", "action": "helm_starboard", "contract_status": "UNVALIDATED_DOMAIN_MODEL" },
-      { "id": "0:1:2", "tick": 0, "sequence": 1, "type": "LESSON_CHECKPOINT", "lesson_id": "L01", "cause": "declared helm correction recorded" }
+      { "id": "0:1:2", "tick": 0, "sequence": 1, "type": "LESSON_CHECKPOINT", "lesson_id": "L01", "cause": "declared helm correction recorded", "action_event_id": "0:1:1" },
+      {
+        "id": "l01-transition:0",
+        "tick": 0,
+        "sequence": 1,
+        "type": "L01_SYNTHETIC_TRANSITION",
+        "lesson_id": "L01",
+        "synthetic": true,
+        "l01_transition": {
+          "environment_id": "l01-synthetic-training-ground",
+          "environment_version": 1,
+          "model_id": "l01-synthetic-kinematics",
+          "model_version": 1,
+          "canonical_precision_version": "l01-precision-v1",
+          "accepted_helm_command": "starboard",
+          "causal_controls": [{ "logical_tick": 0, "sequence": 1, "helm_command": "starboard", "action_event_id": "0:1:1", "checkpoint_event_id": "0:1:2" }],
+          "prior_state": { "logical_tick": 0, "position_m": { "x": 12, "y": -8 }, "heading_rad": 0, "helm_command": "neutral" },
+          "next_state": { "logical_tick": 1, "position_m": { "x": 12.765367, "y": -6.152241 }, "heading_rad": 0.392699, "helm_command": "starboard" },
+          "observations": { "heading_rad": 0.392699, "cog_rad": 0.392699, "true_wind_from_rad": 1.570796, "true_wind_speed_mps": 3, "apparent_wind_from_rad": 1.114596, "apparent_wind_speed_mps": 4.194306 }
+        }
+      },
+      {
+        "id": "l01-transition:1",
+        "tick": 1,
+        "sequence": 1,
+        "type": "L01_SYNTHETIC_TRANSITION",
+        "lesson_id": "L01",
+        "synthetic": true,
+        "l01_transition": {
+          "environment_id": "l01-synthetic-training-ground",
+          "environment_version": 1,
+          "model_id": "l01-synthetic-kinematics",
+          "model_version": 1,
+          "canonical_precision_version": "l01-precision-v1",
+          "accepted_helm_command": "starboard",
+          "causal_controls": [],
+          "prior_state": { "logical_tick": 1, "position_m": { "x": 12.765367, "y": -6.152241 }, "heading_rad": 0.392699, "helm_command": "starboard" },
+          "next_state": { "logical_tick": 2, "position_m": { "x": 14.17958, "y": -4.738027 }, "heading_rad": 0.785398, "helm_command": "starboard" },
+          "observations": { "heading_rad": 0.785398, "cog_rad": 0.785398, "true_wind_from_rad": 1.570796, "true_wind_speed_mps": 3, "apparent_wind_from_rad": 1.260751, "apparent_wind_speed_mps": 4.635221 }
+        }
+      }
     ]
   }
 }

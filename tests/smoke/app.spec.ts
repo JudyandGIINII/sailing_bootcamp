@@ -77,8 +77,13 @@ test('runs the keyboard-only L01 prototype with visible non-navigation status', 
   await startSession(page);
   await expect(page.getByRole('heading', { name: 'Sailing Training Sloop — L01' })).toBeVisible();
   await expect(page.getByText('Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.')).toBeVisible();
+  await expect(page.locator('#synthetic-boundary')).toContainText('Synthetic educational model — unvalidated — not for navigation or safety guidance.');
+  await expect(page.locator('#hud')).toContainText('Synthetic computed wind-from');
+  await expect(page.locator('#hud')).toContainText('Synthetic computed heading');
   await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#hud')).toContainText('Synthetic computed COG');
   await expect(page.locator('#debrief')).toContainText('action recorded');
+  await expect(page.locator('#debrief')).toContainText('Synthetic educational transition recorded by immutable ledger event');
   await page.keyboard.press('Space');
   await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
   await page.keyboard.press('Space');
@@ -96,6 +101,22 @@ test('keeps reset attempts locally, supports delete, and makes no unexpected net
   await page.getByRole('button', { name: /Delete attempt-/ }).click();
   await expect(page.getByText('No saved local attempts.')).toBeVisible();
   expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
+});
+
+test('loads a lifecycle-paused L01 attempt as paused without scheduler progression', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page);
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
+  await page.keyboard.press('R');
+  await expect(page.getByText(/Saved local attempt/)).toBeVisible();
+  await page.getByRole('button', { name: /Load attempt-/ }).click();
+  await expect(page.getByText('Loaded frozen Replay V2 identity.')).toBeVisible();
+  await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
+  const terminalHud = await page.locator('#hud').textContent();
+  await page.waitForTimeout(600);
+  await expect(page.locator('#hud')).toHaveText(terminalHud ?? '');
 });
 
 test('uses visible focus and reduced-motion-safe styles', async ({ page }) => {

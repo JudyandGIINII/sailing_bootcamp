@@ -58,30 +58,110 @@ describe('deterministic raw L01 session', () => {
     expect(session.raw.helm_command).toBe('starboard');
   });
 
+  it('keeps an accepted helm checkpoint causal while a same-tick pause prevents the transition', () => {
+    const identity = { ...l01ReplayBindings, seed: 'helm-then-pause', ordered_input_log: [] };
+    const afterHelm = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
+    const paused = applyCanonicalInput(afterHelm, { logical_tick: 0, sequence: 2, input: { action: 'pause' } });
+    const checkpoint = paused.ledger.find((event) => event.type === 'LESSON_CHECKPOINT');
+    const action = paused.ledger.find((event) => event.type === 'ACTION_ACCEPTED');
+
+    expect(advanceLogicalTick(paused)).toBe(paused);
+    expect(checkpoint).toEqual(expect.objectContaining({
+      cause: 'declared helm correction recorded',
+      action_event_id: action!.id,
+    }));
+    expect(checkpoint).not.toHaveProperty('transition_event_id');
+    expect(paused.ledger).not.toContainEqual(expect.objectContaining({ type: 'L01_SYNTHETIC_TRANSITION' }));
+    expect(paused.raw).toEqual(createSession(identity).raw);
+  });
+
+  it('derives ordered same-tick L01 controls from immutable action/checkpoint evidence', () => {
+    const identity = { ...l01ReplayBindings, seed: 'ordered-l01-controls', ordered_input_log: [] };
+    const inputs: CanonicalInput[] = [
+      { logical_tick: 0, sequence: 2, input: { action: 'helm_starboard' } },
+      { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } },
+    ];
+    const replayed = replayInputs(identity, inputs, 1);
+    const actionIds = replayed.ledger.filter((event) => event.type === 'ACTION_ACCEPTED').map((event) => event.id);
+    const checkpointIds = replayed.ledger.filter((event) => event.type === 'LESSON_CHECKPOINT').map((event) => event.id);
+    const transition = replayed.ledger.find((event) => event.type === 'L01_SYNTHETIC_TRANSITION');
+
+    expect(transition).toEqual(expect.objectContaining({
+      l01_transition: expect.objectContaining({
+        accepted_helm_command: 'starboard',
+        causal_controls: [
+          { logical_tick: 0, sequence: 1, helm_command: 'port', action_event_id: actionIds[0], checkpoint_event_id: checkpointIds[0] },
+          { logical_tick: 0, sequence: 2, helm_command: 'starboard', action_event_id: actionIds[1], checkpoint_event_id: checkpointIds[1] },
+        ],
+      }),
+    }));
+    expect(replayed.ledger.filter((event) => event.type === 'LESSON_CHECKPOINT').every((event) => event.action_event_id && !event.transition_event_id)).toBe(true);
+    expect(replayed).toEqual(replayInputs(identity, [...inputs].reverse(), 1));
+  });
+
   it('records the declared L01 helm-correction checkpoint immutably without inventing a course or safety result', () => {
     const identity = { ...l01ReplayBindings, seed: 'l01-declared-checkpoint', ordered_input_log: [] };
     const session = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
 
+    const advanced = advanceLogicalTick(session);
+    const transition = advanced.ledger.find((event) => event.type === 'L01_SYNTHETIC_TRANSITION');
     expect(session.ledger).toEqual([
       expect.objectContaining({ type: 'SESSION_STARTED' }),
       expect.objectContaining({ type: 'ACTION_ACCEPTED', action: 'helm_port' }),
-      expect.objectContaining({ type: 'LESSON_CHECKPOINT', lesson_id: 'L01', cause: 'declared helm correction recorded' }),
+      expect.objectContaining({ type: 'LESSON_CHECKPOINT', lesson_id: 'L01', cause: 'declared helm correction recorded', action_event_id: session.ledger[1]!.id }),
     ]);
     expect(Object.isFrozen(session.ledger)).toBe(true);
     expect(Object.isFrozen(session.ledger[2]!)).toBe(true);
-    expect(session.raw).toMatchObject({ helm_command: 'port', heading: 'declared-unavailable', cog: 'declared-unavailable' });
+    expect(advanced.raw).toMatchObject({ helm_command: 'port', heading: expect.any(Number), cog: expect.any(Number), true_wind: expect.any(Object), apparent_wind: expect.any(Object) });
+    expect(transition).toEqual(expect.objectContaining({
+      id: 'l01-transition:0', tick: 0, sequence: 1, type: 'L01_SYNTHETIC_TRANSITION',
+      l01_transition: expect.objectContaining({ accepted_helm_command: 'port', causal_controls: [{ logical_tick: 0, sequence: 1, helm_command: 'port', action_event_id: session.ledger[1]!.id, checkpoint_event_id: session.ledger[2]!.id }], prior_state: expect.any(Object), next_state: expect.any(Object), observations: expect.any(Object) }),
+    }));
+    expect(transition).toBeDefined();
     expect(session.ledger).not.toContainEqual(expect.objectContaining({ type: 'SAFETY_BLOCKED' }));
     expect(projectScore(session.raw, session.ledger)).toEqual({ status: 'draft_causal_checkpoint_recorded', safety: 'clear', total_points: 0, causal_event_ids: [session.ledger[2]!.id] });
   });
 
   it('rejects a sequence collision and composes declared current-to velocity without renderer state', () => {
     const identity = { ...l01ReplayBindings, seed: 'collision', ordered_input_log: [] };
+    const accepted = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 2, input: { action: 'helm_port' } });
+    const before = { raw: accepted.raw, ledger: accepted.ledger, paused: accepted.paused, evidence: accepted.canonical_input_evidence };
+    for (const sequence of [2, 1]) {
+      expect(() => applyCanonicalInput(accepted, { logical_tick: 0, sequence, input: { action: 'helm_starboard' } })).toThrow(CanonicalInputContractError);
+      expect({ raw: accepted.raw, ledger: accepted.ledger, paused: accepted.paused, evidence: accepted.canonical_input_evidence }).toEqual(before);
+    }
     expect(() => replayInputs(identity, [
       { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } },
       { logical_tick: 0, sequence: 1, input: { action: 'helm_starboard' } },
     ], 1)).toThrow(CanonicalInputContractError);
     expect(composeGroundRelativeVelocity({ x: 2, y: -1 }, { x: 0, y: 0 })).toEqual({ x: 2, y: -1 });
     expect(composeGroundRelativeVelocity({ x: 2, y: -1 }, { x: -3, y: 4 })).toEqual({ x: -1, y: 3 });
+  });
+
+  it.each([
+    ['pause', { action: 'pause' as const }],
+    ['reset', { action: 'reset' as const }],
+  ])('rejects duplicate and descending direct %s sequences without mutating accepted evidence', (_label, input) => {
+    const identity = { ...l01ReplayBindings, seed: `special-sequence-${_label}`, ordered_input_log: [] };
+    const accepted = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 2, input: { action: 'helm_port' } });
+    const before = { raw: accepted.raw, ledger: accepted.ledger, paused: accepted.paused, evidence: accepted.canonical_input_evidence };
+
+    for (const sequence of [2, 1]) {
+      expect(() => applyCanonicalInput(accepted, { logical_tick: 0, sequence, input })).toThrow(CanonicalInputContractError);
+      expect({ raw: accepted.raw, ledger: accepted.ledger, paused: accepted.paused, evidence: accepted.canonical_input_evidence }).toEqual(before);
+    }
+  });
+
+  it('rejects duplicate and descending direct resume sequences without mutating the paused session', () => {
+    const identity = { ...l01ReplayBindings, seed: 'special-sequence-resume', ordered_input_log: [] };
+    const helm = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
+    const paused = applyCanonicalInput(helm, { logical_tick: 0, sequence: 2, input: { action: 'pause' } });
+    const before = { raw: paused.raw, ledger: paused.ledger, paused: paused.paused, evidence: paused.canonical_input_evidence };
+
+    for (const sequence of [2, 1]) {
+      expect(() => applyCanonicalInput(paused, { logical_tick: 0, sequence, input: { action: 'resume' } })).toThrow(CanonicalInputContractError);
+      expect({ raw: paused.raw, ledger: paused.ledger, paused: paused.paused, evidence: paused.canonical_input_evidence }).toEqual(before);
+    }
   });
 
   it('does not progress raw state or ledger while paused, restores declared initial state on reset, and varies by seed/input', () => {
@@ -147,6 +227,22 @@ describe('deterministic raw L01 session', () => {
       throw new Error('Expected replay to reject.');
     } catch (error) {
       expect(error).toBeInstanceOf(CanonicalInputContractError);
+      expect((error as CanonicalInputContractError).reason_code).toBe('REPLAY_ACTION_DISALLOWED');
+    }
+  });
+
+  it('preflights an L01 reset attempt boundary before producing partial replay output', () => {
+    const identity = { ...l01ReplayBindings, seed: 'l01-reset-replay', ordered_input_log: [] };
+    const inputs: CanonicalInput[] = [
+      { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } },
+      { logical_tick: 0, sequence: 2, input: { action: 'reset' } },
+      { logical_tick: 0, sequence: 3, input: { action: 'helm_starboard' } },
+    ];
+
+    expect(() => replayInputs(identity, inputs, 1)).toThrow(CanonicalInputContractError);
+    try {
+      replayInputs(identity, inputs, 1);
+    } catch (error) {
       expect((error as CanonicalInputContractError).reason_code).toBe('REPLAY_ACTION_DISALLOWED');
     }
   });

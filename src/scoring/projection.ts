@@ -10,9 +10,10 @@ export interface ScoreProjection {
 
 export interface DebriefFact {
   id: string;
-  kind: 'action_recorded' | 'contract_status' | 'safety_blocked' | 'lesson_checkpoint' | 'environment_episode';
+  kind: 'action_recorded' | 'contract_status' | 'safety_blocked' | 'lesson_checkpoint' | 'environment_episode' | 'synthetic_transition';
   cause_event_id?: string;
   contract_status?: RawSimulationState['contract_status'];
+  synthetic?: true;
 }
 
 export interface L03TraceEvidence {
@@ -130,8 +131,9 @@ export function projectScore(_raw: RawSimulationState, ledger: readonly LedgerEv
 }
 
 export function projectDebrief(raw: RawSimulationState, ledger: readonly LedgerEvent[]): readonly DebriefFact[] {
+  const sessionStart = ledger.find((event) => event.type === 'SESSION_STARTED');
   const facts: DebriefFact[] = [
-    { id: 'contract-status', kind: 'contract_status', contract_status: raw.contract_status },
+    { id: 'contract-status', kind: 'contract_status', contract_status: sessionStart?.contract_status ?? raw.contract_status },
   ];
   const seen = new Set<string>();
   for (const event of ledger) {
@@ -141,6 +143,7 @@ export function projectDebrief(raw: RawSimulationState, ledger: readonly LedgerE
     if (event.type === 'ACTION_ACCEPTED') facts.push({ id: `action:${event.id}`, kind: 'action_recorded', cause_event_id: event.id });
     if (event.type === 'LESSON_CHECKPOINT') facts.push({ id: `checkpoint:${event.id}`, kind: 'lesson_checkpoint', cause_event_id: event.id });
     if (event.type === 'ENVIRONMENT_EPISODE') facts.push({ id: `episode:${event.id}`, kind: 'environment_episode', cause_event_id: event.id });
+    if (event.type === 'L01_SYNTHETIC_TRANSITION') facts.push({ id: `synthetic-transition:${event.id}`, kind: 'synthetic_transition', cause_event_id: event.id, synthetic: true });
   }
   return Object.freeze(facts.map((fact) => Object.freeze(fact)));
 }

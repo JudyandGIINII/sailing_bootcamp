@@ -5,5 +5,5 @@
     "total_points": 0,
     "causal_event_ids": ["0:1:2"]
   },
-  "debrief_fact_kinds": ["contract_status", "action_recorded", "lesson_checkpoint"]
+  "debrief_fact_kinds": ["contract_status", "action_recorded", "lesson_checkpoint", "synthetic_transition", "synthetic_transition"]
 }

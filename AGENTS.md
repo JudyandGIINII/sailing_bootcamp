@@ -13,6 +13,7 @@ AP-0A through AP-0E are verified and integrated. For any future personal local p
 - **Personal local use:** an explicit user-approved bounded code scope is sufficient. No external reviewer, qualification, authority, controlled apply, G1/G2/G3 approval, P1 artifact, or public-release evidence is a prerequisite now or later in this product scope.
 - **Archived materials:** former external-review/release documents are non-operational references. They cannot create a required input, blocked state, or automatic resumption.
 - **Code work:** user must explicitly authorize implementation before creating source code, dependencies, package manifests, or Orca worktrees.
+- **Automatic Git completion:** Once a user-authorized source change passes the required scope and QA gates, Hermes must stage only the approved changes, create the scoped commit, integrate it through a fresh Orca worktree with `git merge --ff-only` into `main`, and push `origin/main` without a separate commit/merge/push question. A user may explicitly prohibit or narrow this policy for a task. Deployment, release, tagging, and external publication remain separately authorized actions.
 - Never use the absence of formal gates to claim certification, factual validation, supported-browser coverage, deployment readiness, or release eligibility.
 
 ## Implementation routing

@@ -1,4 +1,5 @@
 import { prototypeVersionBindings } from '../contracts/versions.js';
+import { l01SyntheticEnvironmentV1 } from '../contracts/l01-synthetic-environment.js';
 
 export const TRAINING_SLOOP_PROFILE_ID = 'training-sloop-v1' as const;
 export const L01_ID = 'L01' as const;
@@ -53,7 +54,7 @@ export interface L01Manifest {
 export const l01Manifest: L01Manifest = Object.freeze({
   lesson_id: L01_ID,
   scenario_version: 'l01-scenario-v0-draft',
-  model_version: 'training-sloop-model-v0-draft',
+  model_version: 'l01-synthetic-kinematics-v1',
   boat_profile_version: TRAINING_SLOOP_PROFILE_ID,
   contract_version: 'lesson-model-contract-v0-draft',
   coordinate_contract_version: prototypeVersionBindings.coordinate_contract_version,
@@ -63,10 +64,10 @@ export const l01Manifest: L01Manifest = Object.freeze({
   validation_disposition: 'assumption',
   initial_state: 'training-sloop-v1 steady-wind synthetic fixture',
   required_observations: [
-    { key: 'true_wind_from', accessible_label: 'True wind / 실제 바람', status: 'declared_unavailable' },
-    { key: 'apparent_wind', accessible_label: 'Apparent wind / 체감 바람', status: 'declared_unavailable' },
-    { key: 'heading', accessible_label: 'Heading / 선수 방향', status: 'declared_unavailable' },
-    { key: 'cog', accessible_label: 'Course over ground / 지상 항로', status: 'declared_unavailable' },
+    { key: 'true_wind_from', accessible_label: 'True wind / 실제 바람', status: 'declared_synthetic' },
+    { key: 'apparent_wind', accessible_label: 'Apparent wind / 체감 바람', status: 'declared_synthetic' },
+    { key: 'heading', accessible_label: 'Heading / 선수 방향', status: 'declared_synthetic' },
+    { key: 'cog', accessible_label: 'Course over ground / 지상 항로', status: 'declared_synthetic' },
   ] as const,
   permitted_actions: L01_SEMANTIC_ACTIONS,
   checkpoints: ['observe_declared_signals', 'record_helm_correction', 'reach_declared_course_state'],
@@ -86,4 +87,5 @@ export const l01ReplayBindings = Object.freeze({
   coordinate_contract_version: l01Manifest.coordinate_contract_version,
   determinism_contract_version: l01Manifest.determinism_contract_version,
   comparison_policy_version: l01Manifest.comparison_policy_version,
+  l01_synthetic_environment: l01SyntheticEnvironmentV1,
 });

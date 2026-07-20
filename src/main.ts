@@ -7,7 +7,7 @@ import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayR
 import { l01ReplayBindings } from './content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindings } from './content/l02-l05.js';
 import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
-import { resolveReplayV2, resolveStoredReplay, type ReplayIdentity, type ReplayV2 } from './contracts/replay.js';
+import { resolveReplayV2, resolveStoredReplay, serializeReplayV2Attempt, type ReplayIdentity, type ReplayV2 } from './contracts/replay.js';
 import { createSyntheticScenario, defaultScenarioConfiguration } from './content/scenario-catalog.js';
 import { validateScenarioPackage, type ScenarioConfiguration } from './contracts/scenario.js';
 import { materializeVariation } from './sim/scenario-variation.js';
@@ -44,7 +44,7 @@ mount.innerHTML = `
   <main>
     <h1 id="session-heading" tabindex="-1">Sailing Training Sloop — draft</h1>
     <p class="notice" role="note">Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.</p>
-    <p id="synthetic-boundary" role="note">Synthetic — declared/unvalidated. Scenario values are synthetic game calibration, not real-world conditions or safety thresholds.</p>
+    <p id="synthetic-boundary" role="note">Synthetic — declared/unvalidated. Synthetic educational model — unvalidated — not for navigation or safety guidance. Scenario values are synthetic game calibration, not real-world conditions or safety thresholds.</p>
     <fieldset id="lesson-fieldset"><legend>Training module selection</legend><label for="lesson-select">Lesson</label><select id="lesson-select"><option>L01</option><option>L02</option><option>L03</option><option>L04</option><option>L05</option></select><p>Every lesson is an <strong>assumption</strong>; labels and text, not color alone, communicate that status.</p></fieldset>
     <fieldset id="scenario-fieldset"><legend>Synthetic scenario calibration</legend><label>Wave <select id="wave-select"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></label><label>Current <select id="current-select"><option value="weak">weak</option><option value="medium">medium</option><option value="strong">strong</option></select></label><label>Wind <select id="wind-select"><option value="weak">weak</option><option value="medium">medium</option><option value="strong">strong</option></select></label><label>Gust <select id="gust-select"><option value="off">off</option><option value="on">on</option></select></label><label>Weather <select id="weather-select"><option value="clear">clear</option><option value="cloudy">cloudy</option><option value="rain">rain</option></select></label><label>Day <select id="day-select"><option value="fixed">fixed</option></select></label><label>Variation <select id="variation-select"><option value="none">none</option><option value="weak">weak</option><option value="strong">strong</option></select></label><label>Wave direction <select id="wave-direction-select"><option value="north">north (0°)</option><option value="northeast">northeast (45°)</option><option value="east">east (90°)</option><option value="southeast">southeast (135°)</option><option value="south">south (180°)</option><option value="southwest">southwest (225°)</option><option value="west">west (270°)</option><option value="northwest">northwest (315°)</option></select></label><label>Wind direction <select id="wind-direction-select"><option value="north">north (0°)</option><option value="northeast">northeast (45°)</option><option value="east">east (90°)</option><option value="southeast">southeast (135°)</option><option value="south">south (180°)</option><option value="southwest">southwest (225°)</option><option value="west">west (270°)</option><option value="northwest">northwest (315°)</option></select></label><label>Current direction <select id="current-direction-select"><option value="north">north (0°)</option><option value="northeast">northeast (45°)</option><option value="east" selected>east (90°)</option><option value="southeast">southeast (135°)</option><option value="south">south (180°)</option><option value="southwest">southwest (225°)</option><option value="west">west (270°)</option><option value="northwest">northwest (315°)</option></select></label><label>Dominant wave period <select id="dominant-wave-period-select"><option value="short">short (4.0 s)</option><option value="medium">medium (6.5 s)</option><option value="long">long (10.0 s)</option></select></label><label>Visibility <select id="visibility-select"><option value="normal">normal (10.0 nmi)</option><option value="reduced">reduced (5.0 nmi)</option><option value="restricted">restricted (1.0 nmi)</option></select></label><label>Water level <select id="water-level-select"><option value="below_datum">below datum (-0.5 m)</option><option value="at_datum" selected>at datum (0.0 m)</option><option value="above_datum">above datum (0.5 m)</option></select></label><label>Tide phase <select id="tide-phase-select"><option value="rising">rising</option><option value="falling">falling</option><option value="slack" selected>slack</option></select></label><label>Course template <select id="course-template-select"><option value="windward-return-v1">windward-return-v1</option><option value="triangle-v1">triangle-v1</option></select></label></fieldset>
     <section aria-labelledby="scenario-details-heading"><h2 id="scenario-details-heading">Synthetic scenario package details</h2><p id="scenario-details" aria-live="polite"></p></section>
@@ -135,7 +135,16 @@ let applicationReady = false;
 const pendingBrowserSignals: PendingBrowserSignal[] = [];
 
 function replayPayload(): unknown {
-  return frozenReplay ? { ...frozenReplay, ordered_input_log: inputLog } : undefined;
+  if (!frozenReplay) return undefined;
+  if ('schema_version' in frozenReplay && frozenReplay.schema_version === 'replay-v2') {
+    return serializeReplayV2Attempt(
+      frozenReplay,
+      inputLog,
+      frozenReplay.lesson_binding.lesson_id === 'L01' ? session.raw.logical_tick : undefined,
+      frozenReplay.lesson_binding.lesson_id === 'L01' ? session.paused : undefined,
+    );
+  }
+  return { ...frozenReplay, ordered_input_log: inputLog };
 }
 
 const directionDegrees = { north: 0, northeast: 45, east: 90, southeast: 135, south: 180, southwest: 225, west: 270, northwest: 315 } as const;
@@ -248,7 +257,15 @@ function render(): void {
   hud.replaceChildren();
   for (const observation of projectLessonObservations(currentLesson.id) ?? []) {
     const term = document.createElement('dt'); term.textContent = observation.accessible_label;
-    const description = document.createElement('dd'); description.textContent = observation.status;
+    const description = document.createElement('dd');
+    if (currentLesson.id === 'L01' && observation.status === 'declared_synthetic') {
+      const numeric = (value: number) => value.toFixed(6);
+      if (observation.key === 'true_wind_from' && session.raw.true_wind !== 'declared-unavailable') description.textContent = `Synthetic computed wind-from ${numeric(session.raw.true_wind.from_rad)} rad; synthetic speed ${numeric(session.raw.true_wind.speed_mps)} mps.`;
+      else if (observation.key === 'apparent_wind' && session.raw.apparent_wind !== 'declared-unavailable') description.textContent = `Synthetic computed wind-from ${numeric(session.raw.apparent_wind.from_rad)} rad; synthetic speed ${numeric(session.raw.apparent_wind.speed_mps)} mps.`;
+      else if (observation.key === 'heading' && session.raw.heading !== 'declared-unavailable') description.textContent = `Synthetic computed heading ${numeric(session.raw.heading)} rad.`;
+      else if (observation.key === 'cog' && session.raw.cog !== 'declared-unavailable') description.textContent = `Synthetic computed COG ${numeric(session.raw.cog)} rad.`;
+      else description.textContent = 'Synthetic computed observation unavailable.';
+    } else description.textContent = observation.status;
     hud.append(term, description);
   }
   const l02Trace = hasTrustedL02Presentation() ? projectL02RuntimeTrace(session.raw, session.ledger) : undefined;
@@ -316,7 +333,9 @@ function render(): void {
     const item = document.createElement('li');
     item.textContent = fact.kind === 'contract_status'
       ? 'Simulation contract status: unvalidated domain model.'
-      : `${fact.kind.replaceAll('_', ' ')} caused by raw event ${fact.cause_event_id ?? 'none'}.`;
+      : fact.kind === 'synthetic_transition'
+        ? `Synthetic educational transition recorded by immutable ledger event ${fact.cause_event_id ?? 'none'}; unvalidated and not navigation or safety guidance.`
+        : `${fact.kind.replaceAll('_', ' ')} caused by immutable ledger event ${fact.cause_event_id ?? 'none'}.`;
     debrief.append(item);
   }
   const scoreItem = document.createElement('li');
@@ -370,9 +389,21 @@ async function loadReplay(record: LocalReplayRecord): Promise<void> {
     if (!lesson) { storageStatus = 'Replay not run: REPLAY_V2_SCHEMA_INVALID. Original local payload was preserved.'; render(); return; }
     const canonicalInputs = accepted.ordered_input_log.filter(isCanonicalInput);
     if (canonicalInputs.length !== accepted.ordered_input_log.length) { storageStatus = 'Replay not run: REPLAY_PAYLOAD_CORRUPT. Original local payload was preserved.'; render(); return; }
-    scheduler.stop(); currentLesson = lesson; lessonSelect.value = lesson.id; frozenReplay = { ...accepted, ordered_input_log: canonicalInputs }; inputLog = canonicalInputs; seed = accepted.seed; nextSequence = inputLog.reduce((highest, input) => Math.max(highest, input.sequence), 0) + 1;
-    const terminalTick = inputLog.reduce((highest, input) => Math.max(highest, input.logical_tick), 0) + 1;
-    session = replayInputs(frozenReplay, inputLog, terminalTick); scheduler.start(); startStatus.textContent = 'Loaded frozen Replay V2 identity.'; storageStatus = `Loaded local replay ${record.id}; replay inputs were validated and applied.`; render(); title.focus(); return;
+    const terminalTick = accepted.lesson_binding.lesson_id === 'L01'
+      ? accepted.l01_terminal_logical_tick
+      : canonicalInputs.reduce((highest, input) => Math.max(highest, input.logical_tick), 0) + 1;
+    if (typeof terminalTick !== 'number' || !Number.isSafeInteger(terminalTick) || terminalTick < 0) { storageStatus = 'Replay not run: REPLAY_V2_SCHEMA_INVALID. Original local payload was preserved.'; render(); return; }
+    const candidateReplay: ReplayV2 = { ...accepted, ordered_input_log: canonicalInputs };
+    let restoredSession;
+    try {
+      restoredSession = replayInputs(candidateReplay, canonicalInputs, terminalTick);
+    } catch {
+      storageStatus = 'Replay not run: REPLAY_V2_SCHEMA_INVALID. Original local payload was preserved.';
+      render();
+      return;
+    }
+    scheduler.stop(); currentLesson = lesson; lessonSelect.value = lesson.id; frozenReplay = candidateReplay; inputLog = canonicalInputs; seed = accepted.seed; nextSequence = inputLog.reduce((highest, input) => Math.max(highest, input.sequence), 0) + 1;
+    session = restoredSession; if (!session.paused) scheduler.start(); startStatus.textContent = 'Loaded frozen Replay V2 identity.'; storageStatus = `Loaded local replay ${record.id}; replay inputs were validated and applied.`; render(); title.focus(); return;
   }
   const scenarioVersion = typeof record.payload === 'object' && record.payload !== null && !Array.isArray(record.payload)
     ? (record.payload as { scenario_version?: unknown }).scenario_version : undefined;
@@ -486,8 +517,8 @@ async function startFrozenSession(): Promise<void> {
   if (frozenReplay || startInProgress) return;
   startInProgress = true; startStatus.textContent = 'Starting: validating and freezing synthetic scenario.'; render();
   try {
-    const scenario = await createSyntheticScenario(scenarioConfiguration); const validated = await validateScenarioPackage(scenario); if (!validated.ok) throw new Error(validated.reason_code); seed = `${currentLesson.id.toLowerCase()}-prototype-seed`; const { scenario_version: _legacyScenario, ...bindings } = currentLesson.bindings; const lessonBinding = { lesson_id: currentLesson.id, ...bindings }; const trace = await materializeVariation(validated.scenario, seed);
-    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
+    const scenario = await createSyntheticScenario(scenarioConfiguration); const validated = await validateScenarioPackage(scenario); if (!validated.ok) throw new Error(validated.reason_code); seed = `${currentLesson.id.toLowerCase()}-prototype-seed`; const { scenario_version: _legacyScenario, l01_synthetic_environment, ...bindings } = currentLesson.bindings; const lessonBinding = { lesson_id: currentLesson.id, ...bindings }; const trace = await materializeVariation(validated.scenario, seed);
+    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
   } catch { startStatus.textContent = 'Start failed: SCENARIO_SCHEMA_INVALID. Draft controls remain editable.'; }
   startInProgress = false; render();
 }
