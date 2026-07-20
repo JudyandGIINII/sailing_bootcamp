@@ -1,11 +1,11 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-20 KST
-> 상태: **post-trace feature-branch evidence recorded / local-documentation-commit or PR-main-integration decision pending / personal-use scope active / external gates archived**
+> 상태: **post-main-sync lineage integrated/pushed at `7827079` / personal-use scope active / external gates archived / no evidenced code increment pending**
 
 ## 1. 현재 위치
 
-프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. Historical shared-main records remain historical; the current post-trace checkpoint is feature-branch-only evidence and does not claim its integration.
+프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. Earlier shared-main and feature-branch records remain historical where identified. The current post-main-sync checkpoint records the user-authorized integration and push of the L03→L04→L02→L05 lineage plus its earlier documentation reconciliation at `7827079`.
 
 ## 2. 완료된 기반
 
@@ -21,22 +21,22 @@
 
 | Gate | 상태 | 의미 |
 |---|---|---|
-| Load | historical shared-main evidence / post-trace feature evidence recorded | Earlier prototype bindings remain historical; the L02–L05 trace lineage is recorded only on feature SHA `6004911`, not as a shared-main integration claim |
-| Prototype | personal, browser-local, synthetic / assumption-only | Recorded feature-SHA validation exists for the trace branch; domain correctness remains unvalidated and this is not a release-support claim |
+| Load | historical shared-main evidence / post-main-sync lineage integrated and pushed | The L02–L05 trace lineage and earlier documentation reconciliation are integrated on `main`/`origin/main` at `7827079`; earlier prototype bindings remain historical |
+| Prototype | personal, browser-local, synthetic / assumption-only | Recorded candidate QA exists for exact `7827079`; domain correctness remains unvalidated and this is not a release-support or supported-browser claim |
 | Personal prototype work | available with explicit bounded user authorization | external reviewer/authority/controlled apply/G1/G2/G3/P1/release evidence는 prerequisite가 아님 |
 | Archived external-release materials | non-operational | registry assumptions·P1·external review·release authority 절차는 개인용 roadmap을 막거나 자동 재개하지 않음 |
 
 ## 4. 구현 전 AP-0
 
-AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence), AP-0D P0, and AP-0E G0 statements above are historical shared-main records only. They do not integrate the later post-trace feature SHA. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
+AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence), AP-0D P0, and AP-0E G0 statements above are historical shared-main records. The later post-trace lineage is now separately integrated/pushed at `7827079`; this does not alter the historical evidence meanings. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
 
-## 4.2 Post-trace feature-branch checkpoint
+## 4.2 Post-main-sync integration checkpoint
 
-`JudyandGIINII/sailing-l05-record-evidence` points to `6004911508305445d520755e3a082c7654ba79b7`, four commits ahead of `origin/main` `0f34184` through L03 `37aac44`, L04 `ed83927`, L02 `f98f611`, and L05 `6004911`. At packet capture, the remote feature branch was pushed and had no PR. Recorded controller validation on that exact SHA passed strict typecheck, 13 Vitest files / 118 tests, 12 Chromium smokes, production build, and diff check; it is recorded feature-branch evidence, not a fresh run or a main/release claim. L05 is decision-ledger record visibility only: `pass`/`wait`/`return` are not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence. The next gate is a pending explicit local documentation commit or PR/main integration decision.
+Historical capture recorded `JudyandGIINII/sailing-l05-record-evidence` at `6004911508305445d520755e3a082c7654ba79b7`, four commits ahead of `origin/main` `0f34184` through L03 `37aac44`, L04 `ed83927`, L02 `f98f611`, and L05 `6004911`; at that capture the remote feature branch was pushed with no PR. After user-authorized integration, shared `main` and `origin/main` were fast-forwarded from `0f34184` to `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`), which contains that feature lineage and the earlier documentation reconciliation. Recorded candidate QA on exact `7827079` passed strict typecheck, 13 Vitest files / 118 tests, 12 Chromium Playwright tests, production build, and diff check. This is local/browser synthetic prototype evidence only—not domain validation, navigation/safety truth, public release, certification, deployment, or a supported-browser claim. L05 is decision-ledger record visibility only: `pass`/`wait`/`return` are not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence. No evidenced code increment is currently pending; any future feature requires explicit user authorization for a bounded scope.
 
 ## 4.1 버전 관리 checkpoint
 
-프로젝트는 Git `main` 브랜치로 초기화되었고 `origin`은 `https://github.com/JudyandGIINII/sailing_bootcamp`로 지정되어 있다. 원격의 기존 초기 README 이력은 로컬 baseline과 병합했다. 이 checkpoint 작업에서는 **원격 push를 수행하지 않았다**.
+Historical initialization: 프로젝트는 Git `main` 브랜치로 초기화되었고 `origin`은 `https://github.com/JudyandGIINII/sailing_bootcamp`로 지정되어 있다. 원격의 기존 초기 README 이력은 로컬 baseline과 병합했다. That historical initialization checkpoint did not push; the later user-authorized post-trace synchronization did fast-forward `origin/main` to `7827079`.
 
 ## 5. 첫 구현 slice
 

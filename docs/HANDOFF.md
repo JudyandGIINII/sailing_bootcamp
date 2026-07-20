@@ -1,8 +1,8 @@
 # Implementation Handoff — Training Sloop MVP
 
-> **Current reconciliation (2026-07-19):** The active product path is personal, browser-local synthetic use. Any future personal prototype work requires only explicit user approval of a bounded scope. External qualification, authority, controlled apply, G1/G2/G3, P1, deployment, and release materials are archived non-operational references; they cannot block or automatically resume personal work. Registry records remain `assumption` and no real-world sailing authority is asserted.
+> **Current reconciliation (2026-07-20):** The active product path is personal, browser-local synthetic use. Any future personal prototype work requires only explicit user approval of a bounded scope. External qualification, authority, controlled apply, G1/G2/G3, P1, deployment, and release materials are archived non-operational references; they cannot block or automatically resume personal work. Registry records remain `assumption` and no real-world sailing authority is asserted.
 
-> **Handoff status:** FEATURE_BRANCH_TRACE_EVIDENCE_RECORDED — integration/PR/main decision pending
+> **Handoff status:** POST_MAIN_SYNC_INTEGRATED_PUSHED — no evidenced code increment is currently pending
 > 이 문서는 구현 시작을 자동 승인하지 않는다.
 
 ## 목적
@@ -99,11 +99,11 @@ Task 0A의 완료 증거는 선택한 dependency compatibility record·lockfile�
 
 ## 현재 handoff 위치
 
-- Local/feature-branch evidence update: `JudyandGIINII/sailing-l05-record-evidence` and its captured remote both point to exact `6004911508305445d520755e3a082c7654ba79b7`; at packet capture, that remote branch was pushed and had no PR. This is a capture-time statement, not a continuing remote-state claim.
-- The exact feature lineage is `origin/main` `0f34184` → L03 `37aac44` → L04 `ed83927` → L02 `f98f611` → L05 `6004911`: four commits ahead of `origin/main`. L03 is record-only runtime trace, L04 is recoverable-correction record trace, L02 is synthetic trim record trace, and L05 is safety-sensitive decision-ledger record visibility only.
-- Recorded controller validation on exact `6004911` passed strict TypeScript typecheck, 13 Vitest files / 118 tests, 12 Chromium smokes, production build, and `git diff --check`. This is recorded feature-SHA evidence, not validation freshly run by this documentation reconciliation.
+- Historical capture: `JudyandGIINII/sailing-l05-record-evidence` pointed to exact `6004911508305445d520755e3a082c7654ba79b7`; at capture, its remote was pushed with no PR. That capture-time branch statement is not a continuing remote-state claim.
+- User-authorized integration fast-forwarded shared `main` and `origin/main` from `0f34184` to `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`). The integrated/pushed lineage is L03 `37aac44` → L04 `ed83927` → L02 `f98f611` → L05 `6004911`, followed by the earlier documentation reconciliation at `7827079`.
+- Recorded candidate QA on exact `7827079` passed strict TypeScript typecheck, 13 Vitest files / 118 tests, 12 Chromium Playwright tests, production build, and `git diff --check`. It is local/browser synthetic prototype evidence only, not a fresh run by this documentation correction, domain validation, navigation/safety truth, public release, certification, deployment, or supported-browser claim.
 - L05 remains display-only record visibility with its existing boundary: it reproduces only exact immutable ledger records. Its `pass`/`wait`/`return` labels are not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence.
-- **다음 권한 경계:** an explicit local documentation commit or PR/main integration decision is pending. The feature evidence does not assert shared-main integration, release, deployment, external review, domain validation, registry promotion, or release eligibility.
+- **다음 권한 경계:** no evidenced code increment is currently pending. Any future feature requires explicit user authorization for a bounded scope; this integrated evidence does not assert release, deployment, external review, domain validation, registry promotion, or release eligibility.
 
 ## 알려진 출시 blocker
 

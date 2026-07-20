@@ -16,10 +16,11 @@
 - [x] AP-0A integrated: Vite/strict TypeScript/Vitest/Playwright bootstrap plus fail-closed replay/release/determinism contract tests; independent verification passed (15 unit tests, Chromium smoke, build)
 - [x] AP-0B integrated: L01 deterministic prototype, readonly PixiJS/DOM projection, local IndexedDB replay lifecycle, 36 unit/contract tests and 3 Chromium smokes
 - [x] AP-0C integrated: L02–L05 assumption-only extension, replay/storage resilience, release evidence `BLOCKED`, 61 unit/contract tests and 6 Chromium smokes
-- [x] Post-trace feature lineage evidence verified: `origin/main` `0f34184` → L03 `37aac44` record-only runtime trace → L04 `ed83927` recoverable-correction record trace → L02 `f98f611` synthetic trim record trace → L05 `6004911` safety-sensitive decision-ledger record visibility only. This is feature-branch completion/evidence verification, not shared-main integration.
-- [x] Exact feature SHA `6004911508305445d520755e3a082c7654ba79b7`: recorded controller validation passed strict typecheck, 13 Vitest files / 118 tests, 12 Chromium smokes, production build, and diff check. L05 is decision-ledger visibility only: `pass`/`wait`/`return` are not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence.
+- [x] Historical post-trace capture recorded `origin/main` `0f34184` → L03 `37aac44` record-only runtime trace → L04 `ed83927` recoverable-correction record trace → L02 `f98f611` synthetic trim record trace → L05 `6004911` safety-sensitive decision-ledger record visibility only.
+- [x] User-authorized integration fast-forwarded shared `main` and `origin/main` from `0f34184` to `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`), integrating/pushing that lineage and the earlier documentation reconciliation. Recorded candidate QA on exact `7827079` passed strict typecheck, 13 Vitest files / 118 tests, 12 Chromium Playwright tests, production build, and diff check; this is local/browser synthetic prototype evidence only, not domain validation, navigation/safety truth, release, certification, deployment, or supported-browser evidence.
+- [x] L05 is decision-ledger visibility only: `pass`/`wait`/`return` are record labels, not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence.
 - [x] 2026-07-19 controller + validated Alfred implementation audit and approval-aware next-step plan: current suite re-run (61 Vitest, 6 Chromium smoke, typecheck/build/release-evidence validation); plan recorded at `docs/plans/2026-07-19-prototype-audit-and-next-steps.md`
-- [x] Local Git documentation checkpoint created; `origin` configured (push pending)
+- [x] Historical local Git documentation checkpoint created; `origin` configured (push was pending at that historical checkpoint)
 
 ## AP-0E G0 integrated and pushed on shared main
 
@@ -44,7 +45,7 @@
 ## Next
 
 1. Preserve personal-use boundaries: all records remain `assumption`; non-navigation/local-only notices remain mandatory.
-2. Pending: make an explicit local documentation commit or PR/main integration decision for feature SHA `6004911`; no integration, PR, main update, release, deployment, domain validation, registry promotion, or release eligibility is implied by the feature evidence.
-3. Any next personal prototype implementation requires only an explicit user-approved bounded scope, with no external-review/qualification/authority/controlled-apply prerequisite. Begin from `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md`.
+2. No evidenced code increment is currently pending. Any future feature requires an explicit user-approved bounded scope; the integrated/pushed `7827079` evidence does not imply release, deployment, domain validation, registry promotion, or release eligibility.
+3. Any next personal prototype implementation requires only an explicit user-approved bounded scope, with no external-review/qualification/authority/controlled-apply prerequisite. Begin from `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md` when a bounded feature is authorized.
 4. Archived external-release materials cannot become a blocker, waiting state, required input, or automatic next step.
 5. Do not treat absence of formal gates as expert validation, registry promotion, or release authority.
