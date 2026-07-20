@@ -84,6 +84,30 @@ export interface L02RuntimeTraceProjection {
   readonly boundary_copy: 'Browser-local synthetic recorded evidence only. It is not trim, performance, or safety advice.';
 }
 
+export interface L05DecisionLedgerRecordEvidence {
+  readonly status: 'recorded' | 'unavailable_no_exact_matching_immutable_ledger_record';
+  /** Sorted only for stable presentation; this is not temporal record order. */
+  readonly record_ids?: readonly string[];
+}
+
+export interface L05DecisionLedgerProjection {
+  readonly accepted_action_records: {
+    readonly heading: 'Accepted-action record evidence';
+    readonly pass: L05DecisionLedgerRecordEvidence;
+    readonly wait: L05DecisionLedgerRecordEvidence;
+    readonly return: L05DecisionLedgerRecordEvidence;
+  };
+  readonly checkpoint_records: {
+    readonly heading: 'Checkpoint record evidence';
+    readonly pass: L05DecisionLedgerRecordEvidence;
+    readonly wait: L05DecisionLedgerRecordEvidence;
+    readonly return: L05DecisionLedgerRecordEvidence;
+  };
+  readonly boundary_notice: 'Record visibility only. The labels “pass”, “wait”, and “return” reproduce synthetic training records. They are not recommendations, navigation guidance, judgments of correctness, or evidence of route, depth, tide, visibility, clearance, timing, ordering, or safety outcomes.';
+  readonly ordering_notice: 'Record IDs are displayed in lexical order for stable presentation only; this order is not temporal and implies no sequence or recommendation.';
+  readonly absence_notice: 'No exact matching immutable ledger record is present.';
+}
+
 /** Pure projections: no values are written back to the canonical state or ledger. */
 export function projectScore(_raw: RawSimulationState, ledger: readonly LedgerEvent[]): ScoreProjection {
   const safetyEvent = ledger.find((event) => event.type === 'SAFETY_BLOCKED');
@@ -261,5 +285,46 @@ export function projectL04RuntimeTrace(
       ),
     }),
     boundary_copy: 'Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.',
+  });
+}
+
+function l05DecisionLedgerRecordEvidence(matchingEvents: readonly LedgerEvent[]): L05DecisionLedgerRecordEvidence {
+  if (matchingEvents.length === 0) {
+    return Object.freeze({ status: 'unavailable_no_exact_matching_immutable_ledger_record' });
+  }
+  return Object.freeze({ status: 'recorded', record_ids: Object.freeze(matchingEvents.map((event) => event.id).sort()) });
+}
+
+/**
+ * L05 display-only record visibility. Each collection reads only its own exact
+ * immutable ledger literals; raw decision state, static context, score, and
+ * record ordering are not inputs and establish neither evidence nor a
+ * relationship between groups.
+ */
+export function projectL05DecisionLedger(
+  ledger: readonly LedgerEvent[],
+): L05DecisionLedgerProjection {
+
+  const actionRecords = (action: 'decision_pass' | 'decision_wait' | 'decision_return') =>
+    l05DecisionLedgerRecordEvidence(ledger.filter((event) => event.type === 'ACTION_ACCEPTED' && event.action === action));
+  const checkpointRecords = (cause: 'synthetic pass decision recorded' | 'synthetic wait decision recorded' | 'synthetic return decision recorded') =>
+    l05DecisionLedgerRecordEvidence(ledger.filter((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L05' && event.cause === cause));
+
+  return Object.freeze({
+    accepted_action_records: Object.freeze({
+      heading: 'Accepted-action record evidence',
+      pass: actionRecords('decision_pass'),
+      wait: actionRecords('decision_wait'),
+      return: actionRecords('decision_return'),
+    }),
+    checkpoint_records: Object.freeze({
+      heading: 'Checkpoint record evidence',
+      pass: checkpointRecords('synthetic pass decision recorded'),
+      wait: checkpointRecords('synthetic wait decision recorded'),
+      return: checkpointRecords('synthetic return decision recorded'),
+    }),
+    boundary_notice: 'Record visibility only. The labels “pass”, “wait”, and “return” reproduce synthetic training records. They are not recommendations, navigation guidance, judgments of correctness, or evidence of route, depth, tide, visibility, clearance, timing, ordering, or safety outcomes.',
+    ordering_notice: 'Record IDs are displayed in lexical order for stable presentation only; this order is not temporal and implies no sequence or recommendation.',
+    absence_notice: 'No exact matching immutable ledger record is present.',
   });
 }

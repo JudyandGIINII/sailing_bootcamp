@@ -151,6 +151,42 @@ test('renders uniquely named L04 runtime evidence from keyboard actions without 
   expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
 });
 
+test('renders L05 decision-ledger record visibility from exact keyboard records without outcome or recommendation language', async ({ page }) => {
+  const requests: { url: string; resourceType: string; method: string }[] = [];
+  page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
+  await page.goto('/');
+  const lesson = page.locator('#lesson-select');
+  await page.keyboard.press('Tab');
+  await expect(lesson).toBeFocused();
+  await lesson.selectOption('L05');
+
+  const l05Region = page.getByRole('region', { name: 'L05 decision-ledger record visibility', exact: true });
+  const acceptedActions = page.locator('#l05-accepted-action-records');
+  const checkpoints = page.locator('#l05-checkpoint-records');
+  await expect(l05Region).toHaveCount(1);
+  await expect(l05Region).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'L05 decision-ledger record visibility', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Accepted-action record evidence', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Checkpoint record evidence', exact: true })).toHaveCount(1);
+  await expect(page.locator('#l05-decision-ledger-boundary')).toHaveText('Record visibility only. The labels “pass”, “wait”, and “return” reproduce synthetic training records. They are not recommendations, navigation guidance, judgments of correctness, or evidence of route, depth, tide, visibility, clearance, timing, ordering, or safety outcomes.');
+  await expect(page.locator('#l05-decision-ledger-ordering')).toHaveText('Record IDs are displayed in lexical order for stable presentation only; this order is not temporal and implies no sequence or recommendation.');
+  await expect(acceptedActions).toContainText('No exact matching immutable ledger record is present.');
+  await expect(checkpoints).toContainText('No exact matching immutable ledger record is present.');
+
+  await page.keyboard.press('KeyP');
+  await expect(acceptedActions).toContainText('pass');
+  await expect(acceptedActions).toContainText('Record IDs:');
+  await expect(checkpoints).toContainText('pass');
+  await expect(checkpoints).toContainText('Record IDs:');
+  await expect(acceptedActions).not.toContainText(/outcome|result|correct|incorrect|recommended|safe|unsafe/i);
+  await expect(checkpoints).not.toContainText(/outcome|result|correct|incorrect|recommended|safe|unsafe/i);
+
+  await expect(page.locator('#l02-runtime-evidence-section')).toBeHidden();
+  await expect(page.locator('#l03-trace-section')).toBeHidden();
+  await expect(page.locator('#l04-runtime-evidence-section')).toBeHidden();
+  expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
+});
+
 test('ignores globally mapped keyboard actions disallowed by the selected lesson', async ({ page }) => {
   await page.goto('/');
   const lesson = page.locator('#lesson-select');

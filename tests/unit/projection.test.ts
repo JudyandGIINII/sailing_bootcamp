@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createSession, replayInputs, type CanonicalInput, type LedgerEvent } from '../../src/sim/session.js';
-import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectScore } from '../../src/scoring/projection.js';
+import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore } from '../../src/scoring/projection.js';
 
 const rawFixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: []; terminal_ticks: number };
 const scoreFixture = JSON.parse(readFileSync('tests/fixtures/l01-score-debrief-golden.json', 'utf8')) as { score: unknown; debrief_fact_kinds: unknown };
@@ -10,6 +10,8 @@ const l03RawFixture = JSON.parse(readFileSync('tests/fixtures/l03-raw-golden.jso
 const l03ScoreFixture = JSON.parse(readFileSync('tests/fixtures/l03-score-debrief-golden.json', 'utf8')) as { score: unknown; l03_runtime_trace: unknown };
 const l04RawFixture = JSON.parse(readFileSync('tests/fixtures/l04-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: CanonicalInput[]; terminal_ticks: number };
 const l04ScoreFixture = JSON.parse(readFileSync('tests/fixtures/l04-score-debrief-golden.json', 'utf8')) as { score: unknown };
+const l05RawFixture = JSON.parse(readFileSync('tests/fixtures/l05-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: CanonicalInput[]; terminal_ticks: number };
+const l05ScoreFixture = JSON.parse(readFileSync('tests/fixtures/l05-score-debrief-golden.json', 'utf8')) as { score: unknown };
 
 describe('score/debrief pure causality projections', () => {
   it('matches its dedicated golden fixture without changing the raw baseline', () => {
@@ -186,5 +188,75 @@ describe('score/debrief pure causality projections', () => {
     const two = replayInputs(l04RawFixture.identity, l04RawFixture.inputs, l04RawFixture.terminal_ticks);
 
     expect(projectL04RuntimeTrace(two.raw, two.ledger)).toEqual(projectL04RuntimeTrace(one.raw, one.ledger));
+  });
+
+  it('keeps L05 accepted-action and checkpoint record evidence separately unavailable before exact records exist', () => {
+    const session = createSession(l05RawFixture.identity);
+    const ledger = projectL05DecisionLedger(session.ledger);
+
+    expect(ledger?.accepted_action_records).toEqual(expect.objectContaining({ heading: 'Accepted-action record evidence' }));
+    expect(ledger?.checkpoint_records).toEqual(expect.objectContaining({ heading: 'Checkpoint record evidence' }));
+    expect(ledger?.accepted_action_records.pass).toEqual({ status: 'unavailable_no_exact_matching_immutable_ledger_record' });
+    expect(ledger?.checkpoint_records.wait).toEqual({ status: 'unavailable_no_exact_matching_immutable_ledger_record' });
+  });
+
+  it('recognizes exact L05 pass, wait, and return action and checkpoint records without pairing groups', () => {
+    const records: LedgerEvent[] = [
+      { id: 'action-return', tick: 2, sequence: 3, type: 'ACTION_ACCEPTED', action: 'decision_return' },
+      { id: 'checkpoint-pass', tick: 4, sequence: 5, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: 'synthetic pass decision recorded' },
+      { id: 'action-pass', tick: 3, sequence: 2, type: 'ACTION_ACCEPTED', action: 'decision_pass' },
+      { id: 'checkpoint-return', tick: 1, sequence: 8, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: 'synthetic return decision recorded' },
+      { id: 'action-wait', tick: 5, sequence: 1, type: 'ACTION_ACCEPTED', action: 'decision_wait' },
+      { id: 'checkpoint-wait', tick: 0, sequence: 9, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: 'synthetic wait decision recorded' },
+    ];
+    const ledger = projectL05DecisionLedger(records);
+
+    expect(ledger?.accepted_action_records.pass).toEqual({ status: 'recorded', record_ids: ['action-pass'] });
+    expect(ledger?.accepted_action_records.wait).toEqual({ status: 'recorded', record_ids: ['action-wait'] });
+    expect(ledger?.accepted_action_records.return).toEqual({ status: 'recorded', record_ids: ['action-return'] });
+    expect(ledger?.checkpoint_records.pass).toEqual({ status: 'recorded', record_ids: ['checkpoint-pass'] });
+    expect(ledger?.checkpoint_records.wait).toEqual({ status: 'recorded', record_ids: ['checkpoint-wait'] });
+    expect(ledger?.checkpoint_records.return).toEqual({ status: 'recorded', record_ids: ['checkpoint-return'] });
+  });
+
+  it('rejects L05 near matches, wrong lessons, wrong event types, raw decision state, and static context', () => {
+    const completed = replayInputs(l05RawFixture.identity, l05RawFixture.inputs, l05RawFixture.terminal_ticks);
+    const unrelated: LedgerEvent[] = [
+      { id: 'near-cause', tick: 0, sequence: 1, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: 'synthetic wait decision recorded ' },
+      { id: 'wrong-lesson', tick: 0, sequence: 2, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'synthetic wait decision recorded' },
+      { id: 'action-wrong-type', tick: 0, sequence: 3, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', action: 'decision_wait', cause: 'unrelated record' },
+      { id: 'checkpoint-wrong-type', tick: 0, sequence: 4, type: 'ACTION_ACCEPTED', action: 'helm_port', lesson_id: 'L05', cause: 'synthetic wait decision recorded' },
+    ];
+    const rawBefore = structuredClone(completed.raw);
+    const trace = projectL05DecisionLedger(unrelated);
+
+    expect(completed.raw.decision_state).toBe('wait_recorded');
+    expect(completed.raw.synthetic_environment).toBe('tide_depth_visibility_declared');
+    expect(trace?.accepted_action_records.wait.status).toBe('unavailable_no_exact_matching_immutable_ledger_record');
+    expect(trace?.checkpoint_records.wait.status).toBe('unavailable_no_exact_matching_immutable_ledger_record');
+    expect(trace?.accepted_action_records.pass.status).toBe('unavailable_no_exact_matching_immutable_ledger_record');
+    expect(trace?.checkpoint_records.pass.status).toBe('unavailable_no_exact_matching_immutable_ledger_record');
+    expect(completed.raw).toEqual(rawBefore);
+  });
+
+  it('lexically sorts L05 record IDs and leaves raw, ledger, score, and replay payload unchanged', () => {
+    const replayPayload = structuredClone({ ...l05RawFixture.identity, ordered_input_log: l05RawFixture.inputs });
+    const session = replayInputs(l05RawFixture.identity, l05RawFixture.inputs, l05RawFixture.terminal_ticks);
+    const ledger: LedgerEvent[] = [
+      ...session.ledger,
+      { id: 'z-action', tick: 9, sequence: 1, type: 'ACTION_ACCEPTED', action: 'decision_wait' },
+      { id: 'a-action', tick: 8, sequence: 2, type: 'ACTION_ACCEPTED', action: 'decision_wait' },
+      { id: 'z-checkpoint', tick: 7, sequence: 3, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: 'synthetic wait decision recorded' },
+      { id: 'a-checkpoint', tick: 6, sequence: 4, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: 'synthetic wait decision recorded' },
+    ];
+    const before = structuredClone({ raw: session.raw, ledger, identity: session.identity, replayPayload });
+    const first = projectL05DecisionLedger(ledger);
+    const second = projectL05DecisionLedger([...ledger].reverse());
+
+    expect(projectScore(session.raw, session.ledger)).toEqual(l05ScoreFixture.score);
+    expect(first?.accepted_action_records.wait).toEqual({ status: 'recorded', record_ids: ['0:1:1', 'a-action', 'z-action'] });
+    expect(first?.checkpoint_records.wait).toEqual({ status: 'recorded', record_ids: ['0:1:2', 'a-checkpoint', 'z-checkpoint'] });
+    expect(second).toEqual(first);
+    expect({ raw: session.raw, ledger, identity: session.identity, replayPayload }).toEqual(before);
   });
 });

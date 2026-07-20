@@ -9,7 +9,7 @@ import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindi
 import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
 import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
-import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence } from './scoring/projection.js';
+import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence, type L05DecisionLedgerRecordEvidence } from './scoring/projection.js';
 
 // Install before any app-owned bootstrap work can initiate a browser transport.
 installLocalOnlyTransportGuard();
@@ -64,6 +64,13 @@ mount.innerHTML = `
         <h4>L04 runtime evidence</h4><dl id="l04-runtime-evidence"></dl>
         <p id="l04-runtime-evidence-boundary" role="note"></p>
       </section>
+      <section id="l05-decision-ledger-section" aria-labelledby="l05-decision-ledger-heading" hidden>
+        <h3 id="l05-decision-ledger-heading">L05 decision-ledger record visibility</h3>
+        <p id="l05-decision-ledger-boundary" role="note"></p>
+        <h4 id="l05-accepted-action-records-heading">Accepted-action record evidence</h4><dl id="l05-accepted-action-records"></dl>
+        <h4 id="l05-checkpoint-records-heading">Checkpoint record evidence</h4><dl id="l05-checkpoint-records"></dl>
+        <p id="l05-decision-ledger-ordering" role="note"></p>
+      </section>
     </section>
     <section aria-labelledby="debrief-heading"><h2 id="debrief-heading">Debrief</h2><ul id="debrief"></ul></section>
     <section aria-labelledby="replays-heading"><h2 id="replays-heading">Local replays</h2><p id="storage-status" role="status"></p><ul id="replays"></ul></section>
@@ -98,6 +105,11 @@ const l04RuntimeEvidenceSection = requiredElement<HTMLElement>('#l04-runtime-evi
 const l04StaticDeclarations = requiredElement<HTMLDListElement>('#l04-static-declarations');
 const l04RuntimeEvidence = requiredElement<HTMLDListElement>('#l04-runtime-evidence');
 const l04RuntimeEvidenceBoundary = requiredElement<HTMLElement>('#l04-runtime-evidence-boundary');
+const l05DecisionLedgerSection = requiredElement<HTMLElement>('#l05-decision-ledger-section');
+const l05DecisionLedgerBoundary = requiredElement<HTMLElement>('#l05-decision-ledger-boundary');
+const l05AcceptedActionRecords = requiredElement<HTMLDListElement>('#l05-accepted-action-records');
+const l05CheckpointRecords = requiredElement<HTMLDListElement>('#l05-checkpoint-records');
+const l05DecisionLedgerOrdering = requiredElement<HTMLElement>('#l05-decision-ledger-ordering');
 
 type PendingBrowserSignal =
   | { kind: 'keyboard'; key: string; repeat: boolean }
@@ -135,6 +147,11 @@ function l02TraceEvidenceText(evidence: L02TraceEvidence): string {
     : `Recorded browser-local synthetic runtime evidence. Record IDs: ${recordIds}.`;
 }
 
+function l05DecisionLedgerRecordText(evidence: L05DecisionLedgerRecordEvidence, absenceNotice: string): string {
+  if (evidence.status === 'unavailable_no_exact_matching_immutable_ledger_record') return absenceNotice;
+  return `Record IDs: ${evidence.record_ids?.join(', ') ?? 'unavailable'}.`;
+}
+
 /** Presentation-only trust check; action authority remains in the canonical input policy. */
 function hasTrustedL02Presentation(): boolean {
   const manifest = getLessonManifest(currentLesson.id);
@@ -152,6 +169,19 @@ function hasTrustedL02Presentation(): boolean {
 function hasTrustedL04Presentation(): boolean {
   const manifest = getLessonManifest(currentLesson.id);
   return currentLesson.id === 'L04' && manifest?.lesson_id === 'L04' &&
+    manifest.scenario_version === currentLesson.bindings.scenario_version &&
+    manifest.model_version === currentLesson.bindings.model_version &&
+    manifest.boat_profile_version === currentLesson.bindings.boat_profile_version &&
+    manifest.contract_version === currentLesson.bindings.contract_version &&
+    manifest.coordinate_contract_version === currentLesson.bindings.coordinate_contract_version &&
+    manifest.determinism_contract_version === currentLesson.bindings.determinism_contract_version &&
+    manifest.comparison_policy_version === currentLesson.bindings.comparison_policy_version;
+}
+
+/** Presentation-only trust check; action authority remains in the canonical input policy. */
+function hasTrustedL05Presentation(): boolean {
+  const manifest = getLessonManifest(currentLesson.id);
+  return currentLesson.id === 'L05' && manifest?.lesson_id === 'L05' &&
     manifest.scenario_version === currentLesson.bindings.scenario_version &&
     manifest.model_version === currentLesson.bindings.model_version &&
     manifest.boat_profile_version === currentLesson.bindings.boat_profile_version &&
@@ -216,6 +246,23 @@ function render(): void {
     l04RuntimeEvidenceBoundary.textContent = l04Trace.boundary_copy;
   } else {
     l04RuntimeEvidenceBoundary.textContent = '';
+  }
+  const l05DecisionLedger = hasTrustedL05Presentation() ? projectL05DecisionLedger(session.ledger) : undefined;
+  l05DecisionLedgerSection.hidden = !l05DecisionLedger;
+  l05AcceptedActionRecords.replaceChildren();
+  l05CheckpointRecords.replaceChildren();
+  if (l05DecisionLedger) {
+    appendTraceEntry(l05AcceptedActionRecords, 'pass', l05DecisionLedgerRecordText(l05DecisionLedger.accepted_action_records.pass, l05DecisionLedger.absence_notice));
+    appendTraceEntry(l05AcceptedActionRecords, 'wait', l05DecisionLedgerRecordText(l05DecisionLedger.accepted_action_records.wait, l05DecisionLedger.absence_notice));
+    appendTraceEntry(l05AcceptedActionRecords, 'return', l05DecisionLedgerRecordText(l05DecisionLedger.accepted_action_records.return, l05DecisionLedger.absence_notice));
+    appendTraceEntry(l05CheckpointRecords, 'pass', l05DecisionLedgerRecordText(l05DecisionLedger.checkpoint_records.pass, l05DecisionLedger.absence_notice));
+    appendTraceEntry(l05CheckpointRecords, 'wait', l05DecisionLedgerRecordText(l05DecisionLedger.checkpoint_records.wait, l05DecisionLedger.absence_notice));
+    appendTraceEntry(l05CheckpointRecords, 'return', l05DecisionLedgerRecordText(l05DecisionLedger.checkpoint_records.return, l05DecisionLedger.absence_notice));
+    l05DecisionLedgerBoundary.textContent = l05DecisionLedger.boundary_notice;
+    l05DecisionLedgerOrdering.textContent = l05DecisionLedger.ordering_notice;
+  } else {
+    l05DecisionLedgerBoundary.textContent = '';
+    l05DecisionLedgerOrdering.textContent = '';
   }
   pause.textContent = session.paused ? 'PAUSED — explicit resume required; logical state is not progressing.' : 'RUNNING — logical tick scheduler active.';
   const score = projectScore(session.raw, session.ledger);
