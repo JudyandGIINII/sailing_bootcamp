@@ -4,6 +4,9 @@
 
 ## Done
 
+- [x] 2026-07-20 P1/P1B synthetic scenario catalog integrated and pushed at `92a8613`: strict ScenarioPackage/hash/Replay V2, deterministic variation, directions, dominant wave period, visibility, synthetic datum water level/tide phase, and exact synthetic course templates. Final verification: typecheck, 127 Vitest tests, 14 Playwright smoke tests, production build, diff check, and independent source review.
+- [x] 2026-07-20 GitHub prerelease `v0.1.0-p1b` published for `92a8613`. It is a synthetic prototype source milestone only; no web deployment or real-world authority was added.
+
 - [x] Product discovery, benchmark evidence, PRD v0.3
 - [x] D1–D6 and C1 MVP scope decisions
 - [x] L01–L05 content contracts and validation registry draft
@@ -43,10 +46,10 @@
 - [x] L01 external-review packet and all reviewer/qualification/authority/controlled-apply materials are archived references. They cannot block, wait for, or automatically resume personal prototype work.
 - [x] Personal-use external-gate retirement documented and pushed at `14d10bc`; current next-session handoff: `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md`.
 
-## Next
+## Next — Training Ground first
 
-1. Preserve personal-use boundaries: all records remain `assumption`; non-navigation/local-only notices remain mandatory.
-2. No evidenced code increment is currently pending. Any future feature requires an explicit user-approved bounded scope; historical `7827079` candidate-QA evidence and the capture-time docs-only `76bf5b6` record do not imply release, deployment, domain validation, registry promotion, or release eligibility.
-3. Any next personal prototype implementation requires only an explicit user-approved bounded scope, with no external-review/qualification/authority/controlled-apply prerequisite. Begin from `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md` when a bounded feature is authorized.
-4. Archived external-release materials cannot become a blocker, waiting state, required input, or automatic next step.
-5. Do not treat absence of formal gates as expert validation, registry promotion, or release authority.
+1. Complete a bounded Training Ground audit and acceptance matrix for L01–L05: lesson flow, synthetic course/scenario selection, controls, feedback, accessibility, and local replay evidence.
+2. Preserve personal-use boundaries: all records remain `assumption`; synthetic/non-navigation/local-only notices remain mandatory.
+3. P1/P1B environment values remain scenario/replay/UI-only. Do not add physical core coupling, historical source import, date/place reconstruction, live marine/weather access, or a distinct Main Game mode before the Training Ground is completed and the user authorizes a separate scope.
+4. Any next implementation requires an explicit user-approved bounded Training Ground scope and isolated-worktree QA. Archived external-review/release materials cannot become a blocker, waiting state, required input, or automatic next step.
+5. Do not treat the GitHub prerelease, absence of formal gates, or passing prototype tests as expert validation, registry promotion, navigation/safety correctness, or deployed-service readiness.
