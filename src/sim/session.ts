@@ -1,5 +1,5 @@
-import type { ReplayIdentity } from '../contracts/replay.js';
-import { resolveLessonPolicy, type DeclaredLessonAction } from '../content/lesson-manifest.js';
+import type { ReplayIdentity, ReplayV2 } from '../contracts/replay.js';
+import { isLessonActionAllowedV2, resolveLessonPolicy, type DeclaredLessonAction } from '../content/lesson-manifest.js';
 
 export type HelmCommand = 'neutral' | 'port' | 'starboard';
 export type SessionAction = DeclaredLessonAction;
@@ -44,7 +44,7 @@ export interface RawSimulationState {
 }
 
 export interface DeterministicSession {
-  identity: ReplayIdentity;
+  identity: ReplayIdentity | ReplayV2;
   initial_seed_state: number;
   raw: RawSimulationState;
   ledger: readonly LedgerEvent[];
@@ -111,12 +111,15 @@ function initialRaw(seedState: number, scenario: string): RawSimulationState {
 }
 
 /** Creates state only; action authority is resolved from the registered identity at use time. */
-export function createSession(identity: ReplayIdentity): DeterministicSession {
+function isV2(identity: ReplayIdentity | ReplayV2): identity is ReplayV2 { return 'schema_version' in identity && identity.schema_version === 'replay-v2'; }
+function sessionLesson(identity: ReplayIdentity | ReplayV2): string { return isV2(identity) ? `${identity.lesson_binding.lesson_id.toLowerCase()}-` : identity.scenario_version; }
+function allowed(identity: ReplayIdentity | ReplayV2, action: unknown): action is DeclaredLessonAction { return isV2(identity) ? isLessonActionAllowedV2(identity.lesson_binding, action) : Boolean(resolveLessonPolicy(identity)?.permitted_actions.includes(action as DeclaredLessonAction)); }
+export function createSession(identity: ReplayIdentity | ReplayV2): DeterministicSession {
   const seedState = seededState(identity.seed);
   return freeze({
-    identity: freeze({ ...identity, ordered_input_log: freeze([...identity.ordered_input_log]) }),
+    identity: freeze({ ...identity, ordered_input_log: freeze([...identity.ordered_input_log]) }) as ReplayIdentity | ReplayV2,
     initial_seed_state: seedState,
-    raw: initialRaw(seedState, identity.scenario_version),
+    raw: initialRaw(seedState, sessionLesson(identity)),
     ledger: immutableLedger([
       { id: eventId(0, 0, 0), tick: 0, sequence: 0, type: 'SESSION_STARTED', contract_status: 'UNVALIDATED_DOMAIN_MODEL' },
     ]),
@@ -145,10 +148,10 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
 }
 
 export function applyCanonicalInput(session: DeterministicSession, input: CanonicalInput): DeterministicSession {
-  const policy = resolveLessonPolicy(session.identity);
-  if (!policy?.permitted_actions.includes(input.input.action)) return session;
+  if (!allowed(session.identity, input.input.action)) return session;
+  const policy = isV2(session.identity) ? undefined : resolveLessonPolicy(session.identity);
   if (input.logical_tick !== session.raw.logical_tick) return session;
-  if (input.input.action === 'reset') return createSession({ ...session.identity, ordered_input_log: session.identity.ordered_input_log });
+  if (input.input.action === 'reset') return createSession({ ...session.identity, ordered_input_log: session.identity.ordered_input_log } as ReplayIdentity | ReplayV2);
   if (session.paused && input.input.action !== 'resume') return session;
   if (!session.paused && input.input.action === 'resume') return session;
   if (input.input.action === 'pause') return withSession(session, { paused: true });
@@ -176,7 +179,7 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
   if (raw.lesson_id === 'L04' && action === 'helm_starboard' && raw.mark_state === 'recoverable_miss_recorded') { raw = freeze({ ...raw, mark_state: 'slower_valid_correction_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'slower valid synthetic correction recorded' }; }
   if (raw.lesson_id === 'L05' && (action === 'decision_pass' || action === 'decision_wait' || action === 'decision_return')) { raw = freeze({ ...raw, decision_state: action === 'decision_pass' ? 'pass_recorded' : action === 'decision_wait' ? 'wait_recorded' : 'return_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: `synthetic ${action.replace('decision_', '')} decision recorded` }; }
   if (raw.lesson_id === 'L02' && raw.main_trim === 'declared-adjusted' && raw.jib_trim === 'declared-adjusted') extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L02', cause: 'main/jib synthetic trim causality recorded' };
-  const safetyEvent = policy.synthetic_safety_event?.action === action
+  const safetyEvent = policy?.synthetic_safety_event?.action === action
     ? { id: eventId(input.logical_tick, input.sequence, session.ledger.length + (extra ? 2 : 1)), tick: input.logical_tick, sequence: input.sequence, type: 'SAFETY_BLOCKED' as const, contract_status: 'UNVALIDATED_DOMAIN_MODEL' as const, synthetic: true as const, cause: 'manifest-declared synthetic event' }
     : undefined;
   return withSession(session, { raw, ledger: immutableLedger([...session.ledger, event, ...(extra ? [extra] : []), ...(safetyEvent ? [safetyEvent] : [])]) });
@@ -192,20 +195,19 @@ export function pauseForLifecycle(session: DeterministicSession, reason: Lifecyc
 }
 
 export function replayInputs(
-  identity: ReplayIdentity,
+  identity: ReplayIdentity | ReplayV2,
   inputs: readonly CanonicalInput[],
   terminalTicks: number,
 ): DeterministicSession {
   if (!Number.isSafeInteger(terminalTicks) || terminalTicks < 0) {
     throw new CanonicalInputContractError('terminalTicks must be a non-negative safe integer.');
   }
-  const policy = resolveLessonPolicy(identity);
-  if (!policy) {
+  if (!isV2(identity) && !resolveLessonPolicy(identity)) {
     throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
   }
   const ordered = [...inputs].sort((left, right) => left.logical_tick - right.logical_tick || left.sequence - right.sequence);
   for (const input of ordered) {
-    if (!policy.permitted_actions.includes(input.input.action)) {
+    if (!allowed(identity, input.input.action)) {
       throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
     }
   }

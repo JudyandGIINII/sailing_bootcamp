@@ -7,7 +7,10 @@ import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayR
 import { l01ReplayBindings } from './content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindings } from './content/l02-l05.js';
 import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
-import { resolveStoredReplay, type ReplayIdentity } from './contracts/replay.js';
+import { resolveReplayV2, resolveStoredReplay, type ReplayIdentity, type ReplayV2 } from './contracts/replay.js';
+import { createSyntheticScenario, defaultScenarioConfiguration } from './content/scenario-catalog.js';
+import { validateScenarioPackage, type ScenarioConfiguration } from './contracts/scenario.js';
+import { materializeVariation } from './sim/scenario-variation.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
 import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence, type L05DecisionLedgerRecordEvidence } from './scoring/projection.js';
 
@@ -32,13 +35,20 @@ let seed = 'l01-prototype-seed';
 let inputLog: CanonicalInput[] = [];
 let nextSequence = 1;
 let session = createSession({ ...currentLesson.bindings, seed, ordered_input_log: inputLog });
+let frozenReplay: ReplayV2 | ReplayIdentity | undefined;
+let startInProgress = false;
+let scenarioConfiguration: ScenarioConfiguration = { ...defaultScenarioConfiguration };
 let storageStatus = 'Local replay storage ready.';
 
 mount.innerHTML = `
   <main>
-    <h1 id="lesson-title">Sailing Training Sloop — L01</h1>
+    <h1 id="session-heading" tabindex="-1">Sailing Training Sloop — draft</h1>
     <p class="notice" role="note">Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.</p>
-    <section aria-labelledby="lesson-heading"><h2 id="lesson-heading">Training module selection</h2><label for="lesson-select">Lesson</label><select id="lesson-select"><option>L01</option><option>L02</option><option>L03</option><option>L04</option><option>L05</option></select><p>Every lesson is an <strong>assumption</strong>; labels and text, not color alone, communicate that status.</p></section>
+    <p id="synthetic-boundary" role="note">Synthetic — declared/unvalidated. Scenario values are synthetic game calibration, not real-world conditions or safety thresholds.</p>
+    <fieldset id="lesson-fieldset"><legend>Training module selection</legend><label for="lesson-select">Lesson</label><select id="lesson-select"><option>L01</option><option>L02</option><option>L03</option><option>L04</option><option>L05</option></select><p>Every lesson is an <strong>assumption</strong>; labels and text, not color alone, communicate that status.</p></fieldset>
+    <fieldset id="scenario-fieldset"><legend>Synthetic scenario calibration</legend><label>Wave <select id="wave-select"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></label><label>Current <select id="current-select"><option value="weak">weak</option><option value="medium">medium</option><option value="strong">strong</option></select></label><label>Wind <select id="wind-select"><option value="weak">weak</option><option value="medium">medium</option><option value="strong">strong</option></select></label><label>Gust <select id="gust-select"><option value="off">off</option><option value="on">on</option></select></label><label>Weather <select id="weather-select"><option value="clear">clear</option><option value="cloudy">cloudy</option><option value="rain">rain</option></select></label><label>Day <select id="day-select"><option value="fixed">fixed</option></select></label><label>Variation <select id="variation-select"><option value="none">none</option><option value="weak">weak</option><option value="strong">strong</option></select></label><label>Wave direction <select id="wave-direction-select"><option value="north">north (0°)</option><option value="northeast">northeast (45°)</option><option value="east">east (90°)</option><option value="southeast">southeast (135°)</option><option value="south">south (180°)</option><option value="southwest">southwest (225°)</option><option value="west">west (270°)</option><option value="northwest">northwest (315°)</option></select></label><label>Wind direction <select id="wind-direction-select"><option value="north">north (0°)</option><option value="northeast">northeast (45°)</option><option value="east">east (90°)</option><option value="southeast">southeast (135°)</option><option value="south">south (180°)</option><option value="southwest">southwest (225°)</option><option value="west">west (270°)</option><option value="northwest">northwest (315°)</option></select></label><label>Current direction <select id="current-direction-select"><option value="north">north (0°)</option><option value="northeast">northeast (45°)</option><option value="east" selected>east (90°)</option><option value="southeast">southeast (135°)</option><option value="south">south (180°)</option><option value="southwest">southwest (225°)</option><option value="west">west (270°)</option><option value="northwest">northwest (315°)</option></select></label><label>Dominant wave period <select id="dominant-wave-period-select"><option value="short">short (4.0 s)</option><option value="medium">medium (6.5 s)</option><option value="long">long (10.0 s)</option></select></label><label>Visibility <select id="visibility-select"><option value="normal">normal (10.0 nmi)</option><option value="reduced">reduced (5.0 nmi)</option><option value="restricted">restricted (1.0 nmi)</option></select></label><label>Water level <select id="water-level-select"><option value="below_datum">below datum (-0.5 m)</option><option value="at_datum" selected>at datum (0.0 m)</option><option value="above_datum">above datum (0.5 m)</option></select></label><label>Tide phase <select id="tide-phase-select"><option value="rising">rising</option><option value="falling">falling</option><option value="slack" selected>slack</option></select></label><label>Course template <select id="course-template-select"><option value="windward-return-v1">windward-return-v1</option><option value="triangle-v1">triangle-v1</option></select></label></fieldset>
+    <section aria-labelledby="scenario-details-heading"><h2 id="scenario-details-heading">Synthetic scenario package details</h2><p id="scenario-details" aria-live="polite"></p></section>
+    <p><button id="start-session" type="button">Start</button> <button id="new-session" type="button" disabled>New Session</button></p><p id="start-status" aria-live="polite">Draft: select a lesson and synthetic scenario, then Start.</p>
     <p id="eligibility" role="status"></p>
     <section aria-labelledby="world-heading"><h2 id="world-heading">Synthetic training water</h2><div id="world"></div></section>
     <section aria-labelledby="hud-heading"><h2 id="hud-heading">Accessible status HUD</h2>
@@ -89,9 +99,14 @@ const debrief = requiredElement<HTMLUListElement>('#debrief');
 const replays = requiredElement<HTMLUListElement>('#replays');
 const storage = requiredElement<HTMLElement>('#storage-status');
 const eligibility = requiredElement<HTMLElement>('#eligibility');
-const title = requiredElement<HTMLElement>('#lesson-title');
+const title = requiredElement<HTMLElement>('#session-heading');
 const controls = requiredElement<HTMLElement>('#controls');
 const lessonSelect = requiredElement<HTMLSelectElement>('#lesson-select');
+const scenarioSelectors = ['wave', 'current', 'wind', 'gust', 'weather', 'day', 'variation', 'wave-direction', 'wind-direction', 'current-direction', 'dominant-wave-period', 'visibility', 'water-level', 'tide-phase', 'course-template'].map((name) => requiredElement<HTMLSelectElement>(`#${name}-select`));
+const scenarioDetails = requiredElement<HTMLElement>('#scenario-details');
+const startButton = requiredElement<HTMLButtonElement>('#start-session');
+const newSessionButton = requiredElement<HTMLButtonElement>('#new-session');
+const startStatus = requiredElement<HTMLElement>('#start-status');
 const cadenceSelect = requiredElement<HTMLSelectElement>('#cadence-select');
 const l02RuntimeEvidenceSection = requiredElement<HTMLElement>('#l02-runtime-evidence-section');
 const l02StaticDeclarations = requiredElement<HTMLDListElement>('#l02-static-declarations');
@@ -120,7 +135,32 @@ let applicationReady = false;
 const pendingBrowserSignals: PendingBrowserSignal[] = [];
 
 function replayPayload(): unknown {
-  return { ...currentLesson.bindings, seed, ordered_input_log: inputLog };
+  return frozenReplay ? { ...frozenReplay, ordered_input_log: inputLog } : undefined;
+}
+
+const directionDegrees = { north: 0, northeast: 45, east: 90, southeast: 135, south: 180, southwest: 225, west: 270, northwest: 315 } as const;
+const periodSeconds = { short: 4, medium: 6.5, long: 10 } as const;
+const visibilityNmi = { normal: 10, reduced: 5, restricted: 1 } as const;
+const waterLevelMeters = { below_datum: -.5, at_datum: 0, above_datum: .5 } as const;
+
+function formatCourse(course: { id: string; start: { label: string; x_m: number; y_m: number }; ordered_marks: readonly { label: string; x_m: number; y_m: number }[]; finish: { label: string; x_m: number; y_m: number } }): string {
+  const point = (value: { label: string; x_m: number; y_m: number }) => `${value.label} (${value.x_m}, ${value.y_m}) meter`;
+  return `${course.id}; origin (0, 0) meter; bounds x -500..500, y -250..1000 meter; start ${point(course.start)}; ordered marks ${course.ordered_marks.map(point).join(', ')}; finish ${point(course.finish)}.`;
+}
+
+function renderScenarioDetails(): void {
+  if (!frozenReplay) {
+    scenarioDetails.textContent = `Draft preview — Synthetic — declared/unvalidated; scenario/replay/UI-only and not coupled to the current core. Wave direction ${scenarioConfiguration.wave_direction} ${directionDegrees[scenarioConfiguration.wave_direction]} degree true_north/from; wind direction ${scenarioConfiguration.wind_direction} ${directionDegrees[scenarioConfiguration.wind_direction]} degree true_north/from; current direction ${scenarioConfiguration.current_direction} ${directionDegrees[scenarioConfiguration.current_direction]} degree true_north/toward; dominant wave period ${periodSeconds[scenarioConfiguration.dominant_wave_period]} s; visibility ${visibilityNmi[scenarioConfiguration.visibility]} nmi (synthetic/unvalidated, not a safety category); water level ${waterLevelMeters[scenarioConfiguration.water_level]} m at SYNTHETIC_SCENARIO_DATUM_V1, phase ${scenarioConfiguration.tide_phase}; ${scenarioConfiguration.course_template === 'windward-return-v1' ? 'windward-return-v1; origin (0, 0) meter; bounds x -500..500, y -250..1000 meter; start start (0, 0) meter; ordered marks W1 (0, 600) meter; finish finish (0, 50) meter.' : 'triangle-v1; origin (0, 0) meter; bounds x -500..500, y -250..1000 meter; start start (-100, 0) meter; ordered marks W1 (0, 600) meter, R1 (300, 300) meter; finish finish (100, 0) meter.'}`;
+    return;
+  }
+  if (!('schema_version' in frozenReplay)) {
+    scenarioDetails.textContent = 'Frozen Replay V1 has no P1B scenario snapshot. No P1B values were fabricated.';
+    return;
+  }
+  const snapshot = frozenReplay.scenario_snapshot;
+  const raw = snapshot.raw;
+  const provenance = snapshot.provenance.kind === 'synthetic' ? snapshot.provenance.statement : 'historical snapshot rejected by Replay V2';
+  scenarioDetails.textContent = `Frozen Replay V2 snapshot. Hash ${snapshot.content_sha256}; provenance ${provenance}; model status ${Object.values(snapshot.model_status.p1b_fields).join(', ')}. Wave direction ${raw.wave_direction_deg_true_from.value} degree true_north/from; dominant wave period ${raw.dominant_wave_period_s.value} s; wind direction ${raw.wind_direction_deg_true_from.value} degree true_north/from; current direction ${raw.current_direction_deg_true_to.value} degree true_north/toward; visibility ${raw.visibility_nm.value} nmi (synthetic/unvalidated, not a safety category); water level ${raw.water_level_m.value} m at ${raw.water_level_datum.value}, phase ${raw.water_level_tide_phase.value}; route ${formatCourse(snapshot.geometry.course_template)} Variation trace ${frozenReplay.variation_trace.algorithm_id}, seed ${frozenReplay.variation_trace.seed}.`;
 }
 
 function appendTraceEntry(target: HTMLDListElement, label: string, description: string): void {
@@ -197,8 +237,13 @@ function render(): void {
   eligibility.textContent = load.eligible && prototype.eligible
     ? `${currentLesson.id} prototype eligibility: allowed only with the persistent unvalidated notice.`
     : `${currentLesson.id} blocked: ${[...load.reasons, ...prototype.reasons].join(', ')}`;
-  title.textContent = `Sailing Training Sloop — ${currentLesson.id}`;
-  controls.textContent = `Keyboard: ${currentLesson.controls} R saves this local attempt then resets.`;
+  title.textContent = frozenReplay ? `Sailing Training Sloop — ${currentLesson.id}` : 'Sailing Training Sloop — draft';
+  lessonSelect.disabled = Boolean(frozenReplay) || startInProgress;
+  for (const selector of scenarioSelectors) selector.disabled = Boolean(frozenReplay) || startInProgress;
+  startButton.disabled = Boolean(frozenReplay) || startInProgress;
+  newSessionButton.disabled = !frozenReplay || startInProgress;
+  renderScenarioDetails();
+  controls.textContent = frozenReplay ? `Keyboard: ${currentLesson.controls} R saves this local attempt then resets.` : 'Start a frozen synthetic session to enable keyboard controls.';
   projection.render(session);
   hud.replaceChildren();
   for (const observation of projectLessonObservations(currentLesson.id) ?? []) {
@@ -264,7 +309,7 @@ function render(): void {
     l05DecisionLedgerBoundary.textContent = '';
     l05DecisionLedgerOrdering.textContent = '';
   }
-  pause.textContent = session.paused ? 'PAUSED — explicit resume required; logical state is not progressing.' : 'RUNNING — logical tick scheduler active.';
+  pause.textContent = !frozenReplay ? 'DRAFT — no logical session is running.' : session.paused ? 'PAUSED — explicit resume required; logical state is not progressing.' : 'RUNNING — logical tick scheduler active.';
   const score = projectScore(session.raw, session.ledger);
   debrief.replaceChildren();
   for (const fact of projectDebrief(session.raw, session.ledger)) {
@@ -301,7 +346,7 @@ async function refreshReplays(): Promise<void> {
       const item = document.createElement('li');
       const load = document.createElement('button');
       load.type = 'button'; load.textContent = `Load ${record.id}`;
-      load.addEventListener('click', () => loadReplay(record));
+      load.addEventListener('click', () => { void loadReplay(record); });
       const remove = document.createElement('button');
       remove.type = 'button'; remove.textContent = `Delete ${record.id}`;
       remove.addEventListener('click', async () => {
@@ -317,7 +362,18 @@ async function refreshReplays(): Promise<void> {
   render();
 }
 
-function loadReplay(record: LocalReplayRecord): void {
+async function loadReplay(record: LocalReplayRecord): Promise<void> {
+  if (typeof record.payload === 'object' && record.payload !== null && !Array.isArray(record.payload) && (record.payload as { schema_version?: unknown }).schema_version === 'replay-v2') {
+    const validation = await resolveReplayV2(record.payload);
+    if (validation.outcome !== 'accepted') { storageStatus = `Replay not run: ${validation.reason_code}. Original local payload was preserved.`; render(); return; }
+    const accepted = validation.replay; const lesson = lessons.find((candidate) => candidate.id === accepted.lesson_binding.lesson_id);
+    if (!lesson) { storageStatus = 'Replay not run: REPLAY_V2_SCHEMA_INVALID. Original local payload was preserved.'; render(); return; }
+    const canonicalInputs = accepted.ordered_input_log.filter(isCanonicalInput);
+    if (canonicalInputs.length !== accepted.ordered_input_log.length) { storageStatus = 'Replay not run: REPLAY_PAYLOAD_CORRUPT. Original local payload was preserved.'; render(); return; }
+    scheduler.stop(); currentLesson = lesson; lessonSelect.value = lesson.id; frozenReplay = { ...accepted, ordered_input_log: canonicalInputs }; inputLog = canonicalInputs; seed = accepted.seed; nextSequence = inputLog.reduce((highest, input) => Math.max(highest, input.sequence), 0) + 1;
+    const terminalTick = inputLog.reduce((highest, input) => Math.max(highest, input.logical_tick), 0) + 1;
+    session = replayInputs(frozenReplay, inputLog, terminalTick); scheduler.start(); startStatus.textContent = 'Loaded frozen Replay V2 identity.'; storageStatus = `Loaded local replay ${record.id}; replay inputs were validated and applied.`; render(); title.focus(); return;
+  }
   const scenarioVersion = typeof record.payload === 'object' && record.payload !== null && !Array.isArray(record.payload)
     ? (record.payload as { scenario_version?: unknown }).scenario_version : undefined;
   const lesson = lessons.find((candidate) => candidate.bindings.scenario_version === scenarioVersion);
@@ -327,13 +383,14 @@ function loadReplay(record: LocalReplayRecord): void {
   const acceptedPayload = validation.replay;
   const canonicalInputs = acceptedPayload.ordered_input_log.filter(isCanonicalInput);
   if (canonicalInputs.length !== acceptedPayload.ordered_input_log.length) { storageStatus = 'Replay not run: REPLAY_PAYLOAD_CORRUPT. Original local payload was preserved.'; render(); return; }
-  currentLesson = lesson;
+  scheduler.stop(); currentLesson = lesson;
   lessonSelect.value = lesson.id;
   inputLog = canonicalInputs;
   nextSequence = inputLog.reduce((highest, input) => Math.max(highest, input.sequence), 0) + 1;
   const terminalTick = inputLog.reduce((highest, input) => Math.max(highest, input.logical_tick), 0) + 1;
   seed = acceptedPayload.seed;
-  session = replayInputs({ ...currentLesson.bindings, seed, ordered_input_log: inputLog }, inputLog, terminalTick);
+  frozenReplay = { ...currentLesson.bindings, seed, ordered_input_log: inputLog };
+  session = replayInputs(frozenReplay, inputLog, terminalTick); scheduler.start(); startStatus.textContent = 'Loaded frozen legacy Replay V1 identity.';
   storageStatus = `Loaded local replay ${record.id}; replay inputs were validated and applied.`;
   render();
 }
@@ -344,15 +401,18 @@ function isCanonicalInput(input: ReplayIdentity['ordered_input_log'][number]): i
 }
 
 async function saveAttemptThenReset(): Promise<void> {
+  if (!frozenReplay) return;
   const record: LocalReplayRecord = { id: `attempt-${crypto.randomUUID()}`, created_at: new Date().toISOString(), payload: replayPayload() };
   try { await saveLocalReplay(record); storageStatus = `Saved local attempt ${record.id}.`; }
   catch { storageStatus = 'Local storage failure: reset did not alter canonical simulation history.'; }
   inputLog = []; nextSequence = 1;
-  session = createSession({ ...currentLesson.bindings, seed, ordered_input_log: inputLog });
+  frozenReplay = { ...frozenReplay, ordered_input_log: inputLog };
+  session = createSession(frozenReplay);
   await refreshReplays();
 }
 
 function applyAction(action: CanonicalInput['input']['action']): void {
+  if (!frozenReplay) return;
   if (!isLessonActionAllowed(currentLesson.bindings, action)) return;
   if (action === 'reset') { void saveAttemptThenReset(); return; }
   const input: CanonicalInput = { logical_tick: session.raw.logical_tick, sequence: nextSequence++, input: { action } };
@@ -363,7 +423,11 @@ function applyAction(action: CanonicalInput['input']['action']): void {
   render();
 }
 
-const scheduler = createLogicalScheduler(() => { session = advanceLogicalTick(session); render(); });
+const scheduler = createLogicalScheduler(() => {
+  if (!frozenReplay) return;
+  session = advanceLogicalTick(session);
+  render();
+});
 
 cadenceSelect.addEventListener('change', () => {
   const cadence = Number(cadenceSelect.value);
@@ -389,6 +453,7 @@ window.addEventListener('keydown', (event) => {
   processBrowserSignal(signal);
 });
 function lifecyclePause(reason: 'focus_lost' | 'visibility_hidden'): void {
+  if (!frozenReplay) return;
   scheduler.stop();
   session = pauseForLifecycle(session, reason, nextSequence);
   render();
@@ -403,14 +468,29 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) recei
 lessonSelect.addEventListener('change', () => {
   const next = lessons.find((lesson) => lesson.id === lessonSelect.value);
   if (!next || next.id === currentLesson.id) return;
-  scheduler.stop();
   currentLesson = next;
-  seed = `${next.id.toLowerCase()}-prototype-seed`;
-  inputLog = []; nextSequence = 1;
-  session = createSession({ ...next.bindings, seed, ordered_input_log: inputLog });
-  scheduler.start();
   render();
 });
+
+for (const selector of scenarioSelectors) selector.addEventListener('change', () => {
+  scenarioConfiguration = {
+    wave: requiredElement<HTMLSelectElement>('#wave-select').value as ScenarioConfiguration['wave'], current: requiredElement<HTMLSelectElement>('#current-select').value as ScenarioConfiguration['current'], wind: requiredElement<HTMLSelectElement>('#wind-select').value as ScenarioConfiguration['wind'], gust: requiredElement<HTMLSelectElement>('#gust-select').value as ScenarioConfiguration['gust'], weather: requiredElement<HTMLSelectElement>('#weather-select').value as ScenarioConfiguration['weather'], day: 'fixed', variation: requiredElement<HTMLSelectElement>('#variation-select').value as ScenarioConfiguration['variation'], wave_direction: requiredElement<HTMLSelectElement>('#wave-direction-select').value as ScenarioConfiguration['wave_direction'], wind_direction: requiredElement<HTMLSelectElement>('#wind-direction-select').value as ScenarioConfiguration['wind_direction'], current_direction: requiredElement<HTMLSelectElement>('#current-direction-select').value as ScenarioConfiguration['current_direction'], dominant_wave_period: requiredElement<HTMLSelectElement>('#dominant-wave-period-select').value as ScenarioConfiguration['dominant_wave_period'], visibility: requiredElement<HTMLSelectElement>('#visibility-select').value as ScenarioConfiguration['visibility'], water_level: requiredElement<HTMLSelectElement>('#water-level-select').value as ScenarioConfiguration['water_level'], tide_phase: requiredElement<HTMLSelectElement>('#tide-phase-select').value as ScenarioConfiguration['tide_phase'], course_template: requiredElement<HTMLSelectElement>('#course-template-select').value as ScenarioConfiguration['course_template'],
+  };
+  render();
+});
+startButton.addEventListener('click', () => { void startFrozenSession(); });
+newSessionButton.addEventListener('click', () => {
+  scheduler.stop(); frozenReplay = undefined; inputLog = []; nextSequence = 1; seed = `${currentLesson.id.toLowerCase()}-prototype-seed`; session = createSession({ ...currentLesson.bindings, seed, ordered_input_log: inputLog }); startStatus.textContent = 'Draft restored. Choose controls and Start.'; render();
+});
+async function startFrozenSession(): Promise<void> {
+  if (frozenReplay || startInProgress) return;
+  startInProgress = true; startStatus.textContent = 'Starting: validating and freezing synthetic scenario.'; render();
+  try {
+    const scenario = await createSyntheticScenario(scenarioConfiguration); const validated = await validateScenarioPackage(scenario); if (!validated.ok) throw new Error(validated.reason_code); seed = `${currentLesson.id.toLowerCase()}-prototype-seed`; const { scenario_version: _legacyScenario, ...bindings } = currentLesson.bindings; const lessonBinding = { lesson_id: currentLesson.id, ...bindings }; const trace = await materializeVariation(validated.scenario, seed);
+    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
+  } catch { startStatus.textContent = 'Start failed: SCENARIO_SCHEMA_INVALID. Draft controls remain editable.'; }
+  startInProgress = false; render();
+}
 
 projection = await createWorldProjection(world);
 applicationReady = true;
@@ -418,4 +498,3 @@ for (const signal of pendingBrowserSignals) processBrowserSignal(signal);
 
 render();
 void refreshReplays();
-scheduler.start();

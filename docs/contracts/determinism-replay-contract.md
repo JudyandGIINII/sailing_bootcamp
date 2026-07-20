@@ -14,6 +14,10 @@ scenario_version + seed + ordered_input_log + model_version + boat_profile_versi
 
 identity 중 하나라도 unknown, missing, incompatible이면 approximate replay를 하지 않고 `unsupported replay`로 보고한다. 구현은 payload나 기존 local record를 삭제·변형하지 않으며, 실행 결과를 표시하지 않는 stable reason code(예: `UNSUPPORTED_REPLAY_VERSION`)와 비민감 호환 불가 사유만 표시한다.
 
+Replay V2의 synthetic scenario snapshot은 canonical SHA-256 content hash에 P1B configuration, raw values, geometry/template, provenance, model-status를 포함한다. P1B field가 missing/unknown이거나 hash가 맞지 않거나 rehashed snapshot이 semantic contract를 위반하면 `REPLAY_V2_SCENARIO_INVALID`로 fail-closed 한다. V2는 legacy V1 reader로 fallback하거나 P1B value를 default/migrate하지 않는다. V1 reader의 identity behavior는 변경하지 않으며, V1 UI는 P1B snapshot 부재를 명시하고 값을 만들지 않는다.
+
+P1B variation trace is SHA-256 sampled by seed and canonical field path. It varies only synthetic wave height/period/direction, wind mean/peak/direction, current speed/direction, visibility, and water level; it leaves route, origin, bounds, labels, weather, datum, tide phase, provenance, model status, and missing values unchanged. These snapshot/trace values remain scenario/replay/UI-only and do not authorize actions or affect canonical session physics, score, tick, scheduler, or renderer truth.
+
 ## state progression
 
 1. simulation은 renderer와 분리된 fixed logical tick으로 진행한다. prototype bootstrap은 `tick_rate_hz`를 `determinism_contract_version`에 귀속된 단 하나의 versioned config 값으로 lock하고 golden replay fixture에 기록한다. `tick_rate_hz` 변경은 determinism contract compatibility를 변경한다.

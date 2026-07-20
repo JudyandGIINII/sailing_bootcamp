@@ -5,6 +5,8 @@
 > **Handoff status:** pre-reconciliation capture-time docs-only record `76bf5b6` — historical integrated code/candidate-QA baseline `7827079`; no evidenced code increment is currently pending
 > 이 문서는 구현 시작을 자동 승인하지 않는다.
 
+> **P1B local extension note (2026-07-20):** This isolated-worktree extension adds only declared/unvalidated synthetic scenario/replay/UI values: true-north direction selectors, dominant period, visibility, synthetic datum water level/phase, and exact synthetic course templates. Their versioned snapshot hash and variation trace are renderer-independent display/replay identity material only; they do not change session physics, scoring, action authority, ticks, scheduler, renderer truth, or local storage format. Replay V2 rejects incomplete P1B snapshots without V1 fallback; V1 displays no fabricated P1B values.
+
 ## 목적
 
 다음 구현 agent는 브라우저 기반 Training Sloop prototype을 만들되, renderer가 simulation truth를 소유하지 않고 release gate를 우회하지 않게 한다. MVP에서 선택 가능한 boat profile은 **`training-sloop-v1` 하나**이며, L01–L05가 모두 이 profile을 사용한다.

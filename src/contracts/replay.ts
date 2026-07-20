@@ -1,4 +1,6 @@
-import { isLessonActionAllowed } from '../content/lesson-manifest.js';
+import { getLessonManifest, isLessonActionAllowed, isLessonActionAllowedV2 } from '../content/lesson-manifest.js';
+import { validateScenarioPackage, type ScenarioPackageV1 } from './scenario.js';
+import { isValidVariationTrace, type VariationTraceV1 } from '../sim/scenario-variation.js';
 
 export const REPLAY_IDENTITY_FIELDS = [
   'scenario_version',
@@ -39,6 +41,22 @@ export interface ReplayIdentity {
   determinism_contract_version: string;
   comparison_policy_version: string;
 }
+
+export const REPLAY_V2_SCHEMA_VERSION = 'replay-v2' as const;
+export interface LessonBindingV2 {
+  lesson_id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05';
+  model_version: string; boat_profile_version: string; contract_version: string;
+  coordinate_contract_version: string; determinism_contract_version: string; comparison_policy_version: string;
+}
+export interface ReplayV2 {
+  schema_version: typeof REPLAY_V2_SCHEMA_VERSION;
+  lesson_binding: LessonBindingV2;
+  scenario_snapshot: ScenarioPackageV1;
+  variation_trace: VariationTraceV1;
+  seed: string;
+  ordered_input_log: readonly OrderedInput[];
+}
+export type ReplayV2Resolution = { outcome: 'accepted'; replay: ReplayV2 } | { outcome: 'rejected'; reason_code: 'REPLAY_V2_SCHEMA_INVALID' | 'REPLAY_V2_SCENARIO_INVALID' | 'REPLAY_V2_VARIATION_INVALID' | 'REPLAY_ACTION_DISALLOWED'; stored_payload: unknown };
 
 export type ReplayResolution =
   | { outcome: 'accepted'; replay: ReplayIdentity }
@@ -144,4 +162,36 @@ export function resolveExactReplayIdentity(storedPayload: unknown, expectedIdent
     return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
   }
   return { outcome: 'accepted', replay: storedPayload };
+}
+
+const v2Keys = ['schema_version', 'lesson_binding', 'scenario_snapshot', 'variation_trace', 'seed', 'ordered_input_log'] as const;
+const lessonBindingKeys = ['lesson_id', 'model_version', 'boat_profile_version', 'contract_version', 'coordinate_contract_version', 'determinism_contract_version', 'comparison_policy_version'] as const;
+const orderedInputKeys = ['logical_tick', 'sequence', 'input'] as const;
+function exactKeys(value: unknown, keys: readonly string[]): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key)); }
+function isReplayV2OrderedInput(value: unknown): value is OrderedInput { return exactKeys(value, orderedInputKeys) && isOrderedInput(value); }
+function isRegisteredLessonBindingV2(binding: LessonBindingV2): boolean {
+  const manifest = getLessonManifest(binding.lesson_id);
+  return manifest !== undefined &&
+    manifest.model_version === binding.model_version &&
+    manifest.boat_profile_version === binding.boat_profile_version &&
+    manifest.contract_version === binding.contract_version &&
+    manifest.coordinate_contract_version === binding.coordinate_contract_version &&
+    manifest.determinism_contract_version === binding.determinism_contract_version &&
+    manifest.comparison_policy_version === binding.comparison_policy_version;
+}
+export function isReplayV2Shape(value: unknown): value is Omit<ReplayV2, 'scenario_snapshot' | 'variation_trace'> & { scenario_snapshot: unknown; variation_trace: unknown } {
+  if (!exactKeys(value, v2Keys)) return false;
+  const candidate = value as Record<string, unknown>;
+  return candidate.schema_version === REPLAY_V2_SCHEMA_VERSION && isNonEmptyString(candidate.seed) && Array.isArray(candidate.ordered_input_log) && candidate.ordered_input_log.every(isReplayV2OrderedInput) && isStrictlyOrderedInputLog(candidate.ordered_input_log) && exactKeys(candidate.lesson_binding, lessonBindingKeys) && Object.values(candidate.lesson_binding as Record<string, unknown>).every(isNonEmptyString) && ['L01', 'L02', 'L03', 'L04', 'L05'].includes((candidate.lesson_binding as Record<string, unknown>).lesson_id as string);
+}
+/** V2 is separately discriminated: malformed V2 never falls back to the legacy parser. */
+export async function resolveReplayV2(storedPayload: unknown): Promise<ReplayV2Resolution> {
+  if (!isReplayV2Shape(storedPayload)) return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
+  const replay = storedPayload as unknown as ReplayV2;
+  if (!isRegisteredLessonBindingV2(replay.lesson_binding)) return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
+  const scenario = await validateScenarioPackage(replay.scenario_snapshot);
+  if (!scenario.ok || scenario.scenario.source_kind !== 'synthetic' || scenario.scenario.calibration_version !== 'synthetic-calibration-v1') return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCENARIO_INVALID', stored_payload: storedPayload };
+  if (!await isValidVariationTrace(replay.variation_trace, scenario.scenario, replay.seed)) return { outcome: 'rejected', reason_code: 'REPLAY_V2_VARIATION_INVALID', stored_payload: storedPayload };
+  if (!replay.ordered_input_log.every((entry) => typeof entry.input === 'object' && entry.input !== null && !Array.isArray(entry.input) && Object.keys(entry.input as Record<string, unknown>).length === 1 && isLessonActionAllowedV2(replay.lesson_binding, (entry.input as { action?: unknown }).action))) return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
+  return { outcome: 'accepted', replay };
 }

@@ -1,4 +1,4 @@
-import type { ReplayIdentity } from '../contracts/replay.js';
+import type { LessonBindingV2, ReplayIdentity } from '../contracts/replay.js';
 import { l01Manifest, type L01Manifest, type L01SemanticAction, type RequiredObservation, type SyntheticSafetyEventDeclaration } from './l01.js';
 import { l02Manifest, l03Manifest, l04Manifest, l05Manifest, type DraftLessonManifest, type LessonAction } from './l02-l05.js';
 
@@ -93,4 +93,14 @@ export function resolveLessonActionPolicy(identity: LessonPolicyIdentity): reado
 
 export function isLessonActionAllowed(identity: LessonPolicyIdentity, action: unknown): action is DeclaredLessonAction {
   return typeof action === 'string' && (resolveLessonActionPolicy(identity)?.includes(action as DeclaredLessonAction) ?? false);
+}
+
+/** V2 deliberately binds actions to the registered lesson only; scenario values never authorize an action. */
+export function isLessonActionAllowedV2(binding: LessonBindingV2, action: unknown): action is DeclaredLessonAction {
+  const manifest = getLessonManifest(binding.lesson_id);
+  if (!manifest || typeof action !== 'string') return false;
+  return manifest.model_version === binding.model_version && manifest.boat_profile_version === binding.boat_profile_version &&
+    manifest.contract_version === binding.contract_version && manifest.coordinate_contract_version === binding.coordinate_contract_version &&
+    manifest.determinism_contract_version === binding.determinism_contract_version && manifest.comparison_policy_version === binding.comparison_policy_version &&
+    manifest.permitted_actions.some((permittedAction) => permittedAction === action);
 }
