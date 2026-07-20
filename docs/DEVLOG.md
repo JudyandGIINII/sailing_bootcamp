@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-07-20 — Post-trace feature-branch evidence reconciliation
+
+- Reconciled feature-SHA-only evidence for `6004911508305445d520755e3a082c7654ba79b7` on `JudyandGIINII/sailing-l05-record-evidence`: `origin/main` `0f34184` → L03 `37aac44` → L04 `ed83927` → L02 `f98f611` → L05 `6004911`, four commits ahead of `origin/main`.
+- Scope: L03 record-only runtime trace, L04 recoverable-correction record trace, L02 synthetic trim record trace, and L05 safety-sensitive decision-ledger record visibility only. Exact-SHA controller evidence recorded strict typecheck, 13 Vitest files / 118 tests, 12 Chromium smokes, production build, and `git diff --check`; no controller test suite ran for this documentation-only reconciliation.
+- At planning capture, the remote feature branch was pushed with no PR; this is not a continuing remote-state claim. It is not main integration, release, deployment, external/domain validation, registry promotion, public-support, or release-eligibility evidence; registry records remain `assumption` and the product remains personal, browser-local, synthetic, non-navigation, and non-safety.
+- L05 `pass`/`wait`/`return` record labels are not recommendations, guidance, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence. The next gate is an explicit local documentation commit or PR/main integration decision.
+
 ## 2026-07-19 — Next-session personal-prototype handoff
 
 - Created `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md` from pushed baseline `14d10bc0fda51f45be62e049e0677c7e4f030c8b`.

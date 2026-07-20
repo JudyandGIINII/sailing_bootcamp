@@ -2,7 +2,7 @@
 
 > **Current reconciliation (2026-07-19):** The active product path is personal, browser-local synthetic use. Any future personal prototype work requires only explicit user approval of a bounded scope. External qualification, authority, controlled apply, G1/G2/G3, P1, deployment, and release materials are archived non-operational references; they cannot block or automatically resume personal work. Registry records remain `assumption` and no real-world sailing authority is asserted.
 
-> **Handoff status:** AP-0C_COMMITTED_AND_INTEGRATED_PROTOTYPE_COMPLETE
+> **Handoff status:** FEATURE_BRANCH_TRACE_EVIDENCE_RECORDED — integration/PR/main decision pending
 > 이 문서는 구현 시작을 자동 승인하지 않는다.
 
 ## 목적
@@ -99,12 +99,11 @@ Task 0A의 완료 증거는 선택한 dependency compatibility record·lockfile�
 
 ## 현재 handoff 위치
 
-- AP-0A 산출물은 isolated worktree에서 strict typecheck, Vitest 15 tests, Playwright Chromium smoke, production build, `git diff --check`를 통과했다.
-- AP-0A source/lockfile은 committed/integrated 되었지만, 이는 release artifact나 release 권한을 의미하지 않는다.
-- AP-0B Task 1–3/L01 vertical slice는 committed/integrated 되었으며 strict typecheck, Vitest 36 tests, Chromium Playwright 3 tests, production build, `git diff --check`를 통과했다.
-- AP-0C Task 4–6는 committed/integrated 되었다. L02–L05 are synthetic assumption-only lessons; strict typecheck, Vitest 61 tests, Chromium Playwright 6 tests, production build, `git diff --check`, and release-evidence validation passed.
-- WebKit/Firefox candidate evidence is `inconclusive` because the current Playwright config has no named projects; both retain `support_claim:false`.
-- **다음 권한 경계:** prototype scope is complete. Any AP-0D or release-evidence remediation requires fresh explicit authorization. AP-0C did not grant release authority.
+- Local/feature-branch evidence update: `JudyandGIINII/sailing-l05-record-evidence` and its captured remote both point to exact `6004911508305445d520755e3a082c7654ba79b7`; at packet capture, that remote branch was pushed and had no PR. This is a capture-time statement, not a continuing remote-state claim.
+- The exact feature lineage is `origin/main` `0f34184` → L03 `37aac44` → L04 `ed83927` → L02 `f98f611` → L05 `6004911`: four commits ahead of `origin/main`. L03 is record-only runtime trace, L04 is recoverable-correction record trace, L02 is synthetic trim record trace, and L05 is safety-sensitive decision-ledger record visibility only.
+- Recorded controller validation on exact `6004911` passed strict TypeScript typecheck, 13 Vitest files / 118 tests, 12 Chromium smokes, production build, and `git diff --check`. This is recorded feature-SHA evidence, not validation freshly run by this documentation reconciliation.
+- L05 remains display-only record visibility with its existing boundary: it reproduces only exact immutable ledger records. Its `pass`/`wait`/`return` labels are not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence.
+- **다음 권한 경계:** an explicit local documentation commit or PR/main integration decision is pending. The feature evidence does not assert shared-main integration, release, deployment, external review, domain validation, registry promotion, or release eligibility.
 
 ## 알려진 출시 blocker
 

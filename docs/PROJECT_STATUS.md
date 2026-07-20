@@ -1,11 +1,11 @@
 # Sailing Bootcamp — Project Status
 
-> 갱신: 2026-07-19 KST
-> 상태: **AP-0D P0 integrated and pushed / AP-0E G0 integrated and pushed / personal-use scope active / external gates archived**
+> 갱신: 2026-07-20 KST
+> 상태: **post-trace feature-branch evidence recorded / local-documentation-commit or PR-main-integration decision pending / personal-use scope active / external gates archived**
 
 ## 1. 현재 위치
 
-프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. AP-0A TypeScript bootstrap과 contract negative tests는 isolated Orca worktree에서 검증된 뒤 shared history에 integrated 되었다.
+프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. Historical shared-main records remain historical; the current post-trace checkpoint is feature-branch-only evidence and does not claim its integration.
 
 ## 2. 완료된 기반
 
@@ -21,14 +21,18 @@
 
 | Gate | 상태 | 의미 |
 |---|---|---|
-| Load | implemented / verified (prototype bindings) | AP-0A–AP-0C L01–L05 load eligibility, replay identity, and fail-closed incompatible-record behavior are tested; this is not a release-support claim |
-| Prototype | implemented / verified | L01–L05 assumption-only local prototype is integrated; current deterministic/Chromium evidence is recorded, while domain correctness remains unvalidated |
+| Load | historical shared-main evidence / post-trace feature evidence recorded | Earlier prototype bindings remain historical; the L02–L05 trace lineage is recorded only on feature SHA `6004911`, not as a shared-main integration claim |
+| Prototype | personal, browser-local, synthetic / assumption-only | Recorded feature-SHA validation exists for the trace branch; domain correctness remains unvalidated and this is not a release-support claim |
 | Personal prototype work | available with explicit bounded user authorization | external reviewer/authority/controlled apply/G1/G2/G3/P1/release evidence는 prerequisite가 아님 |
 | Archived external-release materials | non-operational | registry assumptions·P1·external review·release authority 절차는 개인용 roadmap을 막거나 자동 재개하지 않음 |
 
 ## 4. 구현 전 AP-0
 
-AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence)는 2026-07-19 integrated/verified 되었다. 별도 AP-0D P0 hardening은 `00c34b3`으로 local commit되고 `0e84d85` fresh integration candidate에서 검증된 뒤, user-authorized shared `main` 정렬로 `20148a1`에 통합·push되었다. AP-0E G0 bounded prototype hardening은 source commit `5c7ea5d`를 fresh integration worktree의 `b4a3dc1`에 merge한 뒤 strict typecheck, 102 Vitest, 8 Chromium smoke, build, diff, historical evidence invariants로 검증되었고, candidate `038aece`가 user-authorized shared `main` synchronization 및 `origin/main` push/fetch verification까지 완료했다. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
+AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence), AP-0D P0, and AP-0E G0 statements above are historical shared-main records only. They do not integrate the later post-trace feature SHA. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
+
+## 4.2 Post-trace feature-branch checkpoint
+
+`JudyandGIINII/sailing-l05-record-evidence` points to `6004911508305445d520755e3a082c7654ba79b7`, four commits ahead of `origin/main` `0f34184` through L03 `37aac44`, L04 `ed83927`, L02 `f98f611`, and L05 `6004911`. At packet capture, the remote feature branch was pushed and had no PR. Recorded controller validation on that exact SHA passed strict typecheck, 13 Vitest files / 118 tests, 12 Chromium smokes, production build, and diff check; it is recorded feature-branch evidence, not a fresh run or a main/release claim. L05 is decision-ledger record visibility only: `pass`/`wait`/`return` are not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence. The next gate is a pending explicit local documentation commit or PR/main integration decision.
 
 ## 4.1 버전 관리 checkpoint
 
