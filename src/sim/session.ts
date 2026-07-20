@@ -20,7 +20,7 @@ export interface LedgerEvent {
   contract_status?: 'UNVALIDATED_DOMAIN_MODEL';
   synthetic?: true;
   cause?: string;
-  lesson_id?: 'L02' | 'L03' | 'L04' | 'L05';
+  lesson_id?: 'L01' | 'L02' | 'L03' | 'L04' | 'L05';
 }
 
 export interface RawSimulationState {
@@ -172,6 +172,9 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
       ? freeze({ ...session.raw, helm_command: 'starboard' as const })
       : session.raw;
   let extra: LedgerEvent | undefined;
+  if (sessionLesson(session.identity).startsWith('l01-') && (action === 'helm_port' || action === 'helm_starboard')) {
+    extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L01', cause: 'declared helm correction recorded' };
+  }
   if (action === 'main_trim' && raw.lesson_id === 'L02') raw = freeze({ ...raw, main_trim: 'declared-adjusted' });
   if (action === 'jib_trim' && raw.lesson_id === 'L02') raw = freeze({ ...raw, jib_trim: 'declared-adjusted' });
   if (action === 'reef' && raw.lesson_id === 'L03') { raw = freeze({ ...raw, reef_state: 'selected', synthetic_episode: 'complete' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L03', cause: 'conservative synthetic reef mitigation recorded' }; }

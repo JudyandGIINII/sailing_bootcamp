@@ -1,5 +1,11 @@
 # DEVLOG
 
+## 2026-07-20 — Training Ground evidence-closure reconciliation
+
+- For this work, `646ac19f13919906bd7fac12cb52a05bcdfe3d69` (`646ac19`) was the capture-time/pre-reconciliation `HEAD` and `origin/main`; this does not state that it remains current after the uncommitted reconciliation diff.
+- `92a8613` is the P1/P1B synthetic scenario/catalog code-feature baseline and an ancestor of `646ac19`; `v0.1.0-p1b` points to it as a source/prototype prerelease only, not deployment or release readiness. `7827079` remains historical integrated code/candidate-QA baseline, not current-head proof. `76bf5b6` remains historical post-main documentation capture, not the current tip.
+- Added the Training Ground completion matrix as documentation evidence only. It does not establish product, domain, physics, safety, navigation, supported-browser, certification, deployment, or release completion. L05 `pass`/`wait`/`return` remain record labels only, never recommendations, correctness outcomes, or safety results.
+
 ## 2026-07-20 — Pre-reconciliation baseline capture
 
 - Historical capture recorded `origin/main` `0f34184` → L03 `37aac44` → L04 `ed83927` → L02 `f98f611` → L05 `6004911`; the feature-branch remote was pushed with no PR at capture.

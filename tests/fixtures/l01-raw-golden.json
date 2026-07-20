@@ -25,7 +25,8 @@
     },
     "ledger": [
       { "id": "0:0:0", "tick": 0, "sequence": 0, "type": "SESSION_STARTED", "contract_status": "UNVALIDATED_DOMAIN_MODEL" },
-      { "id": "0:1:1", "tick": 0, "sequence": 1, "type": "ACTION_ACCEPTED", "action": "helm_starboard", "contract_status": "UNVALIDATED_DOMAIN_MODEL" }
+      { "id": "0:1:1", "tick": 0, "sequence": 1, "type": "ACTION_ACCEPTED", "action": "helm_starboard", "contract_status": "UNVALIDATED_DOMAIN_MODEL" },
+      { "id": "0:1:2", "tick": 0, "sequence": 1, "type": "LESSON_CHECKPOINT", "lesson_id": "L01", "cause": "declared helm correction recorded" }
     ]
   }
 }

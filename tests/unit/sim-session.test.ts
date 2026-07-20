@@ -54,8 +54,24 @@ describe('deterministic raw L01 session', () => {
       { logical_tick: 0, sequence: 2, input: { action: 'helm_starboard' } },
       { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } },
     ], 1);
-    expect(session.ledger.map((event) => event.action)).toEqual([undefined, 'helm_port', 'helm_starboard']);
+    expect(session.ledger.filter((event) => event.type === 'ACTION_ACCEPTED').map((event) => event.action)).toEqual(['helm_port', 'helm_starboard']);
     expect(session.raw.helm_command).toBe('starboard');
+  });
+
+  it('records the declared L01 helm-correction checkpoint immutably without inventing a course or safety result', () => {
+    const identity = { ...l01ReplayBindings, seed: 'l01-declared-checkpoint', ordered_input_log: [] };
+    const session = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
+
+    expect(session.ledger).toEqual([
+      expect.objectContaining({ type: 'SESSION_STARTED' }),
+      expect.objectContaining({ type: 'ACTION_ACCEPTED', action: 'helm_port' }),
+      expect.objectContaining({ type: 'LESSON_CHECKPOINT', lesson_id: 'L01', cause: 'declared helm correction recorded' }),
+    ]);
+    expect(Object.isFrozen(session.ledger)).toBe(true);
+    expect(Object.isFrozen(session.ledger[2]!)).toBe(true);
+    expect(session.raw).toMatchObject({ helm_command: 'port', heading: 'declared-unavailable', cog: 'declared-unavailable' });
+    expect(session.ledger).not.toContainEqual(expect.objectContaining({ type: 'SAFETY_BLOCKED' }));
+    expect(projectScore(session.raw, session.ledger)).toEqual({ status: 'draft_causal_checkpoint_recorded', safety: 'clear', total_points: 0, causal_event_ids: [session.ledger[2]!.id] });
   });
 
   it('rejects a sequence collision and composes declared current-to velocity without renderer state', () => {

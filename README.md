@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: 개인·로컬 사용 전용 G1 self-review가 완료된 assumption-only prototype입니다.** At pre-reconciliation documentation capture time, `HEAD`/`origin/main` pointed to documentation-only post-main-sync record `76bf5b669a48706f3eea8399ac0baa366ca4cac8` (`76bf5b6`). Historical integrated code and candidate-QA baseline은 `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`)로, L03→L04→L02→L05 lineage와 earlier documentation reconciliation을 포함합니다; recorded QA는 정확히 그 SHA의 evidence이며 capture-time docs checkpoint에서 새로 실행된 것이 아닙니다. Chromium만 해당 historical candidate에서 검증된 prototype baseline입니다. public distribution, certification, deployment, release는 비활성 범위이며 실제 항해·안전·항법 권위를 주장하지 않습니다.
+> **현재 상태: 개인·로컬 사용 전용 assumption-only prototype입니다.** For this work, `646ac19f13919906bd7fac12cb52a05bcdfe3d69` (`646ac19`) was the capture-time/pre-reconciliation `HEAD` and `origin/main`; this statement does not assert it remains current after the uncommitted reconciliation diff. `92a8613` is the P1/P1B synthetic scenario/catalog code-feature baseline and an ancestor of `646ac19`; `v0.1.0-p1b` points there as a source/prototype prerelease only, not deployment or release readiness. `7827079` is a historical integrated code/candidate-QA baseline, not current-head proof. `76bf5b6` is a historical post-main documentation capture, not the current tip. Public distribution, certification, deployment, and release remain inactive scope; the prototype asserts no real sailing, safety, or navigation authority.
 
 ## MVP 한 줄 정의
 
@@ -26,7 +26,7 @@
 | L01–L05 콘텐츠 계약 | 완료 — 도메인 검증 전 초안 |
 | 코치/강사 검토·controlled apply 체계 | deferred — future public-distribution-only documents |
 | 기술 옵션·구현 계획 | 완료 — 개인용 prototype 범위 |
-| 코드 bootstrap / AP-0E G0 L01–L05 prototype | historical integrated code/candidate-QA baseline `7827079`; pre-reconciliation capture-time `main`/`origin/main` docs-only record `76bf5b6` — assumption-only prototype scope complete |
+| 코드 bootstrap / AP-0E G0 L01–L05 prototype | historical integrated code/candidate-QA baseline `7827079`; this work’s pre-reconciliation capture-time `HEAD`/`origin/main` was `646ac19` — assumption-only prototype evidence, not current-head or release proof |
 | G1 personal-use self-review | 완료 — owner limitation acknowledgement; registry promotion 없음 |
 | Public distribution / certification / release | 비활성·범위 밖 — 별도 제품 결정이 있어야 재개 |
 
@@ -45,6 +45,7 @@ Strict TypeScript + Vite + PixiJS world projection + DOM/CSS HUD/debrief + Vites
 - [개인용 G1 self-review record](docs/content/personal-use-g1-self-review-record-v1.md)
 - [deferred external-review packet](docs/content/sailing-coach-domain-review-packet-v1.md)
 - [MVP 구현 계획](docs/architecture/mvp-technical-plan.md)
+- [Training Ground completion matrix](docs/architecture/training-ground-completion-matrix.md)
 - [기술 옵션 비교](docs/architecture/technical-options.md)
 - [L01–L05 콘텐츠 명세](docs/content/mandatory-lessons-l01-l05.md)
 - [도메인 검증 레지스트리](docs/content/domain-validation-registry.yaml)

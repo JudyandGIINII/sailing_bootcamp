@@ -1,11 +1,11 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-20 KST
-> 상태: **pre-reconciliation capture-time `HEAD`/`origin/main` docs-only record `76bf5b6` / historical integrated code and candidate-QA baseline `7827079` / personal-use scope active / external gates archived / no evidenced code increment pending**
+> 상태: **this work’s capture-time/pre-reconciliation `HEAD`/`origin/main` `646ac19` / P1/P1B synthetic scenario/catalog baseline `92a8613` (ancestor) / historical candidate-QA baseline `7827079` / historical documentation capture `76bf5b6` / personal-use scope active**. The `646ac19` statement is capture-time only and does not assert it remains current after this uncommitted reconciliation diff.
 
 ## 1. 현재 위치
 
-프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. Earlier shared-main and feature-branch records remain historical where identified. The historical post-main-sync integrated code and candidate-QA checkpoint is `7827079`; at pre-reconciliation documentation capture time, `HEAD`/`origin/main` pointed to its documentation-only follow-up `76bf5b6`, which did not refresh that QA.
+프로젝트는 PRD·레슨 계약·도메인 검증 workflow·기술 아키텍처·구현 계획을 갖추고 있다. This work’s capture-time/pre-reconciliation `HEAD` and `origin/main` were `646ac19`; that is not a claim about the working tree after this uncommitted diff. `92a8613` is the P1/P1B synthetic scenario/catalog code-feature baseline and an ancestor of that capture; `v0.1.0-p1b` points there as a source/prototype prerelease only, not deployment or release readiness. `7827079` remains historical integrated code/candidate-QA evidence, not current-head proof; `76bf5b6` remains a historical post-main documentation capture, not the current tip.
 
 ## 2. 완료된 기반
 
@@ -21,14 +21,14 @@
 
 | Gate | 상태 | 의미 |
 |---|---|---|
-| Load | capture-time docs-only record / historical integrated code baseline | At pre-reconciliation documentation capture time, `main`/`origin/main` pointed to `76bf5b6`; the L02–L05 trace lineage and earlier documentation reconciliation are in its historical integrated baseline `7827079`; earlier prototype bindings remain historical |
-| Prototype | personal, browser-local, synthetic / assumption-only | Recorded candidate QA exists for exact `7827079`, not as a fresh run for capture-time `76bf5b6`; domain correctness remains unvalidated and this is not a release-support or supported-browser claim |
+| Load | capture-time `646ac19` / historical baselines | Before this uncommitted reconciliation diff, `HEAD`/`origin/main` were `646ac19`; `92a8613` is its P1/P1B ancestor, while L02–L05 trace lineage and earlier documentation reconciliation remain historical in `7827079`; `76bf5b6` is historical documentation capture |
+| Prototype | personal, browser-local, synthetic / assumption-only | Recorded candidate QA exists for exact `7827079`, not as a fresh run for this work’s capture-time `646ac19`; domain correctness remains unvalidated and this is not a release-support or supported-browser claim |
 | Personal prototype work | available with explicit bounded user authorization | external reviewer/authority/controlled apply/G1/G2/G3/P1/release evidence는 prerequisite가 아님 |
 | Archived external-release materials | non-operational | registry assumptions·P1·external review·release authority 절차는 개인용 roadmap을 막거나 자동 재개하지 않음 |
 
 ## 4. 구현 전 AP-0
 
-AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence), AP-0D P0, and AP-0E G0 statements above are historical shared-main records. The later post-trace lineage is separately integrated in the historical code/candidate-QA baseline `7827079`; capture-time `76bf5b6` is documentation-only and does not alter those evidence meanings. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
+AP-0A, AP-0B(L01), AP-0C(L02–L05/resilience/release evidence), AP-0D P0, and AP-0E G0 statements above are historical shared-main records. The later post-trace lineage is separately integrated in the historical code/candidate-QA baseline `7827079`; `76bf5b6` is historical documentation capture and does not alter those evidence meanings. This work’s capture-time `646ac19` is not current-tip proof after the uncommitted reconciliation diff. AP-0C historical release-evidence와 AP-0D evidence lifecycle 모두 current registry가 `assumption`이므로 `BLOCKED`를 정상 결과로 취급한다. release remediation은 별도 승인·도메인/P1 근거가 필요하다.
 
 ## 4.2 Post-main-sync integration checkpoint
 

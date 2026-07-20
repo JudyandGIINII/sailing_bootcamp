@@ -4,8 +4,8 @@
 
 ## Done
 
-- [x] 2026-07-20 P1/P1B synthetic scenario catalog integrated and pushed at `92a8613`: strict ScenarioPackage/hash/Replay V2, deterministic variation, directions, dominant wave period, visibility, synthetic datum water level/tide phase, and exact synthetic course templates. Final verification: typecheck, 127 Vitest tests, 14 Playwright smoke tests, production build, diff check, and independent source review.
-- [x] 2026-07-20 GitHub prerelease `v0.1.0-p1b` published for `92a8613`. It is a synthetic prototype source milestone only; no web deployment or real-world authority was added.
+- [x] 2026-07-20 historical P1/P1B synthetic scenario/catalog code-feature baseline `92a8613`: strict ScenarioPackage/hash/Replay V2, deterministic variation, directions, dominant wave period, visibility, synthetic datum water level/tide phase, and exact synthetic course templates. It is an ancestor of this work’s capture-time/pre-reconciliation `646ac19` `HEAD`/`origin/main`, not a current-tip claim after the uncommitted diff. Historical verification at `92a8613`: typecheck, 127 Vitest tests, 14 Playwright smoke tests, production build, diff check, and independent source review.
+- [x] Historical GitHub prerelease `v0.1.0-p1b` points to `92a8613`. It is a synthetic prototype source milestone only, not deployment or release readiness.
 
 - [x] Product discovery, benchmark evidence, PRD v0.3
 - [x] D1–D6 and C1 MVP scope decisions
@@ -21,7 +21,7 @@
 - [x] AP-0C integrated: L02–L05 assumption-only extension, replay/storage resilience, release evidence `BLOCKED`, 61 unit/contract tests and 6 Chromium smokes
 - [x] Historical post-trace capture recorded `origin/main` `0f34184` → L03 `37aac44` record-only runtime trace → L04 `ed83927` recoverable-correction record trace → L02 `f98f611` synthetic trim record trace → L05 `6004911` safety-sensitive decision-ledger record visibility only.
 - [x] Historical integrated code and candidate-QA baseline `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`) contains that lineage and the earlier documentation reconciliation. Recorded candidate QA on exact `7827079` passed strict typecheck, 13 Vitest files / 118 tests, 12 Chromium Playwright tests, production build, and diff check; this is local/browser synthetic prototype evidence only, not domain validation, navigation/safety truth, release, certification, deployment, or supported-browser evidence.
-- [x] At pre-reconciliation documentation capture time, `HEAD`/`origin/main` pointed to subsequent documentation-only post-main-sync record `76bf5b669a48706f3eea8399ac0baa366ca4cac8` (`76bf5b6`); it did not rerun or extend the recorded candidate QA.
+- [x] `76bf5b6` is a historical post-main documentation capture; it did not rerun or extend the recorded candidate QA and is not the current tip.
 - [x] L05 is decision-ledger visibility only: `pass`/`wait`/`return` are record labels, not recommendations, correctness judgments, outcomes, or route/depth/tide/visibility/clearance/timing/order/safety evidence.
 - [x] 2026-07-19 controller + validated Alfred implementation audit and approval-aware next-step plan: current suite re-run (61 Vitest, 6 Chromium smoke, typecheck/build/release-evidence validation); plan recorded at `docs/plans/2026-07-19-prototype-audit-and-next-steps.md`
 - [x] Historical local Git documentation checkpoint created; `origin` configured (push was pending at that historical checkpoint)
@@ -46,9 +46,13 @@
 - [x] L01 external-review packet and all reviewer/qualification/authority/controlled-apply materials are archived references. They cannot block, wait for, or automatically resume personal prototype work.
 - [x] Personal-use external-gate retirement documented and pushed at `14d10bc`; current next-session handoff: `docs/HANDOFF_NEXT_SESSION_PERSONAL_PROTOTYPE_2026-07-19.md`.
 
+## Evidence closure — Training Ground documentation
+
+- [x] This working tree contains `docs/architecture/training-ground-completion-matrix.md`, reconciling L01–L05 against prototype evidence facets. This is evidence closure only: it is not product, domain, safety, navigation, browser-support, certification, deployment, or release completion.
+
 ## Next — Training Ground first
 
-1. Complete a bounded Training Ground audit and acceptance matrix for L01–L05: lesson flow, synthetic course/scenario selection, controls, feedback, accessibility, and local replay evidence.
+1. Keep the completed evidence matrix as documentation only; any further source work still requires an explicit user-approved bounded Training Ground scope.
 2. Preserve personal-use boundaries: all records remain `assumption`; synthetic/non-navigation/local-only notices remain mandatory.
 3. P1/P1B environment values remain scenario/replay/UI-only. Do not add physical core coupling, historical source import, date/place reconstruction, live marine/weather access, or a distinct Main Game mode before the Training Ground is completed and the user authorizes a separate scope.
 4. Any next implementation requires an explicit user-approved bounded Training Ground scope and isolated-worktree QA. Archived external-review/release materials cannot become a blocker, waiting state, required input, or automatic next step.
