@@ -90,9 +90,9 @@ describe('score/debrief pure causality projections', () => {
 
     expect(first).toEqual(second);
     expect(projectL02RuntimeTrace(replayAgain.raw, replayAgain.ledger)).toEqual(first);
-    expect(first?.runtime_evidence.main_action).toEqual(expect.objectContaining({ record_ids: ['0:1:1'] }));
-    expect(first?.runtime_evidence.jib_action).toEqual(expect.objectContaining({ record_ids: ['0:2:2'] }));
-    expect(first?.runtime_evidence.checkpoint).toEqual(expect.objectContaining({ record_ids: ['0:2:3'], recorded_cause: 'main/jib synthetic trim causality recorded' }));
+    expect(first?.runtime_evidence.main_action).toEqual(expect.objectContaining({ record_ids: ['0:2:2'] }));
+    expect(first?.runtime_evidence.jib_action).toEqual(expect.objectContaining({ record_ids: ['0:4:4'] }));
+    expect(first?.runtime_evidence.checkpoint).toEqual(expect.objectContaining({ record_ids: ['0:4:5'], recorded_cause: 'main/jib synthetic trim causality recorded' }));
     expect({ raw: session.raw, ledger: session.ledger, identity: session.identity, replayPayload }).toEqual(before);
   });
 

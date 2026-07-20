@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { l01ReplayBindings } from '../../src/content/l01.js';
+import { l02ReplayBindings } from '../../src/content/l02-l05.js';
 import { CanonicalInputContractError, applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from '../../src/sim/session.js';
 import { projectDebrief, projectScore } from '../../src/scoring/projection.js';
 import { composeGroundRelativeVelocity } from '../../src/sim/vector.js';
@@ -258,5 +259,43 @@ describe('deterministic raw L01 session', () => {
       expect(projectDebrief(session.raw, session.ledger)).toContainEqual({ id: `safety:${safety!.id}`, kind: 'safety_blocked', cause_event_id: safety!.id });
     }
     expect(createSession({ ...l01ReplayBindings, seed: 'no-safety', ordered_input_log: [] }).ledger).not.toContainEqual(expect.objectContaining({ type: 'SAFETY_BLOCKED' }));
+  });
+});
+
+describe('L02 synthetic trim-input acknowledgment session', () => {
+  it('records only accepted trim inputs, retains repeats, and emits the paired checkpoint once', () => {
+    const identity = { ...l02ReplayBindings, seed: 'l02-repeats', ordered_input_log: [] };
+    const inputs: CanonicalInput[] = [
+      { logical_tick: 0, sequence: 1, input: { action: 'main_trim' } },
+      { logical_tick: 0, sequence: 2, input: { action: 'main_trim' } },
+      { logical_tick: 0, sequence: 3, input: { action: 'jib_trim' } },
+      { logical_tick: 0, sequence: 4, input: { action: 'jib_trim' } },
+    ];
+    const session = replayInputs(identity, inputs, 1);
+    expect(session.raw.l02_trim_acknowledgment).toEqual({ main_trim_adjusted: true, jib_trim_adjusted: true, last_accepted_trim: 'jib_trim', last_accepted_tick: 0, causal_state: 'both' });
+    expect(session.ledger.filter((event) => event.type === 'ACTION_ACCEPTED').map((event) => event.action)).toEqual(['main_trim', 'main_trim', 'jib_trim', 'jib_trim']);
+    expect(session.ledger.filter((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L02')).toHaveLength(1);
+    expect(session.ledger.some((event) => event.type === 'SAFETY_BLOCKED')).toBe(false);
+  });
+
+  it('keeps helm independently accepted without a trim acknowledgment effect', () => {
+    const initial = createSession({ ...l02ReplayBindings, seed: 'l02-rejected', ordered_input_log: [] });
+    const before = { raw: initial.raw, ledger: initial.ledger, evidence: initial.canonical_input_evidence };
+    expect(applyCanonicalInput(initial, { logical_tick: 1, sequence: 1, input: { action: 'main_trim' } })).toBe(initial);
+    expect({ raw: initial.raw, ledger: initial.ledger, evidence: initial.canonical_input_evidence }).toEqual(before);
+    const helm = applyCanonicalInput(initial, { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
+    expect(helm.raw).toMatchObject({ helm_command: 'port', l02_trim_acknowledgment: createSession({ ...l02ReplayBindings, seed: 'l02-rejected', ordered_input_log: [] }).raw.l02_trim_acknowledgment });
+    expect(helm.ledger).toContainEqual(expect.objectContaining({ type: 'ACTION_ACCEPTED', action: 'helm_port' }));
+    expect(helm.ledger).not.toContainEqual(expect.objectContaining({ type: 'LESSON_CHECKPOINT', lesson_id: 'L02' }));
+  });
+
+  it('preserves L02 control acknowledgment across pause/resume without pause progression', () => {
+    const identity = { ...l02ReplayBindings, seed: 'l02-pause', ordered_input_log: [] };
+    const main = applyCanonicalInput(createSession(identity), { logical_tick: 0, sequence: 1, input: { action: 'main_trim' } });
+    const paused = applyCanonicalInput(main, { logical_tick: 0, sequence: 2, input: { action: 'pause' } });
+    expect(advanceLogicalTick(paused)).toBe(paused);
+    const resumed = applyCanonicalInput(paused, { logical_tick: 0, sequence: 3, input: { action: 'resume' } });
+    expect(advanceLogicalTick(resumed).raw.logical_tick).toBe(1);
+    expect(resumed.raw.l02_trim_acknowledgment).toEqual(main.raw.l02_trim_acknowledgment);
   });
 });

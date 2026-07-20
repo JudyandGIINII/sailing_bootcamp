@@ -1,5 +1,7 @@
 import type { LedgerEvent, RawSimulationState } from '../sim/session.js';
 import { getLessonManifest } from '../content/lesson-manifest.js';
+import { projectL02SyntheticTrimObservation } from '../sim/l02-observation.js';
+import type { L02SyntheticTrimObservation } from '../sim/l02-synthetic-model.js';
 
 export interface ScoreProjection {
   status: 'unavailable_pending_validation' | 'blocked_by_safety_contract' | 'draft_causal_checkpoint_recorded';
@@ -82,7 +84,14 @@ export interface L02RuntimeTraceProjection {
     readonly jib_action: L02TraceEvidence;
     readonly checkpoint: L02TraceEvidence;
   };
-  readonly boundary_copy: 'Browser-local synthetic recorded evidence only. It is not trim, performance, or safety advice.';
+  readonly boundary_copy: 'Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.';
+}
+
+/** Display projection of the immutable L02 control-input acknowledgment only. */
+export function projectL02SyntheticTrimAcknowledgment(raw: RawSimulationState): L02SyntheticTrimObservation | undefined {
+  return raw.lesson_id === 'L02' && raw.l02_trim_acknowledgment
+    ? projectL02SyntheticTrimObservation(raw.l02_trim_acknowledgment)
+    : undefined;
 }
 
 export interface L05DecisionLedgerRecordEvidence {
@@ -198,7 +207,7 @@ export function projectL02RuntimeTrace(
         'main/jib synthetic trim causality recorded',
       ),
     }),
-    boundary_copy: 'Browser-local synthetic recorded evidence only. It is not trim, performance, or safety advice.',
+    boundary_copy: 'Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.',
   });
 }
 

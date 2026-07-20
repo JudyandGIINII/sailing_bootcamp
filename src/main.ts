@@ -6,13 +6,14 @@ import { createWorldProjection } from './render/world-projection.js';
 import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayRecord } from './storage/replays.js';
 import { l01ReplayBindings } from './content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l04ReplayBindings, l05ReplayBindings } from './content/l02-l05.js';
+import { l02SyntheticTrimProfileV1 } from './contracts/l02-synthetic-trim.js';
 import { getLessonManifest, isLessonActionAllowed, projectLessonObservations } from './content/lesson-manifest.js';
 import { resolveReplayV2, resolveStoredReplay, serializeReplayV2Attempt, type ReplayIdentity, type ReplayV2 } from './contracts/replay.js';
 import { createSyntheticScenario, defaultScenarioConfiguration } from './content/scenario-catalog.js';
 import { validateScenarioPackage, type ScenarioConfiguration } from './contracts/scenario.js';
 import { materializeVariation } from './sim/scenario-variation.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
-import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence, type L05DecisionLedgerRecordEvidence } from './scoring/projection.js';
+import { projectDebrief, projectL02RuntimeTrace, projectL02SyntheticTrimAcknowledgment, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence, type L05DecisionLedgerRecordEvidence } from './scoring/projection.js';
 
 // Install before any app-owned bootstrap work can initiate a browser transport.
 installLocalOnlyTransportGuard();
@@ -140,8 +141,8 @@ function replayPayload(): unknown {
     return serializeReplayV2Attempt(
       frozenReplay,
       inputLog,
-      frozenReplay.lesson_binding.lesson_id === 'L01' ? session.raw.logical_tick : undefined,
-      frozenReplay.lesson_binding.lesson_id === 'L01' ? session.paused : undefined,
+      frozenReplay.lesson_binding.lesson_id === 'L01' || frozenReplay.lesson_binding.lesson_id === 'L02' ? session.raw.logical_tick : undefined,
+      frozenReplay.lesson_binding.lesson_id === 'L01' || frozenReplay.lesson_binding.lesson_id === 'L02' ? session.paused : undefined,
     );
   }
   return { ...frozenReplay, ordered_input_log: inputLog };
@@ -265,6 +266,11 @@ function render(): void {
       else if (observation.key === 'heading' && session.raw.heading !== 'declared-unavailable') description.textContent = `Synthetic computed heading ${numeric(session.raw.heading)} rad.`;
       else if (observation.key === 'cog' && session.raw.cog !== 'declared-unavailable') description.textContent = `Synthetic computed COG ${numeric(session.raw.cog)} rad.`;
       else description.textContent = 'Synthetic computed observation unavailable.';
+    } else if (currentLesson.id === 'L02' && observation.key === 'declared_trim_feedback') {
+      const acknowledgment = projectL02SyntheticTrimAcknowledgment(session.raw);
+      description.textContent = acknowledgment
+        ? `main_trim_adjusted: ${acknowledgment.main_trim_adjusted}; jib_trim_adjusted: ${acknowledgment.jib_trim_adjusted}; last_accepted_trim: ${acknowledgment.last_accepted_trim ?? 'null'}; last_accepted_tick: ${acknowledgment.last_accepted_tick ?? 'null'}; causal_state: ${acknowledgment.causal_state}. Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.`
+        : 'Synthetic control-input acknowledgment unavailable.';
     } else description.textContent = observation.status;
     hud.append(term, description);
   }
@@ -338,6 +344,12 @@ function render(): void {
         : `${fact.kind.replaceAll('_', ' ')} caused by immutable ledger event ${fact.cause_event_id ?? 'none'}.`;
     debrief.append(item);
   }
+  const l02Acknowledgment = projectL02SyntheticTrimAcknowledgment(session.raw);
+  if (l02Acknowledgment) {
+    const item = document.createElement('li');
+    item.textContent = `L02 acknowledgment: main_trim_adjusted ${l02Acknowledgment.main_trim_adjusted}; jib_trim_adjusted ${l02Acknowledgment.jib_trim_adjusted}; last_accepted_trim ${l02Acknowledgment.last_accepted_trim ?? 'null'}; last_accepted_tick ${l02Acknowledgment.last_accepted_tick ?? 'null'}; causal_state ${l02Acknowledgment.causal_state}. Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.`;
+    debrief.append(item);
+  }
   const scoreItem = document.createElement('li');
   scoreItem.textContent = `Score status: ${score.status}; no validated numeric score is claimed.`;
   debrief.append(scoreItem);
@@ -391,6 +403,8 @@ async function loadReplay(record: LocalReplayRecord): Promise<void> {
     if (canonicalInputs.length !== accepted.ordered_input_log.length) { storageStatus = 'Replay not run: REPLAY_PAYLOAD_CORRUPT. Original local payload was preserved.'; render(); return; }
     const terminalTick = accepted.lesson_binding.lesson_id === 'L01'
       ? accepted.l01_terminal_logical_tick
+      : accepted.lesson_binding.lesson_id === 'L02'
+        ? accepted.l02_terminal_logical_tick
       : canonicalInputs.reduce((highest, input) => Math.max(highest, input.logical_tick), 0) + 1;
     if (typeof terminalTick !== 'number' || !Number.isSafeInteger(terminalTick) || terminalTick < 0) { storageStatus = 'Replay not run: REPLAY_V2_SCHEMA_INVALID. Original local payload was preserved.'; render(); return; }
     const candidateReplay: ReplayV2 = { ...accepted, ordered_input_log: canonicalInputs };
@@ -518,7 +532,7 @@ async function startFrozenSession(): Promise<void> {
   startInProgress = true; startStatus.textContent = 'Starting: validating and freezing synthetic scenario.'; render();
   try {
     const scenario = await createSyntheticScenario(scenarioConfiguration); const validated = await validateScenarioPackage(scenario); if (!validated.ok) throw new Error(validated.reason_code); seed = `${currentLesson.id.toLowerCase()}-prototype-seed`; const { scenario_version: _legacyScenario, l01_synthetic_environment, ...bindings } = currentLesson.bindings; const lessonBinding = { lesson_id: currentLesson.id, ...bindings }; const trace = await materializeVariation(validated.scenario, seed);
-    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
+    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
   } catch { startStatus.textContent = 'Start failed: SCENARIO_SCHEMA_INVALID. Draft controls remain editable.'; }
   startInProgress = false; render();
 }

@@ -157,6 +157,7 @@ test('renders L02 browser-local recorded evidence from the keyboard without conf
   await expect(staticDeclarations).toHaveCount(1);
   await expect(runtimeEvidence).toHaveCount(1);
   await expect(l02Region).toBeVisible();
+  await expect(page.locator('#controls')).toContainText('Left/Right helm');
   await expect(page.getByRole('heading', { name: 'L02 static lesson-manifest declarations', exact: true })).toHaveCount(1);
   await expect(page.getByRole('heading', { name: 'L02 browser-local synthetic recorded evidence', exact: true })).toHaveCount(1);
   await expect(staticDeclarations).toContainText('static declaration, not runtime evidence');
@@ -170,7 +171,14 @@ test('renders L02 browser-local recorded evidence from the keyboard without conf
   await expect(runtimeEvidence).toContainText('Recorded jib trim action evidence');
   await expect(runtimeEvidence).toContainText('Recorded synthetic trim causality evidence');
   await expect(runtimeEvidence).toContainText('Recorded synthetic causality statement: main/jib synthetic trim causality recorded.');
-  await expect(page.locator('#l02-runtime-evidence-boundary')).toHaveText('Browser-local synthetic recorded evidence only. It is not trim, performance, or safety advice.');
+  await expect(page.locator('#l02-runtime-evidence-boundary')).toHaveText('Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.');
+  await expect(page.locator('#hud')).toContainText('main_trim_adjusted: true');
+  await expect(page.locator('#hud')).toContainText('jib_trim_adjusted: true');
+  await expect(page.locator('#debrief')).toContainText('Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#hud')).toContainText('last_accepted_trim: jib_trim');
+  await expect(page.locator('#l02-runtime-evidence-boundary')).toHaveText('Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.');
   expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
 });
 

@@ -29,7 +29,7 @@ const common = {
 /** Contracts are synthetic semantic declarations, not sailing thresholds or advice. */
 export const l02Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L02', scenario_version: 'l02-scenario-v0-draft', validation_record_id: 'VR-L02-v0',
-  initial_state: 'training-sloop-v1 steady-wind synthetic main/jib trim fixture',
+  initial_state: 'training-sloop-v1 synthetic main/jib control-input acknowledgment fixture',
   required_observations: [
     { key: 'apparent_wind_angle', accessible_label: 'Apparent wind angle / 체감 바람 각도', status: 'declared_unavailable' },
     { key: 'declared_trim_feedback', accessible_label: 'Declared trim feedback / 선언된 트림 피드백', status: 'declared_synthetic' },
@@ -39,11 +39,11 @@ export const l02Manifest: DraftLessonManifest = Object.freeze({
     { key: 'control_stability', accessible_label: 'Control stability / 제어 안정성', status: 'declared_unavailable' },
   ] as const,
   permitted_actions: L02_SEMANTIC_ACTIONS, checkpoints: ['identify_initial_trim', 'record_main_jib_adjustment', 'reach_declared_stable_trim'],
-  pass_semantics: 'Draft-only stable-trim causality; no speed or safety metric is asserted.', fail_semantics: 'Draft-only unexplained response or declared terminal boundary.',
-  safe_recovery_semantics: 'Draft-only: return controls to a declared recoverable state; prior instability stays recorded.',
-  hint_and_debrief: 'Connect main/jib control actions with declared trim feedback without revealing a hidden numeric answer.',
-  retry_comparison: ['sheet_inputs', 'apparent_wind_state', 'declared_speed_stability_trajectory', 'safety_event', 'score_cause'],
-  failure_or_boundary_acceptance: 'VR-L02-v0 assumption; slower synthetic valid control is not rejected for speed alone.',
+  pass_semantics: 'Synthetic control-input acknowledgment only; no performance or safety metric is asserted.', fail_semantics: 'Only the declared replay terminal boundary is represented.',
+  safe_recovery_semantics: 'Synthetic control-input acknowledgment only; no physical recovery is represented.',
+  hint_and_debrief: 'Record main/jib control inputs without implying a sail, speed, stability, safety, or navigation response.',
+  retry_comparison: ['ordered_trim_inputs', 'trim_acknowledgment', 'score_cause'],
+  failure_or_boundary_acceptance: 'VR-L02-v0 assumption; this records no physical or safety outcome.',
 });
 export const l03Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L03', scenario_version: 'l03-scenario-v0-draft', validation_record_id: 'VR-L03-v0',

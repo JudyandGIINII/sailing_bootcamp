@@ -2,6 +2,7 @@ import { getLessonManifest, isLessonActionAllowed, isLessonActionAllowedV2 } fro
 import { validateScenarioPackage, type ScenarioPackageV1 } from './scenario.js';
 import { isValidVariationTrace, type VariationTraceV1 } from '../sim/scenario-variation.js';
 import { isL01SyntheticEnvironmentV1, l01SyntheticEnvironmentV1, type L01SyntheticEnvironmentV1 } from './l01-synthetic-environment.js';
+import { isL02SyntheticTrimProfileV1, l02SyntheticTrimProfileV1, type L02SyntheticTrimProfileV1 } from './l02-synthetic-trim.js';
 
 export const REPLAY_IDENTITY_FIELDS = [
   'scenario_version',
@@ -85,6 +86,12 @@ export interface ReplayV2 {
    * that intentionally have no canonical input or ledger event.
    */
   l01_terminal_paused?: boolean;
+  /** Required only by the strict synthetic L02 trim-input acknowledgment variant. */
+  l02_synthetic_trim_profile?: L02SyntheticTrimProfileV1;
+  /** Authoritative canonical terminal boundary for strict L02 Replay V2. */
+  l02_terminal_logical_tick?: number;
+  /** Authoritative terminal pause state for strict L02 Replay V2. */
+  l02_terminal_paused?: boolean;
 }
 export type ReplayV2Resolution = { outcome: 'accepted'; replay: ReplayV2 } | { outcome: 'rejected'; reason_code: 'REPLAY_V2_SCHEMA_INVALID' | 'REPLAY_V2_SCENARIO_INVALID' | 'REPLAY_V2_VARIATION_INVALID' | 'REPLAY_ACTION_DISALLOWED'; stored_payload: unknown };
 
@@ -234,7 +241,11 @@ export function resolveExactReplayIdentity(storedPayload: unknown, expectedIdent
 const v2Keys = ['schema_version', 'lesson_binding', 'scenario_snapshot', 'variation_trace', 'seed', 'ordered_input_log'] as const;
 const L01_REPLAY_V2_TERMINAL_TICK_FIELD = 'l01_terminal_logical_tick' as const;
 const L01_REPLAY_V2_TERMINAL_PAUSED_FIELD = 'l01_terminal_paused' as const;
+const L02_REPLAY_V2_PROFILE_FIELD = 'l02_synthetic_trim_profile' as const;
+const L02_REPLAY_V2_TERMINAL_TICK_FIELD = 'l02_terminal_logical_tick' as const;
+const L02_REPLAY_V2_TERMINAL_PAUSED_FIELD = 'l02_terminal_paused' as const;
 const l01V2Keys = [...v2Keys, L01_REPLAY_IDENTITY_FIELD, L01_REPLAY_V2_TERMINAL_TICK_FIELD, L01_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
+const l02V2Keys = [...v2Keys, L02_REPLAY_V2_PROFILE_FIELD, L02_REPLAY_V2_TERMINAL_TICK_FIELD, L02_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 const lessonBindingKeys = ['lesson_id', 'model_version', 'boat_profile_version', 'contract_version', 'coordinate_contract_version', 'determinism_contract_version', 'comparison_policy_version'] as const;
 const orderedInputKeys = ['logical_tick', 'sequence', 'input'] as const;
 function exactKeys(value: unknown, keys: readonly string[]): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key)); }
@@ -253,14 +264,17 @@ export function isReplayV2Shape(value: unknown): value is Omit<ReplayV2, 'scenar
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const candidate = value as Record<string, unknown>;
   const isL01 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L01';
-  if (!exactKeys(candidate, isL01 ? l01V2Keys : v2Keys)) return false;
-  const terminalTick = candidate.l01_terminal_logical_tick;
-  const hasValidL01TerminalBoundary = typeof terminalTick === 'number' &&
+  const isL02 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L02';
+  if (!exactKeys(candidate, isL01 ? l01V2Keys : isL02 ? l02V2Keys : v2Keys)) return false;
+  const terminalTick = isL01 ? candidate.l01_terminal_logical_tick : candidate.l02_terminal_logical_tick;
+  const hasValidStrictTerminalBoundary = typeof terminalTick === 'number' &&
     Number.isSafeInteger(terminalTick) &&
     terminalTick >= 0 &&
     Array.isArray(candidate.ordered_input_log) &&
     candidate.ordered_input_log.every((entry) => isReplayV2OrderedInput(entry) && entry.logical_tick <= terminalTick);
-  return candidate.schema_version === REPLAY_V2_SCHEMA_VERSION && isNonEmptyString(candidate.seed) && Array.isArray(candidate.ordered_input_log) && candidate.ordered_input_log.every(isReplayV2OrderedInput) && isStrictlyOrderedInputLog(candidate.ordered_input_log) && exactKeys(candidate.lesson_binding, lessonBindingKeys) && Object.values(candidate.lesson_binding as Record<string, unknown>).every(isNonEmptyString) && ['L01', 'L02', 'L03', 'L04', 'L05'].includes((candidate.lesson_binding as Record<string, unknown>).lesson_id as string) && (!isL01 || (hasValidL01TerminalBoundary && typeof candidate.l01_terminal_paused === 'boolean'));
+  return candidate.schema_version === REPLAY_V2_SCHEMA_VERSION && isNonEmptyString(candidate.seed) && Array.isArray(candidate.ordered_input_log) && candidate.ordered_input_log.every(isReplayV2OrderedInput) && isStrictlyOrderedInputLog(candidate.ordered_input_log) && exactKeys(candidate.lesson_binding, lessonBindingKeys) && Object.values(candidate.lesson_binding as Record<string, unknown>).every(isNonEmptyString) && ['L01', 'L02', 'L03', 'L04', 'L05'].includes((candidate.lesson_binding as Record<string, unknown>).lesson_id as string) &&
+    (!isL01 || (hasValidStrictTerminalBoundary && typeof candidate.l01_terminal_paused === 'boolean')) &&
+    (!isL02 || (isL02SyntheticTrimProfileV1(candidate.l02_synthetic_trim_profile) && hasValidStrictTerminalBoundary && typeof candidate.l02_terminal_paused === 'boolean'));
 }
 
 /**
@@ -306,6 +320,14 @@ function hasSoundL01V2TerminalPausedState(
   return !paused || terminalPaused;
 }
 
+function hasReachableStrictV2Terminal(orderedInputLog: readonly OrderedInput[], terminalLogicalTick: number): boolean {
+  return hasReachableL01V2Terminal(orderedInputLog, terminalLogicalTick);
+}
+
+function hasSoundStrictV2TerminalPausedState(orderedInputLog: readonly OrderedInput[], terminalLogicalTick: number, terminalPaused: boolean): boolean {
+  return hasSoundL01V2TerminalPausedState(orderedInputLog, terminalLogicalTick, terminalPaused);
+}
+
 /**
  * The L01 V2 terminal boundary and pause state are one authority.  This
  * synchronous guard is shared by the pure replay core and the persisted-payload
@@ -319,41 +341,64 @@ export function hasStrictL01ReplayV2TerminalAuthority(value: unknown): value is 
     hasSoundL01V2TerminalPausedState(replay.ordered_input_log, replay.l01_terminal_logical_tick!, replay.l01_terminal_paused!);
 }
 
+/** Strict L02 profile, input log, terminal tick, and pause state are one authority. */
+export function hasStrictL02ReplayV2TerminalAuthority(value: unknown): value is ReplayV2 {
+  if (!isReplayV2Shape(value)) return false;
+  const replay = value as ReplayV2;
+  return replay.lesson_binding.lesson_id === 'L02' &&
+    isRegisteredLessonBindingV2(replay.lesson_binding) &&
+    isL02SyntheticTrimProfileV1(replay.l02_synthetic_trim_profile) &&
+    replay.l02_synthetic_trim_profile.profile_id === l02SyntheticTrimProfileV1.profile_id &&
+    hasReachableStrictV2Terminal(replay.ordered_input_log, replay.l02_terminal_logical_tick!) &&
+    hasSoundStrictV2TerminalPausedState(replay.ordered_input_log, replay.l02_terminal_logical_tick!, replay.l02_terminal_paused!);
+}
+
 /**
  * Creates the persisted Replay V2 attempt without deriving progression from
- * browser cadence or input count. L01's canonical terminal tick is part of
- * its strict V2 variant; non-L01 variants deliberately have no such field.
+ * browser cadence or input count. L01 and L02 canonical terminal values are
+ * part of their strict V2 variants; other variants deliberately have no such field.
  */
 export function serializeReplayV2Attempt(
   replay: ReplayV2,
   orderedInputLog: readonly OrderedInput[],
-  l01TerminalLogicalTick?: number,
-  l01TerminalPaused?: boolean,
+  terminalLogicalTick?: number,
+  terminalPaused?: boolean,
 ): ReplayV2 {
   const ordered_input_log = Object.freeze([...orderedInputLog]);
-  if (replay.lesson_binding.lesson_id === 'L01') {
+  if (replay.lesson_binding.lesson_id === 'L01' || replay.lesson_binding.lesson_id === 'L02') {
+    const lesson = replay.lesson_binding.lesson_id;
     if (ordered_input_log.some((entry) =>
       typeof entry.input === 'object' && entry.input !== null && !Array.isArray(entry.input) && (entry.input as { action?: unknown }).action === 'reset',
     )) {
       throw new Error('REPLAY_ACTION_DISALLOWED');
     }
-    if (typeof l01TerminalLogicalTick !== 'number' || !Number.isSafeInteger(l01TerminalLogicalTick) || l01TerminalLogicalTick < 0) {
-      throw new Error('L01 Replay V2 terminal logical tick must be a non-negative safe integer.');
+    if (typeof terminalLogicalTick !== 'number' || !Number.isSafeInteger(terminalLogicalTick) || terminalLogicalTick < 0) {
+      throw new Error(`${lesson} Replay V2 terminal logical tick must be a non-negative safe integer.`);
     }
-    if (typeof l01TerminalPaused !== 'boolean') {
-      throw new Error('L01 Replay V2 terminal paused state must be a boolean.');
+    if (typeof terminalPaused !== 'boolean') {
+      throw new Error(`${lesson} Replay V2 terminal paused state must be a boolean.`);
     }
-    if (ordered_input_log.some((entry) => entry.logical_tick > l01TerminalLogicalTick)) {
-      throw new Error('L01 Replay V2 input is after the terminal logical tick.');
+    if (ordered_input_log.some((entry) => entry.logical_tick > terminalLogicalTick)) {
+      throw new Error(`${lesson} Replay V2 input is after the terminal logical tick.`);
     }
-    const { l01_terminal_logical_tick: _previousBoundary, l01_terminal_paused: _previousPaused, ...identity } = replay;
+    if (lesson === 'L01') {
+      const { l01_terminal_logical_tick: _previousBoundary, l01_terminal_paused: _previousPaused, ...identity } = replay;
+      void _previousBoundary;
+      void _previousPaused;
+      return Object.freeze({ ...identity, ordered_input_log, l01_terminal_logical_tick: terminalLogicalTick, l01_terminal_paused: terminalPaused });
+    }
+    if (!isL02SyntheticTrimProfileV1(replay.l02_synthetic_trim_profile)) throw new Error('L02 Replay V2 synthetic trim profile is invalid.');
+    const { l02_terminal_logical_tick: _previousBoundary, l02_terminal_paused: _previousPaused, ...identity } = replay;
     void _previousBoundary;
     void _previousPaused;
-    return Object.freeze({ ...identity, ordered_input_log, l01_terminal_logical_tick: l01TerminalLogicalTick, l01_terminal_paused: l01TerminalPaused });
+    return Object.freeze({ ...identity, ordered_input_log, l02_terminal_logical_tick: terminalLogicalTick, l02_terminal_paused: terminalPaused });
   }
-  const { l01_terminal_logical_tick: _l01Boundary, l01_terminal_paused: _l01Paused, ...identity } = replay;
+  const { l01_terminal_logical_tick: _l01Boundary, l01_terminal_paused: _l01Paused, l02_synthetic_trim_profile: _l02Profile, l02_terminal_logical_tick: _l02Boundary, l02_terminal_paused: _l02Paused, ...identity } = replay;
   void _l01Boundary;
   void _l01Paused;
+  void _l02Profile;
+  void _l02Boundary;
+  void _l02Paused;
   return Object.freeze({ ...identity, ordered_input_log });
 }
 /** V2 is separately discriminated: malformed V2 never falls back to the legacy parser. */
@@ -372,9 +417,12 @@ export async function resolveReplayV2(storedPayload: unknown): Promise<ReplayV2R
     return typeof entry.input === 'object' && entry.input !== null && !Array.isArray(entry.input) &&
       Object.keys(entry.input as Record<string, unknown>).length === 1 &&
       isLessonActionAllowedV2(replay.lesson_binding, action) &&
-      (replay.lesson_binding.lesson_id !== 'L01' || action !== 'reset');
+      ((replay.lesson_binding.lesson_id !== 'L01' && replay.lesson_binding.lesson_id !== 'L02') || action !== 'reset');
   })) return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
   if (replay.lesson_binding.lesson_id === 'L01' && !hasStrictL01ReplayV2TerminalAuthority(replay)) {
+    return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
+  }
+  if (replay.lesson_binding.lesson_id === 'L02' && !hasStrictL02ReplayV2TerminalAuthority(replay)) {
     return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
   }
   return { outcome: 'accepted', replay };

@@ -3,7 +3,9 @@ import { prototypeVersionBindings } from '../../src/contracts/versions.js';
 import { L01_REPLAY_IDENTITY_FIELDS, REPLAY_IDENTITY_FIELDS, isReplayIdentity, isReplayV2Shape, replayIdentitySchemaV1Draft, resolveExactReplayIdentity, resolveReplayV2, resolveStoredReplay, serializeReplayV2Attempt, type ReplayIdentity, type ReplayV2 } from '../../src/contracts/replay.js';
 import { createSyntheticScenario, defaultScenarioConfiguration } from '../../src/content/scenario-catalog.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
+import { l02ReplayBindings } from '../../src/content/l02-l05.js';
 import { l01SyntheticEnvironmentV1 } from '../../src/contracts/l01-synthetic-environment.js';
+import { l02SyntheticTrimProfileV1 } from '../../src/contracts/l02-synthetic-trim.js';
 import { materializeVariation } from '../../src/sim/scenario-variation.js';
 import { sha256Canonical } from '../../src/contracts/scenario.js';
 import { advanceLogicalTick, applyCanonicalInput, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from '../../src/sim/session.js';
@@ -37,6 +39,22 @@ describe('replay identity contract', () => {
     expect(resolveExactReplayIdentity(legacy, identity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_MISSING', stored_payload: legacy });
     const altered = { ...identity, l01_synthetic_environment: { ...l01SyntheticEnvironmentV1, initial_position_m: { x: 999, y: -8 } } };
     expect(resolveExactReplayIdentity(altered, identity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: altered });
+  });
+  it('preserves the legacy L02 binding and V1 helm action resolution', () => {
+    const legacyL02 = {
+      ...l02ReplayBindings,
+      seed: 'legacy-l02-helm',
+      ordered_input_log: [
+        { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } },
+        { logical_tick: 0, sequence: 2, input: { action: 'helm_starboard' } },
+      ],
+    };
+    expect(legacyL02.model_version).toBe('training-sloop-model-v0-draft');
+    expect(resolveStoredReplay(legacyL02, l02ReplayBindings)).toEqual({ outcome: 'accepted', replay: legacyL02 });
+    expect(replayInputs(legacyL02, legacyL02.ordered_input_log as readonly CanonicalInput[], 1).raw).toMatchObject({
+      helm_command: 'starboard',
+      l02_trim_acknowledgment: { causal_state: 'none', last_accepted_trim: null },
+    });
   });
   it('requires exactly the canonical identity fields', () => {
     expect(isReplayIdentity(replay)).toBe(true);
@@ -171,6 +189,79 @@ describe('Replay V2', () => {
     };
   }
 
+  async function createL02V2Payload(
+    seed: string,
+    ordered_input_log: readonly CanonicalInput[],
+    l02_terminal_logical_tick: number,
+    l02_terminal_paused = false,
+  ): Promise<ReplayV2> {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l02ReplayBindings;
+    void ignoredScenarioVersion;
+    return {
+      schema_version: 'replay-v2',
+      lesson_binding: { lesson_id: 'L02', ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log,
+      l02_synthetic_trim_profile: l02SyntheticTrimProfileV1,
+      l02_terminal_logical_tick,
+      l02_terminal_paused,
+    };
+  }
+
+  it('strictly persists and directly replays full L02 profile/log/terminal authority', async () => {
+    const payload = await createL02V2Payload('v2-l02-exact', [
+      { logical_tick: 0, sequence: 1, input: { action: 'main_trim' } },
+      { logical_tick: 1, sequence: 2, input: { action: 'jib_trim' } },
+    ], 2);
+    expect(payload.lesson_binding.model_version).toBe(l02ReplayBindings.model_version);
+    expect(payload.lesson_binding.model_version).not.toBe(l02SyntheticTrimProfileV1.profile_id);
+    const serialized = serializeReplayV2Attempt(payload, payload.ordered_input_log, 2, false);
+    const resolution = await resolveReplayV2(serialized);
+    expect(resolution.outcome).toBe('accepted');
+    if (resolution.outcome !== 'accepted') return;
+    const restored = replayInputs(resolution.replay, resolution.replay.ordered_input_log as readonly CanonicalInput[], 2);
+    const direct = replayInputs(serialized, serialized.ordered_input_log as readonly CanonicalInput[], 2);
+    expect({ raw: restored.raw, ledger: restored.ledger, paused: restored.paused, debrief: projectDebrief(restored.raw, restored.ledger) }).toEqual({ raw: direct.raw, ledger: direct.ledger, paused: direct.paused, debrief: projectDebrief(direct.raw, direct.ledger) });
+    expect(restored.raw.l02_trim_acknowledgment?.causal_state).toBe('both');
+    expect(() => replayInputs(serialized, [], 2)).toThrow(/canonical identity log/);
+    expect(() => replayInputs(serialized, serialized.ordered_input_log as readonly CanonicalInput[], 1)).toThrow(/contradicts its identity/);
+  });
+
+  it('fails closed for missing, mismatched, terminal-after-input, and unreachable strict L02 authority', async () => {
+    const payload = await createL02V2Payload('v2-l02-invalid', [{ logical_tick: 0, sequence: 1, input: { action: 'pause' } }], 1);
+    const { l02_synthetic_trim_profile: omitted, ...missingProfile } = payload;
+    void omitted;
+    for (const invalid of [
+      missingProfile,
+      { ...payload, l02_synthetic_trim_profile: { ...l02SyntheticTrimProfileV1, profile_id: 'unknown' } },
+      { ...payload, l02_terminal_logical_tick: 0 },
+      { ...payload, l02_terminal_paused: false },
+    ]) {
+      await expect(resolveReplayV2(invalid)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: invalid });
+    }
+    const mutatedBinding = { ...payload, lesson_binding: { ...payload.lesson_binding, model_version: l02SyntheticTrimProfileV1.profile_id } };
+    await expect(resolveReplayV2(mutatedBinding)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: mutatedBinding });
+    expect(() => replayInputs(payload, payload.ordered_input_log as readonly CanonicalInput[], 1)).toThrow(/terminal authority is invalid/);
+  });
+
+  it('round-trips input-free, terminal-control, and terminal-paused strict L02 attempts', async () => {
+    const inputFree = await createL02V2Payload('v2-l02-input-free', [], 3);
+    const terminalControl = await createL02V2Payload('v2-l02-terminal-control', [{ logical_tick: 0, sequence: 1, input: { action: 'main_trim' } }], 0);
+    const pausedTerminal = await createL02V2Payload('v2-l02-paused-terminal', [{ logical_tick: 0, sequence: 1, input: { action: 'pause' } }], 0, true);
+    for (const payload of [inputFree, terminalControl, pausedTerminal]) {
+      const resolution = await resolveReplayV2(payload);
+      expect(resolution.outcome).toBe('accepted');
+      if (resolution.outcome === 'accepted') {
+        const restored = replayInputs(resolution.replay, resolution.replay.ordered_input_log as readonly CanonicalInput[], resolution.replay.l02_terminal_logical_tick!);
+        expect(restored.raw.logical_tick).toBe(payload.l02_terminal_logical_tick);
+        expect(restored.paused).toBe(payload.l02_terminal_paused);
+      }
+    }
+  });
+
   it('keeps L01 terminal state fields forbidden for non-L01 V2 shapes', async () => {
     const l01 = await createL01V2Payload('v2-non-l01-shape', [], 0);
     const {
@@ -182,7 +273,7 @@ describe('Replay V2', () => {
     void _environment;
     void _terminalTick;
     void _terminalPaused;
-    const nonL01Shape = { ...nonL01, lesson_binding: { ...nonL01.lesson_binding, lesson_id: 'L02' as const } };
+    const nonL01Shape = { ...nonL01, lesson_binding: { ...nonL01.lesson_binding, lesson_id: 'L02' as const, model_version: l02ReplayBindings.model_version }, l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false };
     expect(isReplayV2Shape(nonL01Shape)).toBe(true);
     expect(isReplayV2Shape({ ...nonL01Shape, l01_terminal_paused: false })).toBe(false);
   });

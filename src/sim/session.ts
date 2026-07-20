@@ -1,8 +1,10 @@
-import { hasStrictL01ReplayV2TerminalAuthority, type ReplayIdentity, type ReplayV2 } from '../contracts/replay.js';
+import { hasStrictL01ReplayV2TerminalAuthority, hasStrictL02ReplayV2TerminalAuthority, type ReplayIdentity, type ReplayV2 } from '../contracts/replay.js';
 import { isLessonActionAllowedV2, resolveLessonPolicy, type DeclaredLessonAction } from '../content/lesson-manifest.js';
 import { isL01SyntheticEnvironmentV1, l01SyntheticEnvironmentV1, type L01SyntheticEnvironmentV1 } from '../contracts/l01-synthetic-environment.js';
+import { isL02SyntheticTrimProfileV1, l02SyntheticTrimProfileV1, type L02SyntheticTrimProfileV1 } from '../contracts/l02-synthetic-trim.js';
 import { projectL01SyntheticObservations, type L01SyntheticObservations } from './l01-observation.js';
 import { createInitialL01SyntheticState, transitionL01SyntheticState, type L01SyntheticState } from './l01-synthetic-model.js';
+import { createInitialL02SyntheticTrimObservation, reduceL02SyntheticTrimObservation, type L02SyntheticTrimObservation } from './l02-synthetic-model.js';
 
 export type HelmCommand = 'neutral' | 'port' | 'starboard';
 export type SessionAction = DeclaredLessonAction;
@@ -58,8 +60,7 @@ export interface RawSimulationState {
   apparent_wind: 'declared-unavailable' | Readonly<{ from_rad: number; speed_mps: number }>;
   contract_status: 'UNVALIDATED_DOMAIN_MODEL';
   lesson_id?: 'L02' | 'L03' | 'L04' | 'L05';
-  main_trim?: 'declared-initial' | 'declared-adjusted';
-  jib_trim?: 'declared-initial' | 'declared-adjusted';
+  l02_trim_acknowledgment?: L02SyntheticTrimObservation;
   reef_state?: 'not_selected' | 'selected';
   synthetic_episode?: 'pending' | 'gust_wave_observed' | 'complete';
   declared_navigation_concepts?: 'heading_cog_stw_sog_drift_mark';
@@ -125,7 +126,7 @@ function immutableLedger(events: readonly LedgerEvent[]): readonly LedgerEvent[]
   return freeze(events.map((event) => freeze({ ...event })));
 }
 
-function initialRaw(seedState: number, scenario: string, l01Profile?: L01SyntheticEnvironmentV1): RawSimulationState {
+function initialRaw(seedState: number, scenario: string, l01Profile?: L01SyntheticEnvironmentV1, l02Profile?: L02SyntheticTrimProfileV1): RawSimulationState {
   const base = {
     logical_tick: 0,
     rng_state: seedState,
@@ -152,7 +153,10 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
       l01_last_helm_sequence: 0,
     });
   }
-  if (scenario.startsWith('l02-')) return freeze({ ...base, lesson_id: 'L02', main_trim: 'declared-initial', jib_trim: 'declared-initial' });
+  if (scenario.startsWith('l02-')) {
+    if (l02Profile && !isL02SyntheticTrimProfileV1(l02Profile)) throw new CanonicalInputContractError('L02 synthetic trim profile is invalid.');
+    return freeze({ ...base, lesson_id: 'L02', l02_trim_acknowledgment: createInitialL02SyntheticTrimObservation() });
+  }
   if (scenario.startsWith('l03-')) return freeze({ ...base, lesson_id: 'L03', reef_state: 'not_selected', synthetic_episode: 'pending' });
   if (scenario.startsWith('l04-')) return freeze({ ...base, lesson_id: 'L04', declared_navigation_concepts: 'heading_cog_stw_sog_drift_mark', mark_state: 'declared-approach' });
   if (scenario.startsWith('l05-')) return freeze({ ...base, lesson_id: 'L05', synthetic_environment: 'tide_depth_visibility_declared', decision_state: 'undecided' });
@@ -183,6 +187,13 @@ function l01Profile(identity: ReplayIdentity | ReplayV2): L01SyntheticEnvironmen
     throw new CanonicalInputContractError('L01 synthetic replay profile is invalid.');
   }
   return l01SyntheticEnvironmentV1;
+}
+function l02Profile(identity: ReplayIdentity | ReplayV2): L02SyntheticTrimProfileV1 | undefined {
+  if (!isV2(identity) || identity.lesson_binding.lesson_id !== 'L02') return undefined;
+  if (!hasStrictL02ReplayV2TerminalAuthority(identity) || !isL02SyntheticTrimProfileV1(identity.l02_synthetic_trim_profile)) {
+    throw new CanonicalInputContractError('L02 synthetic trim replay profile is invalid.');
+  }
+  return l02SyntheticTrimProfileV1;
 }
 function l01TransitionEventId(tick: number): string { return `l01-transition:${tick}`; }
 function isL01Raw(raw: RawSimulationState): raw is RawSimulationState & { l01_synthetic_state: L01SyntheticState; l01_last_helm_sequence: number } {
@@ -229,15 +240,17 @@ function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: n
 export function createSession(identity: ReplayIdentity | ReplayV2): DeterministicSession {
   const seedState = seededState(identity.seed);
   const profile = l01Profile(identity);
+  const trimProfile = l02Profile(identity);
   const storedIdentity = freeze({
     ...identity,
     ordered_input_log: freeze([...identity.ordered_input_log]),
     ...(profile ? { l01_synthetic_environment: profile } : {}),
+    ...(trimProfile ? { l02_synthetic_trim_profile: trimProfile } : {}),
   }) as ReplayIdentity | ReplayV2;
   return freeze({
     identity: storedIdentity,
     initial_seed_state: seedState,
-    raw: initialRaw(seedState, sessionLesson(identity), profile),
+    raw: initialRaw(seedState, sessionLesson(identity), profile, trimProfile),
     ledger: immutableLedger([
       { id: eventId(0, 0, 0), tick: 0, sequence: 0, type: 'SESSION_STARTED', contract_status: 'UNVALIDATED_DOMAIN_MODEL' },
     ]),
@@ -360,13 +373,19 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
   if (sessionLesson(session.identity).startsWith('l01-') && (action === 'helm_port' || action === 'helm_starboard')) {
     extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L01', cause: 'declared helm correction recorded', action_event_id: event.id };
   }
-  if (action === 'main_trim' && raw.lesson_id === 'L02') raw = freeze({ ...raw, main_trim: 'declared-adjusted' });
-  if (action === 'jib_trim' && raw.lesson_id === 'L02') raw = freeze({ ...raw, jib_trim: 'declared-adjusted' });
+  if (raw.lesson_id === 'L02' && (action === 'main_trim' || action === 'jib_trim')) {
+    const previousAcknowledgment = raw.l02_trim_acknowledgment;
+    if (!previousAcknowledgment) throw new CanonicalInputContractError('L02 synthetic trim acknowledgment is missing.');
+    const acknowledgment = reduceL02SyntheticTrimObservation(previousAcknowledgment, { action, logical_tick: input.logical_tick, sequence: input.sequence });
+    raw = freeze({ ...raw, l02_trim_acknowledgment: acknowledgment });
+    if (previousAcknowledgment.causal_state !== 'both' && acknowledgment.causal_state === 'both') {
+      extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L02', cause: 'main/jib synthetic trim causality recorded' };
+    }
+  }
   if (action === 'reef' && raw.lesson_id === 'L03') { raw = freeze({ ...raw, reef_state: 'selected', synthetic_episode: 'complete' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L03', cause: 'conservative synthetic reef mitigation recorded' }; }
   if (raw.lesson_id === 'L04' && action === 'helm_port') { raw = freeze({ ...raw, mark_state: 'recoverable_miss_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'recoverable synthetic mark miss recorded' }; }
   if (raw.lesson_id === 'L04' && action === 'helm_starboard' && raw.mark_state === 'recoverable_miss_recorded') { raw = freeze({ ...raw, mark_state: 'slower_valid_correction_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'slower valid synthetic correction recorded' }; }
   if (raw.lesson_id === 'L05' && (action === 'decision_pass' || action === 'decision_wait' || action === 'decision_return')) { raw = freeze({ ...raw, decision_state: action === 'decision_pass' ? 'pass_recorded' : action === 'decision_wait' ? 'wait_recorded' : 'return_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: `synthetic ${action.replace('decision_', '')} decision recorded` }; }
-  if (raw.lesson_id === 'L02' && raw.main_trim === 'declared-adjusted' && raw.jib_trim === 'declared-adjusted') extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L02', cause: 'main/jib synthetic trim causality recorded' };
   const safetyEvent = policy?.synthetic_safety_event?.action === action
     ? { id: eventId(input.logical_tick, input.sequence, session.ledger.length + (extra ? 2 : 1)), tick: input.logical_tick, sequence: input.sequence, type: 'SAFETY_BLOCKED' as const, contract_status: 'UNVALIDATED_DOMAIN_MODEL' as const, synthetic: true as const, cause: 'manifest-declared synthetic event' }
     : undefined;
@@ -420,6 +439,7 @@ export function replayInputs(
     throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
   }
   const isL01V2TerminalReplay = isV2(identity) && identity.lesson_binding.lesson_id === 'L01';
+  const isL02V2TerminalReplay = isV2(identity) && identity.lesson_binding.lesson_id === 'L02';
   if (isL01V2TerminalReplay) {
     if (!hasStrictL01ReplayV2TerminalAuthority(identity)) {
       throw new CanonicalInputContractError('L01 Replay V2 terminal authority is invalid.');
@@ -431,15 +451,26 @@ export function replayInputs(
       throw new CanonicalInputContractError('L01 Replay V2 inputs contradict its canonical identity log.');
     }
   }
-  const authoritativeTerminalTicks: number = isL01V2TerminalReplay ? identity.l01_terminal_logical_tick! : terminalTicks;
-  const ordered = isL01V2TerminalReplay
+  if (isL02V2TerminalReplay) {
+    if (!hasStrictL02ReplayV2TerminalAuthority(identity)) {
+      throw new CanonicalInputContractError('L02 Replay V2 terminal authority is invalid.');
+    }
+    if (terminalTicks !== identity.l02_terminal_logical_tick) {
+      throw new CanonicalInputContractError('L02 Replay V2 terminal logical tick contradicts its identity.');
+    }
+    if (!sameCanonicalInputLog(identity.ordered_input_log, inputs)) {
+      throw new CanonicalInputContractError('L02 Replay V2 inputs contradict its canonical identity log.');
+    }
+  }
+  const authoritativeTerminalTicks: number = isL01V2TerminalReplay ? identity.l01_terminal_logical_tick! : isL02V2TerminalReplay ? identity.l02_terminal_logical_tick! : terminalTicks;
+  const ordered = isL01V2TerminalReplay || isL02V2TerminalReplay
     ? [...identity.ordered_input_log] as CanonicalInput[]
     : [...inputs].sort((left, right) => left.logical_tick - right.logical_tick || left.sequence - right.sequence);
   for (const input of ordered) {
     if (!allowed(identity, input.input.action)) {
       throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
     }
-    if (sessionLesson(identity).startsWith('l01-') && input.input.action === 'reset') {
+    if ((sessionLesson(identity).startsWith('l01-') || isL02V2TerminalReplay) && input.input.action === 'reset') {
       throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
     }
   }
@@ -453,22 +484,23 @@ export function replayInputs(
   }
   let session = createSession(identity);
   let index = 0;
-  while (session.raw.logical_tick < authoritativeTerminalTicks || isL01V2TerminalReplay) {
+  while (session.raw.logical_tick < authoritativeTerminalTicks || isL01V2TerminalReplay || isL02V2TerminalReplay) {
     while (ordered[index]?.logical_tick === session.raw.logical_tick) {
       const input = ordered[index];
       if (!input) break;
       session = applyCanonicalInput(session, input);
       index += 1;
     }
-    if (isL01V2TerminalReplay && session.raw.logical_tick === authoritativeTerminalTicks) break;
+    if ((isL01V2TerminalReplay || isL02V2TerminalReplay) && session.raw.logical_tick === authoritativeTerminalTicks) break;
     const before = session.raw.logical_tick;
     session = advanceLogicalTick(session);
     if (session.raw.logical_tick === before) break;
   }
-  if (isL01V2TerminalReplay && session.raw.logical_tick !== authoritativeTerminalTicks) {
-    throw new CanonicalInputContractError('L01 Replay V2 terminal logical tick is unreachable.');
+  if ((isL01V2TerminalReplay || isL02V2TerminalReplay) && session.raw.logical_tick !== authoritativeTerminalTicks) {
+    throw new CanonicalInputContractError(`${isL01V2TerminalReplay ? 'L01' : 'L02'} Replay V2 terminal logical tick is unreachable.`);
   }
-  return isL01V2TerminalReplay && identity.l01_terminal_paused !== session.paused
-    ? withSession(session, { paused: identity.l01_terminal_paused })
+  const terminalPaused = isL01V2TerminalReplay ? identity.l01_terminal_paused : isL02V2TerminalReplay ? identity.l02_terminal_paused : undefined;
+  return terminalPaused !== undefined && terminalPaused !== session.paused
+    ? withSession(session, { paused: terminalPaused })
     : session;
 }
