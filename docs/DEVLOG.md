@@ -1,10 +1,10 @@
 # DEVLOG
 
-## 2026-07-20 — Post-main-sync integration truthfulness correction
+## 2026-07-20 — Pre-reconciliation baseline capture
 
 - Historical capture recorded `origin/main` `0f34184` → L03 `37aac44` → L04 `ed83927` → L02 `f98f611` → L05 `6004911`; the feature-branch remote was pushed with no PR at capture.
-- After user-authorized integration, shared `main` and `origin/main` were fast-forwarded to `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`), integrating/pushing that lineage and the earlier documentation reconciliation.
-- Recorded candidate QA on exact `7827079`: strict typecheck, 13 Vitest files / 118 tests, 12 Chromium Playwright tests, production build, and diff check. This is local/browser synthetic prototype evidence only—not domain validation, navigation/safety truth, release, certification, deployment, or supported-browser evidence.
+- The historical integrated code and candidate-QA baseline is `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`), containing that lineage and the earlier documentation reconciliation. At pre-reconciliation documentation capture time, `HEAD` and `origin/main` pointed to the subsequent documentation-only post-main-sync record `76bf5b669a48706f3eea8399ac0baa366ca4cac8` (`76bf5b6`).
+- Recorded candidate QA applies only to exact `7827079`: strict typecheck, 13 Vitest files / 118 tests, 12 Chromium Playwright tests, production build, and diff check. It was not rerun for the capture-time `76bf5b6` record. This is local/browser synthetic prototype evidence only—not domain validation, navigation/safety truth, release, certification, deployment, or supported-browser evidence.
 - `pass`/`wait`/`return` remain record labels only, not recommendation, correctness, outcome, route/depth/tide/visibility/clearance/timing/order/safety evidence. No evidenced code increment is currently pending; any future feature needs explicit bounded user authorization.
 
 ## 2026-07-19 — Next-session personal-prototype handoff

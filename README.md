@@ -2,7 +2,7 @@
 
 브라우저에서 동작하는 입문 교육용 세일링 시뮬레이터의 제품·기술·검증 설계 저장소입니다.
 
-> **현재 상태: 개인·로컬 사용 전용 G1 self-review가 완료된 assumption-only prototype입니다.** 사용자 승인 통합 후 shared `main`과 `origin/main`은 `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`)로 fast-forward되었으며, L03→L04→L02→L05 feature lineage와 그 문서 reconciliation은 integrated/pushed 상태입니다. Chromium만 현재 검증된 prototype baseline입니다. public distribution, certification, deployment, release는 비활성 범위이며 실제 항해·안전·항법 권위를 주장하지 않습니다.
+> **현재 상태: 개인·로컬 사용 전용 G1 self-review가 완료된 assumption-only prototype입니다.** At pre-reconciliation documentation capture time, `HEAD`/`origin/main` pointed to documentation-only post-main-sync record `76bf5b669a48706f3eea8399ac0baa366ca4cac8` (`76bf5b6`). Historical integrated code and candidate-QA baseline은 `782707954c8ed711395c0ee5572de3be9f9fd256` (`7827079`)로, L03→L04→L02→L05 lineage와 earlier documentation reconciliation을 포함합니다; recorded QA는 정확히 그 SHA의 evidence이며 capture-time docs checkpoint에서 새로 실행된 것이 아닙니다. Chromium만 해당 historical candidate에서 검증된 prototype baseline입니다. public distribution, certification, deployment, release는 비활성 범위이며 실제 항해·안전·항법 권위를 주장하지 않습니다.
 
 ## MVP 한 줄 정의
 
@@ -26,7 +26,7 @@
 | L01–L05 콘텐츠 계약 | 완료 — 도메인 검증 전 초안 |
 | 코치/강사 검토·controlled apply 체계 | deferred — future public-distribution-only documents |
 | 기술 옵션·구현 계획 | 완료 — 개인용 prototype 범위 |
-| 코드 bootstrap / AP-0E G0 L01–L05 prototype | integrated/pushed on `main`/`origin/main` at `7827079` — assumption-only prototype scope complete |
+| 코드 bootstrap / AP-0E G0 L01–L05 prototype | historical integrated code/candidate-QA baseline `7827079`; pre-reconciliation capture-time `main`/`origin/main` docs-only record `76bf5b6` — assumption-only prototype scope complete |
 | G1 personal-use self-review | 완료 — owner limitation acknowledgement; registry promotion 없음 |
 | Public distribution / certification / release | 비활성·범위 밖 — 별도 제품 결정이 있어야 재개 |
 
