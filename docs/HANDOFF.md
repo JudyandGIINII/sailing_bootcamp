@@ -8,9 +8,9 @@
 >
 > **Personal-use boundary:** current work remains personal, browser-local, synthetic, and non-navigation. Registry records remain `assumption`; no real-world sailing, safety, certification, physical-model, or historical-environment claim is asserted.
 >
-> **Post-sync status (2026-07-20):** `56b13c6584cc32b1cf700f05f29d6abe0e02534c` (`56b13c6`) is the post-closure integration commit now synchronized to `main` and `origin/main`. It contains the Training Ground evidence matrix and the L01 immutable helm-correction checkpoint; it does **not** add L01 wind/course semantics, domain validation, release readiness, or deployment.
+> **Integrated semantic-slice status (2026-07-21):** `f55877d` integrated the L01 versioned synthetic wind/course educational model; `89ab655` integrated the L02 versioned synthetic trim-input acknowledgment. Both are browser-local, deterministic, synthetic, unvalidated, and non-navigation source increments. Neither changes the registry, asserts physical sailing/trim/performance/safety truth, nor authorizes release or deployment.
 >
-> **Current planning boundary:** Alfred plan `ALF-20260720-2240-l01-synthetic-semantic-slice` and `docs/plans/2026-07-20-l01-synthetic-semantic-slice-plan.md` define a proposed L01 versioned synthetic wind/course semantic slice. They are planning artifacts only. Source/test implementation requires a separate explicit user authorization naming that bounded slice.
+> **Current continuation boundary:** L01 and L02 are complete as bounded semantic slices. Before any L03–L05 expansion or computed trim/speed/stability/physical behavior, create a new evidence-backed plan and preserve the existing product/domain/release hard stops.
 
 ## 목적
 
@@ -69,10 +69,10 @@ contracts/content → pure deterministic sim → immutable event ledger → scor
 
 1. Treat L01–L05 and their synthetic scenario selection/replay lifecycle as the Training Ground product surface.
 2. The bounded Training Ground completion audit and acceptance matrix are complete at `56b13c6`; they identify remaining semantic gaps without claiming a completed physical/environment model.
-3. The next proposed source slice is the planning-only L01 versioned synthetic wind/course semantic slice in `docs/plans/2026-07-20-l01-synthetic-semantic-slice-plan.md`. It needs a separate explicit source-slice approval before any implementation.
-4. Keep P1/P1B fields scenario/replay/UI-only unless a separately approved physical-model slice explicitly changes the pure simulation core with units, invariants, golden traces, sensitivity tests, and a validity envelope.
-5. Defer, without automatic resumption: historical data providers/licences/provenance ingestion; date/place observation packages; actual physical-environment coupling; live APIs; and any distinct Main Game mode/UI.
-6. Any Training Ground implementation still requires an explicit user-approved bounded scope, isolated Orca worktree, deterministic/replay QA, and independent source review.
+3. L01 semantic observation and L02 input acknowledgment are integrated. L02 remains acknowledgment-only: it does not compute sail shape, sheets, wind effect, speed, stability, performance, safety, or navigation truth.
+4. Keep P1/P1B fields scenario/replay/UI-only unless a separately planned physical-model slice explicitly changes the pure simulation core with units, invariants, golden traces, sensitivity tests, and a validity envelope.
+5. Defer: historical data providers/licences/provenance ingestion; date/place observation packages; actual physical-environment coupling; live APIs; and any distinct Main Game mode/UI.
+6. Any next Training Ground implementation requires a new evidence-backed plan, isolated Orca worktree, deterministic/replay QA, and independent source review. User-authorized automatic continuation does not cross product/domain/release hard stops.
 
 ## Historical architecture task order
 
@@ -119,10 +119,10 @@ Task 0A의 완료 증거는 선택한 dependency compatibility record·lockfile�
 
 - **Capture-time reference:** `646ac19` is the historical pre-evidence-closure parent; it does not claim that ref remains current. `92a8613` is the ancestor P1/P1B synthetic scenario/catalog code-feature baseline, verified there with strict typecheck, 127 Vitest tests, 14 Playwright smoke tests, production build, diff check, and independent source review.
 - **Historical prerelease record:** GitHub prerelease `v0.1.0-p1b` targets `92a8613`. It communicates a synthetic prototype source milestone only; it does not deploy a web application, demonstrate release readiness, or alter the local-only, non-navigation boundary.
-- **Evidence closure state:** `56b13c6` added `docs/architecture/training-ground-completion-matrix.md` and the L01 record-only helm checkpoint. Fresh integration verification at that commit passed strict typecheck, 128 Vitest tests, 14 Chromium smoke tests, production build, and diff check. This is prototype evidence closure, not semantic or physical-model completion.
-- **Training Ground state:** P1/P1B provides synthetic environment/course choices plus deterministic replay identity. It remains foundation work, not a completed physical-environment model and not a historical scenario importer.
+- **Evidence closure state:** `56b13c6` added `docs/architecture/training-ground-completion-matrix.md` and the L01 record-only helm checkpoint. `f55877d` then added L01 versioned synthetic wind/course observations; `89ab655` added L02 versioned trim-input acknowledgment. Fresh L02 integration verification passed strict typecheck, 18 Vitest files / 177 tests, 15 Chromium smoke tests, production build, and diff check. This remains prototype evidence, not physical-model completion.
+- **Training Ground state:** P1/P1B provides synthetic environment/course choices plus deterministic replay identity. L01 observations and L02 acknowledgment are functional synthetic increments; neither is a completed physical-environment model or historical scenario importer.
 - **Deferred Main Game state:** no separate Main Game mode exists. Historical environment packages, source licences, date/place provenance, physics coupling, and live data are deliberately not started.
-- **Next authorization boundary:** the L01 synthetic wind/course semantic slice is planned only. Do not use this handoff or its docs-only commit to start source changes, physical/historical environment work, registry changes, L02–L05 expansion, deployment, or release automatically. A separate explicit source-slice approval is required.
+- **Next authorization boundary:** stop after L02 acknowledgment. A future L03–L05 or computed trim-effect slice must be planned against the current `89ab655` baseline; do not infer physical/historical environment work, registry changes, deployment, or release from completed prototype slices.
 
 ## Public-distribution reference
 
