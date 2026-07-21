@@ -10,7 +10,7 @@
 >
 > **Integrated semantic-slice status (2026-07-21):** `f55877d` integrated the L01 versioned synthetic wind/course educational model; `89ab655` integrated the L02 versioned synthetic trim-input acknowledgment. Both are browser-local, deterministic, synthetic, unvalidated, and non-navigation source increments. Neither changes the registry, asserts physical sailing/trim/performance/safety truth, nor authorizes release or deployment.
 >
-> **Current continuation boundary:** L01 and L02 are complete as bounded semantic slices. Before any L03–L05 expansion or computed trim/speed/stability/physical behavior, create a new evidence-backed plan and preserve the existing product/domain/release hard stops.
+> **Current continuation boundary:** `ALF-20260721-0855-l03-next-slice` approved a bounded L03 synthetic cue/checkpoint acknowledgment plan. Its isolated candidate remains uncommitted because browser-local pre-terminal paused Replay V2 save/load is still under repair; it has not been integrated, pushed, deployed, or used as release evidence. Preserve the existing product/domain/release hard stops.
 
 ## 목적
 
@@ -70,9 +70,10 @@ contracts/content → pure deterministic sim → immutable event ledger → scor
 1. Treat L01–L05 and their synthetic scenario selection/replay lifecycle as the Training Ground product surface.
 2. The bounded Training Ground completion audit and acceptance matrix are complete at `56b13c6`; they identify remaining semantic gaps without claiming a completed physical/environment model.
 3. L01 semantic observation and L02 input acknowledgment are integrated. L02 remains acknowledgment-only: it does not compute sail shape, sheets, wind effect, speed, stability, performance, safety, or navigation truth.
-4. Keep P1/P1B fields scenario/replay/UI-only unless a separately planned physical-model slice explicitly changes the pure simulation core with units, invariants, golden traces, sensitivity tests, and a validity envelope.
-5. Defer: historical data providers/licences/provenance ingestion; date/place observation packages; actual physical-environment coupling; live APIs; and any distinct Main Game mode/UI.
-6. Any next Training Ground implementation requires a new evidence-backed plan, isolated Orca worktree, deterministic/replay QA, and independent source review. User-authorized automatic continuation does not cross product/domain/release hard stops.
+4. L03 has an approved acknowledgment-only plan: declared synthetic cue `pending → gust_wave_observed`, then synthetic checkpoint `gust_wave_observed/not_selected → complete/selected`. The candidate must not integrate until strict Replay V2 terminal/paused local-save behavior and full browser smoke pass.
+5. Keep P1/P1B fields scenario/replay/UI-only unless a separately planned physical-model slice explicitly changes the pure simulation core with units, invariants, golden traces, sensitivity tests, and a validity envelope.
+6. Defer: historical data providers/licences/provenance ingestion; date/place observation packages; actual physical-environment coupling; live APIs; and any distinct Main Game mode/UI.
+7. User-authorized automatic continuation does not cross product/domain/release hard stops. Deployment may target only a clean, integrated `main` SHA; an uncommitted L03 candidate is excluded.
 
 ## Historical architecture task order
 
@@ -122,7 +123,7 @@ Task 0A의 완료 증거는 선택한 dependency compatibility record·lockfile�
 - **Evidence closure state:** `56b13c6` added `docs/architecture/training-ground-completion-matrix.md` and the L01 record-only helm checkpoint. `f55877d` then added L01 versioned synthetic wind/course observations; `89ab655` added L02 versioned trim-input acknowledgment. Fresh L02 integration verification passed strict typecheck, 18 Vitest files / 177 tests, 15 Chromium smoke tests, production build, and diff check. This remains prototype evidence, not physical-model completion.
 - **Training Ground state:** P1/P1B provides synthetic environment/course choices plus deterministic replay identity. L01 observations and L02 acknowledgment are functional synthetic increments; neither is a completed physical-environment model or historical scenario importer.
 - **Deferred Main Game state:** no separate Main Game mode exists. Historical environment packages, source licences, date/place provenance, physics coupling, and live data are deliberately not started.
-- **Next authorization boundary:** stop after L02 acknowledgment. A future L03–L05 or computed trim-effect slice must be planned against the current `89ab655` baseline; do not infer physical/historical environment work, registry changes, deployment, or release from completed prototype slices.
+- **Current L03 repair boundary:** L03 acknowledgment planning is approved, but the candidate is not integrated. A real browser smoke exposed pre-terminal paused local-save/replay mismatch; repair and fresh source review remain required before commit/integration. Do not infer physical/historical environment work, registry changes, deployment, or release from completed prototype slices.
 
 ## Public-distribution reference
 
