@@ -11,6 +11,8 @@
 > **Integrated semantic-slice status (2026-07-21):** `f55877d` integrated the L01 versioned synthetic wind/course educational model; `89ab655` integrated the L02 versioned synthetic trim-input acknowledgment. Both are browser-local, deterministic, synthetic, unvalidated, and non-navigation source increments. Neither changes the registry, asserts physical sailing/trim/performance/safety truth, nor authorizes release or deployment.
 >
 > **Current continuation boundary:** `ALF-20260721-0855-l03-next-slice` approved a bounded L03 synthetic cue/checkpoint acknowledgment plan. Its isolated candidate remains uncommitted because browser-local pre-terminal paused Replay V2 save/load is still under repair; it has not been integrated, pushed, deployed, or used as release evidence. Preserve the existing product/domain/release hard stops.
+>
+> **Resume artifact:** `docs/HANDOFF_NEXT_SESSION_L03_REPAIR_AND_DEPLOYMENT_2026-07-21.md` is the durable next-session procedure for the L03 repair and deployment preparation; it does not authorize deployment of the uncommitted candidate.
 
 ## 목적
 
