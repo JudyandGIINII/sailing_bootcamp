@@ -1,0 +1,6 @@
+.agent
+artifacts
+dist
+docs
+test-results
+tests
