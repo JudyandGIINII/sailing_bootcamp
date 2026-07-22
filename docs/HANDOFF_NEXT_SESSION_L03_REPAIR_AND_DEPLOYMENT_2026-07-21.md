@@ -1,6 +1,6 @@
 # Next-Session Handoff — L03 Replay Repair and Static Vercel Deployment
 
-> **Updated:** 2026-07-22 KST  
+> **Updated:** 2026-07-22 KST
 > **Product boundary:** personal synthetic sailing-training prototype. It is not navigation, safety, physical-performance, certification, or environmental guidance.
 
 ## 1. Closed execution record

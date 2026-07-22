@@ -1,6 +1,6 @@
 # Sailing Bootcamp — Project Status
 
-> 갱신: 2026-07-22 KST  
+> 갱신: 2026-07-22 KST
 > 상태: **L03 synthetic acknowledgment-only repair integrated, verified, and publicly deployed as a static Vercel prototype.** Source/deployment baseline: `main = origin/main = 561d011788f7ceac9b5cd3b14745828d47a02cfc` before this documentation-only closeout commit.
 
 ## 1. Current position
