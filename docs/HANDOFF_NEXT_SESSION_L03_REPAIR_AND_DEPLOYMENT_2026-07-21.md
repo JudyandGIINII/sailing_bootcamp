@@ -1,99 +1,58 @@
-# Next-Session Handoff — L03 Replay Repair and Deployment Preparation
+# Next-Session Handoff — L03 Replay Repair and Static Vercel Deployment
 
-> **Created:** 2026-07-21 KST
-> **Scope:** personal, browser-local, synthetic Training Ground prototype.
-> **No real-world claim:** this project does not provide navigation, sailing safety, physical performance, certification, or environmental advice.
+> **Updated:** 2026-07-22 KST  
+> **Product boundary:** personal synthetic sailing-training prototype. It is not navigation, safety, physical-performance, certification, or environmental guidance.
 
-## 1. Exact integrated baseline
+## 1. Closed execution record
 
-- Shared/remote baseline at handoff creation: `main = origin/main = 5614a7a6e331703de5c718696e391ca163028e80` (`docs: record L03 repair status`).
-- Integrated source increments contained by that commit:
-  - `f55877d` — L01 versioned synthetic wind/course observation model.
-  - `89ab655` — L02 synthetic main/jib trim-input acknowledgment.
-- `5614a7a` documents L03 as an **uncommitted repair candidate**. It is not evidence that L03 has been integrated or deployed.
+The approved L03 acknowledgment-only repair is complete.
 
-## 2. Current active lane — L03 acknowledgment-only repair
+- Source repair integrated and pushed: `60202d828f4e37ae34986ea7a97aaa5cb1b194e4` (`fix: preserve delayed L03 replay acknowledgments`).
+- Static Vercel configuration integrated and pushed: `561d011788f7ceac9b5cd3b14745828d47a02cfc` (`chore: configure static Vercel preview`). This is the source/deployment baseline; the following documentation-only closeout commit will advance `main` without altering the deployed source.
+- Candidate branch: `JudyandGIINII/sailing-l03-ack-20260721`, committed at `c5a749c`; its reviewed change was applied in a fresh current-`main` integration worktree, then fast-forwarded to `main`.
+- Final independent source review: **APPROVE**, with no P0/P1 findings.
 
-Alfred plan: `ALF-20260721-0855-l03-next-slice`.
+### Scope preserved
 
-Permitted L03 semantics are exactly:
+L03 remains strictly synthetic acknowledgment-only:
 
-1. declared synthetic cue acknowledgment: `pending → gust_wave_observed`;
-2. synthetic checkpoint acknowledgment: `gust_wave_observed/not_selected → complete/selected`.
+```text
+pending → gust_wave_observed → complete/selected
+```
 
-The candidate must not add wind/wave values, reef timing, advice, thresholds, safety, physics, navigation, scoring, performance, registry changes, P1/P1B core coupling, L04/L05 work, backend, analytics, release, or deployment semantics.
+No physical/weather values, reef timing/advice, safety, navigation, scoring/performance meaning, L04/L05, registry, backend, analytics, or domain-validation claim was added.
 
-### Candidate location and current diff
+## 2. Verified QA evidence
 
-- Worktree: `/Users/hipgiinii/orca/workspaces/Sailing_training/sailing-l03-ack-20260721`
-- Branch: `JudyandGIINII/sailing-l03-ack-20260721`
-- Base: `5614a7a` was not available when the worktree was created; rebase/merge only in a future fresh integration worktree after candidate QA passes.
-- Candidate paths:
-  - `src/content/l02-l05.ts`
-  - `src/contracts/replay.ts`
-  - `src/main.ts`
-  - `src/scoring/projection.ts`
-  - `src/sim/session.ts`
-  - `tests/contracts/replay.test.ts`
-  - `tests/fixtures/l03-raw-golden.json`
-  - `tests/fixtures/l03-score-debrief-golden.json`
-  - `tests/smoke/app.spec.ts`
-  - `tests/unit/projection.test.ts`
+Both the candidate and fresh integration passed:
 
-### Repair status — do not integrate yet
+- strict TypeScript typecheck
+- Vitest: **18 files / 193 tests**
+- Playwright Chromium smoke: **16 tests**
+- production Vite build
+- `git diff --check`
 
-Controller checks observed during the repair loop:
+The repaired evidence includes a delayed post-cue L03 acknowledgment save/resolve/reload contract, exact paused tick-0 browser persistence using a controlled clock, interactive cue-to-ack browser coverage, legacy checkpoint provenance, and restored L02 scenario-UI coverage.
 
-- `npm run typecheck`: PASS.
-- `npm test`: latest observed **18 files / 192 tests PASS**.
-- `npm run test:smoke`: latest controller run **14/15 PASS**.
-- Failing real browser path: `L03 start → Space pause → R save/reset` did not show `Saved local attempt`.
+## 3. Deployment record — factual access state
 
-The current unverified repair must prove that a pre-terminal paused L03 Replay V2 attempt (`pending/not_selected`, terminal tick `0`, paused terminal state, canonical pause input) saves locally, resolves, reloads, and remains paused without inventing an acknowledgment. Missing, tampered, unreachable, or post-terminal inputs must remain fail-closed.
+- Vercel project: `sailing-training` in `judy-ng-ii-nii-s-projects`
+- Deployment ID: `dpl_68Hqj4yDJQekxwhNYfy2sPvDKNuA`
+- Deployment URL: https://sailing-training-potefs9iv-judy-ng-ii-nii-s-projects.vercel.app
+- Alias: https://sailing-training.vercel.app
+- Vercel reported `target: production`, `Ready`, and applied the aliases. The original execution plan’s first target was preview-only; the actual CLI result is **not preview-only** and must be described as a public production-target deployment.
+- Unauthenticated HTTP probe returned `200` HTML. Browser verification loaded the title **“Sailing Training Sloop”** and the required synthetic/unvalidated/non-navigation notices and lesson selector.
+- `vercel.json` declares Vite, `npm run build`, and `dist`; `.vercelignore` excludes coordination, test, documentation, artifact, and prior build directories from the upload input. A Vercel dry run confirmed the Vite framework and excluded `.agent`.
 
-## 3. Resume procedure
+This public static deployment does **not** establish product release readiness, domain correctness, certified/supported-browser status, safety or navigation validity, or any authority beyond the synthetic prototype scope.
 
-1. Do **not** start a new Codex terminal until current source state is inspected; terminal cleanup is complete for Sailing-related Orca records.
-2. In the L03 candidate worktree run:
+## 4. Next action boundary
 
-   ```bash
-   npm run typecheck
-   npm test
-   npm run test:smoke
-   npm run build
-   git diff --check
-   ```
+No further source increment is authorized by this handoff. Do not automatically begin L04/L05 or computed trim/environment work. Any next implementation needs a fresh bounded plan and explicit user approval.
 
-3. If any check fails, make the smallest repair in the same isolated worktree with a regression test. Do not weaken the browser smoke merely to mask the save/load contract failure.
-4. When all controller checks pass, run a fresh read-only source review pinned to the final diff.
-5. Only after review approval: stage the listed approved paths, commit, create a fresh current-main integration worktree, `git merge --ff-only`, rerun the full suite, push `origin/main`, fetch/verify ancestry, then create a truthful post-sync documentation commit if required.
+If the deployment’s public access should be changed (protected, preview-only, or removed), treat that as a separate access-policy decision; this record reflects the currently verified public `200` state.
 
-## 4. Deployment preparation
+## 5. Local state hygiene
 
-The user requested deployment preparation, but the following facts are established:
-
-- Vercel CLI is installed and authenticated for the current profile.
-- The Vercel account has **no existing Sailing Training project**.
-- The repository has no `.vercel/project.json`, `vercel.json`, GitHub Pages site, or GitHub Actions deployment workflow.
-- Deployment may target only a clean, integrated `main` commit. It must exclude the uncommitted L03 candidate.
-
-Before first Vercel deployment, choose and record:
-
-1. project name/link and whether it is GitHub-connected;
-2. access model: public, protected, or preview-only;
-3. deployment model: this Vite app is static unless production API routes are intentionally added; do not rely on localhost/Vite proxy behavior in Vercel;
-4. production URL and verification markers.
-
-A successful static deployment would still be a synthetic prototype surface only, not domain validation, release eligibility, certification, or navigation/safety evidence.
-
-## 5. Preserved local artifacts and terminal state
-
-- Shared checkout intentionally retains untracked historical coordination artifacts under `.agent/plans/` and `docs/plans/2026-07-19-l03-runtime-trace-preparation.md`; never stage them incidentally.
-- Sailing-related stale Orca terminal records were explicitly cleared. Do not use terminal polling/restart loops; run bounded batches only.
-- Other projects’ terminals (for example Apt_study) were not touched.
-
-## 6. First decision on resume
-
-**Priority:** finish the strict L03 pre-terminal paused local-save replay repair and obtain green browser smoke + fresh review.
-
-**Deployment decision:** choose a first Vercel project/access model only after the target commit is clean and integrated. No deployment of the uncommitted L03 candidate is permitted.
+- Historical `.agent/plans/` folders and prior plan artifacts remain intentionally untracked and must never be incidentally staged.
+- The documentation closeout stages only this handoff, `PROJECT_STATUS.md`, `KANBAN.md`, `DEVLOG.md`, and the 2026-07-22 execution-plan status update.

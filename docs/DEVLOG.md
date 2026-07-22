@@ -1,5 +1,13 @@
 # DEVLOG
 
+## 2026-07-22 — L03 paused Replay V2 repair, integration, and static deployment
+
+- User-approved L03 acknowledgment-only repair was completed in an isolated Orca candidate worktree, independently source-reviewed (**APPROVE**, no P0/P1), reapplied in a fresh current-`main` integration worktree, fully retested, fast-forwarded, and pushed.
+- Source repair `60202d8` preserves only `pending → gust_wave_observed → complete/selected`; it adds delayed post-cue Replay V2 acknowledgment authority and regression coverage without physical/safety/navigation/scoring/performance/L04/L05/backend/analytics/registry semantics.
+- Verification passed: strict typecheck, 18 Vitest files / 193 tests, 16 Chromium smoke tests, Vite production build, and diff integrity. Browser coverage includes delayed save/resolve/reload plus deterministic paused tick-0 persistence.
+- Static Vercel configuration `561d011` declares the Vite build/output and excludes coordination/test/docs/artifact/prior-build inputs. Vercel dry preflight detected Vite and excluded `.agent`.
+- Vercel project `sailing-training` deployment `dpl_68Hqj4yDJQekxwhNYfy2sPvDKNuA` is Ready at https://sailing-training.vercel.app. The CLI reported a **production** target and public aliases; HTTP `200` and browser UI/notices were verified. This is a synthetic/unvalidated prototype deployment, not release, domain, safety, navigation, certification, or supported-browser evidence.
+
 ## 2026-07-20 — Training Ground evidence-closure reconciliation
 
 - For this work, `646ac19f13919906bd7fac12cb52a05bcdfe3d69` (`646ac19`) was the capture-time/pre-reconciliation `HEAD` and `origin/main`; this does not state that it remains current after the uncommitted reconciliation diff.
