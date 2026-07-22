@@ -3,7 +3,7 @@ import { prototypeVersionBindings } from '../../src/contracts/versions.js';
 import { L01_REPLAY_IDENTITY_FIELDS, REPLAY_IDENTITY_FIELDS, isReplayIdentity, isReplayV2Shape, replayIdentitySchemaV1Draft, resolveExactReplayIdentity, resolveReplayV2, resolveStoredReplay, serializeReplayV2Attempt, type ReplayIdentity, type ReplayV2 } from '../../src/contracts/replay.js';
 import { createSyntheticScenario, defaultScenarioConfiguration } from '../../src/content/scenario-catalog.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
-import { l02ReplayBindings } from '../../src/content/l02-l05.js';
+import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2 } from '../../src/content/l02-l05.js';
 import { l01SyntheticEnvironmentV1 } from '../../src/contracts/l01-synthetic-environment.js';
 import { l02SyntheticTrimProfileV1 } from '../../src/contracts/l02-synthetic-trim.js';
 import { materializeVariation } from '../../src/sim/scenario-variation.js';
@@ -54,6 +54,211 @@ describe('replay identity contract', () => {
     expect(replayInputs(legacyL02, legacyL02.ordered_input_log as readonly CanonicalInput[], 1).raw).toMatchObject({
       helm_command: 'starboard',
       l02_trim_acknowledgment: { causal_state: 'none', last_accepted_trim: null },
+    });
+  });
+  it('accepts only the strict L03 V2 synthetic acknowledgment progression and preserves legacy L03 replay behavior', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l03ReplayBindings;
+    void ignoredScenarioVersion;
+    const input = { logical_tick: 1, sequence: 1, input: { action: 'reef' as const } };
+    const payload = {
+      schema_version: 'replay-v2' as const,
+      lesson_binding: { lesson_id: 'L03' as const, ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, 'l03-v2-acknowledgment'),
+      seed: 'l03-v2-acknowledgment',
+      ordered_input_log: [input],
+      l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2,
+      l03_terminal_logical_tick: 1,
+      l03_terminal_paused: false,
+    };
+
+    await expect(resolveReplayV2(payload)).resolves.toMatchObject({ outcome: 'accepted' });
+    const restored = replayInputs(payload, [input], 1);
+    expect(restored.raw).toMatchObject({ lesson_id: 'L03', synthetic_episode: 'complete', reef_state: 'selected' });
+
+    const initial = createSession(payload);
+    const paused = applyCanonicalInput(initial, { logical_tick: 0, sequence: 1, input: { action: 'pause' } });
+    expect(paused.paused).toBe(true);
+    expect(applyCanonicalInput(paused, { logical_tick: 0, sequence: 2, input: { action: 'resume' } }).paused).toBe(false);
+    expect(applyCanonicalInput(initial, { logical_tick: 0, sequence: 1, input: { action: 'reef' } })).toBe(initial);
+    const observed = advanceLogicalTick(initial);
+    const complete = applyCanonicalInput(observed, input);
+    expect(complete.raw).toMatchObject({ synthetic_episode: 'complete', reef_state: 'selected' });
+    expect(applyCanonicalInput(complete, { logical_tick: 1, sequence: 2, input: { action: 'reef' } })).toBe(complete);
+
+    const legacy = { ...l03ReplayBindings, seed: 'legacy-l03-still-supported', ordered_input_log: [input] };
+    expect(resolveStoredReplay(legacy, l03ReplayBindings)).toEqual({ outcome: 'accepted', replay: legacy });
+    expect(replayInputs(legacy, [input], 2).raw).toMatchObject({ synthetic_episode: 'complete', reef_state: 'selected' });
+  });
+  it('preserves L03 pause/resume authority and its immutable terminal boundary through save, resolve, and replay', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l03ReplayBindings;
+    void ignoredScenarioVersion;
+    const seed = 'l03-v2-paused-acknowledgment';
+    const inputs: CanonicalInput[] = [
+      { logical_tick: 0, sequence: 1, input: { action: 'pause' } },
+      { logical_tick: 0, sequence: 2, input: { action: 'resume' } },
+      { logical_tick: 1, sequence: 3, input: { action: 'reef' } },
+    ];
+    const attempt: ReplayV2 = {
+      schema_version: 'replay-v2',
+      lesson_binding: { lesson_id: 'L03', ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2,
+    };
+
+    const initial = createSession(attempt);
+    const paused = applyCanonicalInput(initial, inputs[0]!);
+    const resumed = applyCanonicalInput(paused, inputs[1]!);
+    const complete = applyCanonicalInput(advanceLogicalTick(resumed), inputs[2]!);
+    const beforeAdvance = {
+      raw: complete.raw,
+      ledger: complete.ledger,
+      paused: complete.paused,
+      score: projectScore(complete.raw, complete.ledger),
+      debrief: projectDebrief(complete.raw, complete.ledger),
+    };
+    expect(complete.raw).toMatchObject({ logical_tick: 1, synthetic_episode: 'complete', reef_state: 'selected' });
+    expect(advanceLogicalTick(complete)).toBe(complete);
+    expect(applyCanonicalInput(complete, { logical_tick: 1, sequence: 4, input: { action: 'pause' } })).toBe(complete);
+
+    const persisted = serializeReplayV2Attempt(attempt, inputs, complete.raw.logical_tick, complete.paused);
+    expect(persisted.ordered_input_log).toEqual(inputs);
+    const resolution = await resolveReplayV2(persisted);
+    expect(resolution.outcome).toBe('accepted');
+    if (resolution.outcome !== 'accepted') return;
+    const restored = replayInputs(resolution.replay, resolution.replay.ordered_input_log as readonly CanonicalInput[], resolution.replay.l03_terminal_logical_tick!);
+    expect({
+      raw: restored.raw,
+      ledger: restored.ledger,
+      paused: restored.paused,
+      score: projectScore(restored.raw, restored.ledger),
+      debrief: projectDebrief(restored.raw, restored.ledger),
+    }).toEqual(beforeAdvance);
+    expect(advanceLogicalTick(restored)).toBe(restored);
+
+    const lifecyclePaused = serializeReplayV2Attempt(attempt, inputs, complete.raw.logical_tick, true);
+    const pausedResolution = await resolveReplayV2(lifecyclePaused);
+    expect(pausedResolution.outcome).toBe('accepted');
+    if (pausedResolution.outcome !== 'accepted') return;
+    const restoredPaused = replayInputs(pausedResolution.replay, pausedResolution.replay.ordered_input_log as readonly CanonicalInput[], pausedResolution.replay.l03_terminal_logical_tick!);
+    expect({ raw: restoredPaused.raw, ledger: restoredPaused.ledger, paused: restoredPaused.paused }).toEqual({ raw: complete.raw, ledger: complete.ledger, paused: true });
+    expect(advanceLogicalTick(restoredPaused)).toBe(restoredPaused);
+  });
+  it('saves, resolves, and replays a paused pre-terminal L03 attempt without inventing an acknowledgment', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l03ReplayBindings;
+    void ignoredScenarioVersion;
+    const seed = 'l03-v2-paused-pre-terminal';
+    const pause: CanonicalInput = { logical_tick: 0, sequence: 1, input: { action: 'pause' } };
+    const attempt: ReplayV2 = {
+      schema_version: 'replay-v2',
+      lesson_binding: { lesson_id: 'L03', ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2,
+    };
+    const paused = applyCanonicalInput(createSession(attempt), pause);
+    const persisted = serializeReplayV2Attempt(attempt, [pause], paused.raw.logical_tick, paused.paused);
+
+    expect(persisted).toMatchObject({
+      l03_terminal_logical_tick: 0,
+      l03_terminal_paused: true,
+      ordered_input_log: [pause],
+    });
+    expect(Object.keys(persisted).sort()).toEqual([
+      'l03_synthetic_acknowledgment_profile',
+      'l03_terminal_logical_tick',
+      'l03_terminal_paused',
+      'lesson_binding',
+      'ordered_input_log',
+      'scenario_snapshot',
+      'schema_version',
+      'seed',
+      'variation_trace',
+    ]);
+    const resolution = await resolveReplayV2(persisted);
+    expect(resolution.outcome).toBe('accepted');
+    if (resolution.outcome !== 'accepted') return;
+
+    const restored = replayInputs(resolution.replay, resolution.replay.ordered_input_log as readonly CanonicalInput[], resolution.replay.l03_terminal_logical_tick!);
+    expect({ raw: restored.raw, ledger: restored.ledger, paused: restored.paused }).toEqual({ raw: paused.raw, ledger: paused.ledger, paused: true });
+    expect(restored.raw).toMatchObject({ logical_tick: 0, lesson_id: 'L03', synthetic_episode: 'pending', reef_state: 'not_selected' });
+    expect(advanceLogicalTick(restored)).toBe(restored);
+
+    const tampered = { ...persisted, l03_terminal_paused: false };
+    await expect(resolveReplayV2(tampered)).resolves.toEqual({
+      outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: tampered,
+    });
+    const unreachable = { ...persisted, l03_terminal_logical_tick: 1 };
+    await expect(resolveReplayV2(unreachable)).resolves.toEqual({
+      outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: unreachable,
+    });
+  });
+  it('round-trips an L03 acknowledgment recorded after its cue remains observed', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l03ReplayBindings;
+    void ignoredScenarioVersion;
+    const seed = 'l03-v2-delayed-acknowledgment';
+    const acknowledgment: CanonicalInput = { logical_tick: 2, sequence: 1, input: { action: 'reef' } };
+    const attempt: ReplayV2 = {
+      schema_version: 'replay-v2',
+      lesson_binding: { lesson_id: 'L03', ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2,
+    };
+
+    const live = applyCanonicalInput(advanceLogicalTick(advanceLogicalTick(createSession(attempt))), acknowledgment);
+    const persisted = serializeReplayV2Attempt(attempt, [acknowledgment], live.raw.logical_tick, true);
+    const resolution = await resolveReplayV2(persisted);
+
+    expect(resolution.outcome).toBe('accepted');
+    if (resolution.outcome !== 'accepted') return;
+    const restored = replayInputs(resolution.replay, resolution.replay.ordered_input_log as readonly CanonicalInput[], resolution.replay.l03_terminal_logical_tick!);
+    expect({ raw: restored.raw, ledger: restored.ledger, paused: restored.paused }).toEqual({ raw: live.raw, ledger: live.ledger, paused: true });
+    expect(advanceLogicalTick(restored)).toBe(restored);
+  });
+  it.each([
+    ['missing profile', (payload: Record<string, unknown>) => { const { l03_synthetic_acknowledgment_profile: _omitted, ...invalid } = payload; void _omitted; return invalid; }],
+    ['missing terminal tick', (payload: Record<string, unknown>) => { const { l03_terminal_logical_tick: _omitted, ...invalid } = payload; void _omitted; return invalid; }],
+    ['missing terminal pause state', (payload: Record<string, unknown>) => { const { l03_terminal_paused: _omitted, ...invalid } = payload; void _omitted; return invalid; }],
+    ['duplicated terminal metadata', (payload: Record<string, unknown>) => ({ ...payload, l01_terminal_logical_tick: 1, l01_terminal_paused: false })],
+    ['wrong ordering', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { action: 'reef' } }] })],
+    ['duplicate acknowledgment', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 1, sequence: 1, input: { action: 'reef' } }, { logical_tick: 1, sequence: 2, input: { action: 'reef' } }] })],
+    ['post-terminal acknowledgment', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 1, sequence: 1, input: { action: 'reef' } }, { logical_tick: 2, sequence: 2, input: { action: 'reef' } }] })],
+    ['post-acknowledgment control', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 1, sequence: 1, input: { action: 'reef' } }, { logical_tick: 1, sequence: 2, input: { action: 'pause' } }] })],
+    ['unresumed pause', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { action: 'pause' } }, { logical_tick: 1, sequence: 2, input: { action: 'reef' } }], l03_terminal_paused: true })],
+    ['resume without a pause', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { action: 'resume' } }, { logical_tick: 1, sequence: 2, input: { action: 'reef' } }] })],
+    ['duplicate sequence', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 0, sequence: 1, input: { action: 'pause' } }, { logical_tick: 0, sequence: 1, input: { action: 'resume' } }, { logical_tick: 1, sequence: 2, input: { action: 'reef' } }] })],
+    ['lesson-mismatched action', (payload: Record<string, unknown>) => ({ ...payload, ordered_input_log: [{ logical_tick: 1, sequence: 1, input: { action: 'main_trim' } }] })],
+  ])('fails closed without mutation for L03 V2 %s', async (_label, mutate) => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l03ReplayBindings;
+    void ignoredScenarioVersion;
+    const payload = {
+      schema_version: 'replay-v2' as const,
+      lesson_binding: { lesson_id: 'L03' as const, ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, 'l03-v2-invalid'),
+      seed: 'l03-v2-invalid',
+      ordered_input_log: [{ logical_tick: 1, sequence: 1, input: { action: 'reef' } }],
+      l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2,
+      l03_terminal_logical_tick: 1,
+      l03_terminal_paused: false,
+    };
+    const storedPayload = mutate(payload);
+
+    await expect(resolveReplayV2(storedPayload)).resolves.toEqual({
+      outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload,
     });
   });
   it('requires exactly the canonical identity fields', () => {

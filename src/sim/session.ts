@@ -1,7 +1,8 @@
-import { hasStrictL01ReplayV2TerminalAuthority, hasStrictL02ReplayV2TerminalAuthority, type ReplayIdentity, type ReplayV2 } from '../contracts/replay.js';
+import { hasStrictL01ReplayV2TerminalAuthority, hasStrictL02ReplayV2TerminalAuthority, hasStrictL03ReplayV2TerminalAuthority, type ReplayIdentity, type ReplayV2 } from '../contracts/replay.js';
 import { isLessonActionAllowedV2, resolveLessonPolicy, type DeclaredLessonAction } from '../content/lesson-manifest.js';
 import { isL01SyntheticEnvironmentV1, l01SyntheticEnvironmentV1, type L01SyntheticEnvironmentV1 } from '../contracts/l01-synthetic-environment.js';
 import { isL02SyntheticTrimProfileV1, l02SyntheticTrimProfileV1, type L02SyntheticTrimProfileV1 } from '../contracts/l02-synthetic-trim.js';
+import { isL03SyntheticAcknowledgmentProfileV2, l03SyntheticAcknowledgmentProfileV2, type L03SyntheticAcknowledgmentProfileV2 } from '../content/l02-l05.js';
 import { projectL01SyntheticObservations, type L01SyntheticObservations } from './l01-observation.js';
 import { createInitialL01SyntheticState, transitionL01SyntheticState, type L01SyntheticState } from './l01-synthetic-model.js';
 import { createInitialL02SyntheticTrimObservation, reduceL02SyntheticTrimObservation, type L02SyntheticTrimObservation } from './l02-synthetic-model.js';
@@ -126,7 +127,7 @@ function immutableLedger(events: readonly LedgerEvent[]): readonly LedgerEvent[]
   return freeze(events.map((event) => freeze({ ...event })));
 }
 
-function initialRaw(seedState: number, scenario: string, l01Profile?: L01SyntheticEnvironmentV1, l02Profile?: L02SyntheticTrimProfileV1): RawSimulationState {
+function initialRaw(seedState: number, scenario: string, l01Profile?: L01SyntheticEnvironmentV1, l02Profile?: L02SyntheticTrimProfileV1, l03Profile?: L03SyntheticAcknowledgmentProfileV2): RawSimulationState {
   const base = {
     logical_tick: 0,
     rng_state: seedState,
@@ -157,7 +158,10 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
     if (l02Profile && !isL02SyntheticTrimProfileV1(l02Profile)) throw new CanonicalInputContractError('L02 synthetic trim profile is invalid.');
     return freeze({ ...base, lesson_id: 'L02', l02_trim_acknowledgment: createInitialL02SyntheticTrimObservation() });
   }
-  if (scenario.startsWith('l03-')) return freeze({ ...base, lesson_id: 'L03', reef_state: 'not_selected', synthetic_episode: 'pending' });
+  if (scenario.startsWith('l03-')) {
+    if (l03Profile && !isL03SyntheticAcknowledgmentProfileV2(l03Profile)) throw new CanonicalInputContractError('L03 synthetic acknowledgment profile is invalid.');
+    return freeze({ ...base, lesson_id: 'L03', reef_state: 'not_selected', synthetic_episode: 'pending' });
+  }
   if (scenario.startsWith('l04-')) return freeze({ ...base, lesson_id: 'L04', declared_navigation_concepts: 'heading_cog_stw_sog_drift_mark', mark_state: 'declared-approach' });
   if (scenario.startsWith('l05-')) return freeze({ ...base, lesson_id: 'L05', synthetic_environment: 'tide_depth_visibility_declared', decision_state: 'undecided' });
   return freeze(base);
@@ -194,6 +198,13 @@ function l02Profile(identity: ReplayIdentity | ReplayV2): L02SyntheticTrimProfil
     throw new CanonicalInputContractError('L02 synthetic trim replay profile is invalid.');
   }
   return l02SyntheticTrimProfileV1;
+}
+function l03Profile(identity: ReplayIdentity | ReplayV2): L03SyntheticAcknowledgmentProfileV2 | undefined {
+  if (!isV2(identity) || identity.lesson_binding.lesson_id !== 'L03') return undefined;
+  if (!isL03SyntheticAcknowledgmentProfileV2(identity.l03_synthetic_acknowledgment_profile)) {
+    throw new CanonicalInputContractError('L03 synthetic acknowledgment replay profile is invalid.');
+  }
+  return l03SyntheticAcknowledgmentProfileV2;
 }
 function l01TransitionEventId(tick: number): string { return `l01-transition:${tick}`; }
 function isL01Raw(raw: RawSimulationState): raw is RawSimulationState & { l01_synthetic_state: L01SyntheticState; l01_last_helm_sequence: number } {
@@ -241,16 +252,18 @@ export function createSession(identity: ReplayIdentity | ReplayV2): Deterministi
   const seedState = seededState(identity.seed);
   const profile = l01Profile(identity);
   const trimProfile = l02Profile(identity);
+  const acknowledgmentProfile = l03Profile(identity);
   const storedIdentity = freeze({
     ...identity,
     ordered_input_log: freeze([...identity.ordered_input_log]),
     ...(profile ? { l01_synthetic_environment: profile } : {}),
     ...(trimProfile ? { l02_synthetic_trim_profile: trimProfile } : {}),
+    ...(acknowledgmentProfile ? { l03_synthetic_acknowledgment_profile: acknowledgmentProfile } : {}),
   }) as ReplayIdentity | ReplayV2;
   return freeze({
     identity: storedIdentity,
     initial_seed_state: seedState,
-    raw: initialRaw(seedState, sessionLesson(identity), profile, trimProfile),
+    raw: initialRaw(seedState, sessionLesson(identity), profile, trimProfile, acknowledgmentProfile),
     ledger: immutableLedger([
       { id: eventId(0, 0, 0), tick: 0, sequence: 0, type: 'SESSION_STARTED', contract_status: 'UNVALIDATED_DOMAIN_MODEL' },
     ]),
@@ -290,6 +303,7 @@ function withAcceptedCanonicalInput(session: DeterministicSession, input: Canoni
 /** A logical tick has no renderer or wall-clock dependency. */
 export function advanceLogicalTick(session: DeterministicSession): DeterministicSession {
   if (session.paused) return session;
+  if (session.raw.lesson_id === 'L03' && session.raw.synthetic_episode === 'complete' && session.raw.reef_state === 'selected') return session;
   if (isL01Raw(session.raw)) {
     const profile = l01Profile(session.identity);
     if (!profile) throw new CanonicalInputContractError('L01 synthetic replay profile is missing.');
@@ -343,7 +357,10 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
 }
 
 export function applyCanonicalInput(session: DeterministicSession, input: CanonicalInput): DeterministicSession {
+  if (session.raw.lesson_id === 'L03' && session.raw.synthetic_episode === 'complete' && session.raw.reef_state === 'selected') return session;
   if (!allowed(session.identity, input.input.action)) return session;
+  const isL03V2Acknowledgment = isV2(session.identity) && session.identity.lesson_binding.lesson_id === 'L03';
+  if (isL03V2Acknowledgment && !['pause', 'resume'].includes(input.input.action) && (input.input.action !== 'reef' || session.raw.synthetic_episode !== 'gust_wave_observed' || session.raw.reef_state !== 'not_selected')) return session;
   const policy = isV2(session.identity) ? undefined : resolveLessonPolicy(session.identity);
   if (input.logical_tick !== session.raw.logical_tick) return session;
   assertCanonicalSequence(session, input);
@@ -382,7 +399,17 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
       extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L02', cause: 'main/jib synthetic trim causality recorded' };
     }
   }
-  if (action === 'reef' && raw.lesson_id === 'L03') { raw = freeze({ ...raw, reef_state: 'selected', synthetic_episode: 'complete' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L03', cause: 'conservative synthetic reef mitigation recorded' }; }
+  if (action === 'reef' && raw.lesson_id === 'L03') {
+    raw = freeze({ ...raw, reef_state: 'selected', synthetic_episode: 'complete' });
+    extra = {
+      id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1),
+      tick: input.logical_tick,
+      sequence: input.sequence,
+      type: 'LESSON_CHECKPOINT',
+      lesson_id: 'L03',
+      cause: isL03V2Acknowledgment ? 'synthetic acknowledgment checkpoint recorded' : 'conservative synthetic reef mitigation recorded',
+    };
+  }
   if (raw.lesson_id === 'L04' && action === 'helm_port') { raw = freeze({ ...raw, mark_state: 'recoverable_miss_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'recoverable synthetic mark miss recorded' }; }
   if (raw.lesson_id === 'L04' && action === 'helm_starboard' && raw.mark_state === 'recoverable_miss_recorded') { raw = freeze({ ...raw, mark_state: 'slower_valid_correction_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'slower valid synthetic correction recorded' }; }
   if (raw.lesson_id === 'L05' && (action === 'decision_pass' || action === 'decision_wait' || action === 'decision_return')) { raw = freeze({ ...raw, decision_state: action === 'decision_pass' ? 'pass_recorded' : action === 'decision_wait' ? 'wait_recorded' : 'return_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: `synthetic ${action.replace('decision_', '')} decision recorded` }; }
@@ -440,6 +467,7 @@ export function replayInputs(
   }
   const isL01V2TerminalReplay = isV2(identity) && identity.lesson_binding.lesson_id === 'L01';
   const isL02V2TerminalReplay = isV2(identity) && identity.lesson_binding.lesson_id === 'L02';
+  const isL03V2TerminalReplay = isV2(identity) && identity.lesson_binding.lesson_id === 'L03';
   if (isL01V2TerminalReplay) {
     if (!hasStrictL01ReplayV2TerminalAuthority(identity)) {
       throw new CanonicalInputContractError('L01 Replay V2 terminal authority is invalid.');
@@ -462,15 +490,26 @@ export function replayInputs(
       throw new CanonicalInputContractError('L02 Replay V2 inputs contradict its canonical identity log.');
     }
   }
-  const authoritativeTerminalTicks: number = isL01V2TerminalReplay ? identity.l01_terminal_logical_tick! : isL02V2TerminalReplay ? identity.l02_terminal_logical_tick! : terminalTicks;
-  const ordered = isL01V2TerminalReplay || isL02V2TerminalReplay
+  if (isL03V2TerminalReplay) {
+    if (!hasStrictL03ReplayV2TerminalAuthority(identity)) {
+      throw new CanonicalInputContractError('L03 Replay V2 terminal acknowledgment authority is invalid.');
+    }
+    if (terminalTicks !== identity.l03_terminal_logical_tick) {
+      throw new CanonicalInputContractError('L03 Replay V2 terminal logical tick contradicts its identity.');
+    }
+    if (!sameCanonicalInputLog(identity.ordered_input_log, inputs)) {
+      throw new CanonicalInputContractError('L03 Replay V2 inputs contradict its canonical identity log.');
+    }
+  }
+  const authoritativeTerminalTicks: number = isL01V2TerminalReplay ? identity.l01_terminal_logical_tick! : isL02V2TerminalReplay ? identity.l02_terminal_logical_tick! : isL03V2TerminalReplay ? identity.l03_terminal_logical_tick! : terminalTicks;
+  const ordered = isL01V2TerminalReplay || isL02V2TerminalReplay || isL03V2TerminalReplay
     ? [...identity.ordered_input_log] as CanonicalInput[]
     : [...inputs].sort((left, right) => left.logical_tick - right.logical_tick || left.sequence - right.sequence);
   for (const input of ordered) {
     if (!allowed(identity, input.input.action)) {
       throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
     }
-    if ((sessionLesson(identity).startsWith('l01-') || isL02V2TerminalReplay) && input.input.action === 'reset') {
+    if ((sessionLesson(identity).startsWith('l01-') || isL02V2TerminalReplay || isL03V2TerminalReplay) && input.input.action === 'reset') {
       throw new CanonicalInputContractError('REPLAY_ACTION_DISALLOWED', 'REPLAY_ACTION_DISALLOWED');
     }
   }
@@ -484,22 +523,32 @@ export function replayInputs(
   }
   let session = createSession(identity);
   let index = 0;
-  while (session.raw.logical_tick < authoritativeTerminalTicks || isL01V2TerminalReplay || isL02V2TerminalReplay) {
+  while (session.raw.logical_tick < authoritativeTerminalTicks || isL01V2TerminalReplay || isL02V2TerminalReplay || isL03V2TerminalReplay) {
     while (ordered[index]?.logical_tick === session.raw.logical_tick) {
       const input = ordered[index];
       if (!input) break;
       session = applyCanonicalInput(session, input);
       index += 1;
     }
-    if ((isL01V2TerminalReplay || isL02V2TerminalReplay) && session.raw.logical_tick === authoritativeTerminalTicks) break;
+    if ((isL01V2TerminalReplay || isL02V2TerminalReplay || isL03V2TerminalReplay) && session.raw.logical_tick === authoritativeTerminalTicks) break;
     const before = session.raw.logical_tick;
     session = advanceLogicalTick(session);
     if (session.raw.logical_tick === before) break;
   }
-  if ((isL01V2TerminalReplay || isL02V2TerminalReplay) && session.raw.logical_tick !== authoritativeTerminalTicks) {
-    throw new CanonicalInputContractError(`${isL01V2TerminalReplay ? 'L01' : 'L02'} Replay V2 terminal logical tick is unreachable.`);
+  if ((isL01V2TerminalReplay || isL02V2TerminalReplay || isL03V2TerminalReplay) && session.raw.logical_tick !== authoritativeTerminalTicks) {
+    throw new CanonicalInputContractError(`${isL01V2TerminalReplay ? 'L01' : isL02V2TerminalReplay ? 'L02' : 'L03'} Replay V2 terminal logical tick is unreachable.`);
   }
-  const terminalPaused = isL01V2TerminalReplay ? identity.l01_terminal_paused : isL02V2TerminalReplay ? identity.l02_terminal_paused : undefined;
+  if (isL03V2TerminalReplay) {
+    const isCompletedAcknowledgment = session.raw.synthetic_episode === 'complete' && session.raw.reef_state === 'selected';
+    const isPreTerminalState = session.raw.reef_state === 'not_selected' &&
+      (authoritativeTerminalTicks === 0
+        ? session.raw.synthetic_episode === 'pending'
+        : session.raw.synthetic_episode === 'gust_wave_observed');
+    if (!isCompletedAcknowledgment && !isPreTerminalState) {
+      throw new CanonicalInputContractError('L03 Replay V2 terminal acknowledgment state is unreachable.');
+    }
+  }
+  const terminalPaused = isL01V2TerminalReplay ? identity.l01_terminal_paused : isL02V2TerminalReplay ? identity.l02_terminal_paused : isL03V2TerminalReplay ? identity.l03_terminal_paused : undefined;
   return terminalPaused !== undefined && terminalPaused !== session.paused
     ? withSession(session, { paused: terminalPaused })
     : session;

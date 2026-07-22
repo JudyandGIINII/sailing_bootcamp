@@ -5,29 +5,29 @@
     "static_declaration": {
       "heading": "Static lesson-manifest declaration",
       "status": "declared_synthetic",
-      "episode_label": "Synthetic gust/wave episode declaration",
-      "reef_action_label": "Registered reef action declaration"
+      "episode_label": "Declared synthetic cue",
+      "reef_action_label": "Declared synthetic acknowledgment"
     },
     "runtime_trace": {
       "heading": "Current runtime trace",
       "episode": {
-        "label": "Synthetic episode evidence",
+        "label": "Synthetic cue record",
         "status": "recorded",
         "event_id": "0:0:1",
         "recorded_cause": "deterministic synthetic gust/wave cue"
       },
       "reef_action": {
-        "label": "Registered reef action evidence",
+        "label": "Synthetic acknowledgment record",
         "status": "recorded",
         "event_id": "1:1:2"
       },
       "checkpoint": {
-        "label": "Declared checkpoint evidence",
+        "label": "Synthetic checkpoint record",
         "status": "recorded",
         "event_id": "1:1:3",
         "recorded_cause": "conservative synthetic reef mitigation recorded"
       }
     },
-    "boundary_copy": "Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance."
+    "boundary_copy": "Synthetic acknowledgment records only. No measurement, advisory, navigation, or physical response is modeled."
   }
 }

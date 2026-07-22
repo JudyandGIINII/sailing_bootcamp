@@ -104,9 +104,9 @@ describe('score/debrief pure causality projections', () => {
       static_declaration: expect.objectContaining({ heading: 'Static lesson-manifest declaration', status: 'declared_synthetic' }),
       runtime_trace: expect.objectContaining({ heading: 'Current runtime trace' }),
     }));
-    expect(trace?.runtime_trace.episode).toEqual({ label: 'Synthetic episode evidence', status: 'unavailable_no_runtime_record' });
-    expect(trace?.runtime_trace.reef_action).toEqual({ label: 'Registered reef action evidence', status: 'unavailable_no_runtime_record' });
-    expect(trace?.runtime_trace.checkpoint).toEqual({ label: 'Declared checkpoint evidence', status: 'unavailable_no_runtime_record' });
+    expect(trace?.runtime_trace.episode).toEqual({ label: 'Synthetic cue record', status: 'unavailable_no_runtime_record' });
+    expect(trace?.runtime_trace.reef_action).toEqual({ label: 'Synthetic acknowledgment record', status: 'unavailable_no_runtime_record' });
+    expect(trace?.runtime_trace.checkpoint).toEqual({ label: 'Synthetic checkpoint record', status: 'unavailable_no_runtime_record' });
   });
 
   it('projects recorded L03 evidence without mutating canonical state, ledger, score, or replay payload', () => {
@@ -120,7 +120,12 @@ describe('score/debrief pure causality projections', () => {
     expect(trace).toEqual(l03ScoreFixture.l03_runtime_trace);
     expect(trace?.runtime_trace.episode).toEqual(expect.objectContaining({ event_id: '0:0:1', recorded_cause: 'deterministic synthetic gust/wave cue' }));
     expect(trace?.runtime_trace.reef_action).toEqual(expect.objectContaining({ event_id: '1:1:2', status: 'recorded' }));
-    expect(trace?.runtime_trace.checkpoint).toEqual(expect.objectContaining({ event_id: '1:1:3', recorded_cause: 'conservative synthetic reef mitigation recorded' }));
+    expect(trace?.runtime_trace.checkpoint).toEqual({
+      label: 'Synthetic checkpoint record',
+      status: 'recorded',
+      event_id: '1:1:3',
+      recorded_cause: 'conservative synthetic reef mitigation recorded',
+    });
     expect({ raw: session.raw, ledger: session.ledger, identity: session.identity, replayPayload }).toEqual(before);
   });
 

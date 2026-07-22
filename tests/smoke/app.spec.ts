@@ -24,7 +24,11 @@ test('keeps a labelled synthetic draft editable, then freezes and resets its V2 
   await page.waitForTimeout(600);
   await expect(draftHud).toHaveText(draftLogicalState ?? '');
   await expect(page.locator('#pause')).toHaveText('DRAFT — no logical session is running.');
-  await page.locator('#lesson-select').selectOption('L03');
+  await page.locator('#lesson-select').selectOption('L02');
+  await expect(page.locator('#scenario-fieldset')).toBeVisible();
+  await expect(page.locator('#wind-select')).toBeEnabled();
+  await expect(page.locator('#wave-direction-select')).toBeEnabled();
+  await expect(page.locator('#course-template-select')).toBeEnabled();
   await page.locator('#wind-select').selectOption('strong');
   await page.locator('#gust-select').selectOption('on');
   await page.locator('#wave-direction-select').selectOption('southwest');
@@ -37,30 +41,55 @@ test('keeps a labelled synthetic draft editable, then freezes and resets its V2 
   await page.locator('#course-template-select').selectOption('triangle-v1');
   await expect(page.locator('#scenario-details')).toContainText('Wave direction southwest 225 degree true_north/from');
   await expect(page.locator('#scenario-details')).toContainText('visibility 1 nmi (synthetic/unvalidated, not a safety category)');
+  await expect(page.locator('#scenario-details')).toContainText('water level 0.5 m at SYNTHETIC_SCENARIO_DATUM_V1, phase rising');
   await expect(page.locator('#scenario-details')).toContainText('triangle-v1; origin (0, 0) meter; bounds x -500..500, y -250..1000 meter; start start (-100, 0) meter; ordered marks W1 (0, 600) meter, R1 (300, 300) meter; finish finish (100, 0) meter.');
   await page.getByRole('button', { name: 'Start' }).click();
   await expect(page.getByText('Started: lesson, synthetic scenario, and variation trace are frozen.')).toBeVisible();
   await expect(page.locator('#lesson-select')).toBeDisabled();
+  await expect(page.locator('#scenario-fieldset')).toBeVisible();
   await expect(page.locator('#wind-select')).toBeDisabled();
   await expect(page.locator('#wave-direction-select')).toBeDisabled();
   await expect(page.locator('#course-template-select')).toBeDisabled();
   await expect(page.locator('#scenario-details')).toContainText('Frozen Replay V2 snapshot. Hash');
-  await expect(page.locator('#scenario-details')).toContainText('SYNTHETIC_SCENARIO_DATUM_V1, phase rising');
-  await expect(page.getByRole('heading', { name: 'Sailing Training Sloop — L03' })).toBeFocused();
-  await page.keyboard.press('KeyF');
+  await expect(page.locator('#scenario-details')).toContainText('Wave direction 225 degree true_north/from');
+  await expect(page.locator('#scenario-details')).toContainText('visibility 1 nmi (synthetic/unvalidated, not a safety category)');
+  await expect(page.locator('#scenario-details')).toContainText('water level 0.5 m at SYNTHETIC_SCENARIO_DATUM_V1, phase rising');
+  await expect(page.locator('#scenario-details')).toContainText('triangle-v1; origin (0, 0) meter; bounds x -500..500, y -250..1000 meter; start start (-100, 0) meter; ordered marks W1 (0, 600) meter, R1 (300, 300) meter; finish finish (100, 0) meter.');
+  await expect(page.getByRole('heading', { name: 'Sailing Training Sloop — L02' })).toBeFocused();
+  await page.keyboard.press('KeyM');
   await expect(page.locator('#debrief')).toContainText('action recorded');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
-  await page.keyboard.press('Space');
-  await expect(page.getByText('RUNNING — logical tick scheduler active.')).toBeVisible();
   await page.keyboard.press('KeyR');
   await expect(page.getByText(/Saved local attempt/)).toBeVisible();
   await expect(page.locator('#scenario-details')).toContainText('Frozen Replay V2 snapshot. Hash');
   await page.getByRole('button', { name: 'New Session' }).click();
   await expect(page.locator('#lesson-select')).toBeEnabled();
+  await expect(page.locator('#scenario-fieldset')).toBeVisible();
   await expect(page.locator('#wind-select')).toBeEnabled();
   await expect(page.locator('#wave-direction-select')).toBeEnabled();
+  await expect(page.locator('#course-template-select')).toBeEnabled();
   expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
+});
+
+test('saves and reloads the paused pre-terminal L03 Replay V2 authority', async ({ page }) => {
+  await page.goto('/');
+  await page.clock.install();
+  await page.getByLabel('Browser update cadence').selectOption('500');
+  await startSession(page, 'L03');
+  await page.keyboard.press('Space');
+  await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
+  await page.keyboard.press('KeyR');
+  await expect(page.locator('#storage-status')).toContainText('Saved local attempt attempt-');
+  await expect(page.getByRole('button', { name: /Load attempt-/ })).toBeVisible();
+  await page.getByRole('button', { name: /Load attempt-/ }).click();
+  await expect(page.getByText('Loaded frozen Replay V2 identity.')).toBeVisible();
+  await expect(page.getByText('PAUSED — explicit resume required; logical state is not progressing.')).toBeVisible();
+  await expect(page.locator('#hud')).toContainText('Declared synthetic cue pending.');
+  await expect(page.locator('#hud')).toContainText('Synthetic acknowledgment not selected.');
+  const pausedHud = await page.locator('#hud').textContent();
+  await page.clock.runFor(1000);
+  await expect(page.locator('#hud')).toHaveText(pausedHud ?? '');
 });
 
 test('denies active browser transports before dispatch during catalog start and replay UI work', async ({ page }) => {
@@ -139,9 +168,14 @@ test('projects L02 through L05 as keyboard-operable, manifest-only observation H
     await expect(page.getByRole('heading', { name: `Sailing Training Sloop — ${id}` })).toBeVisible();
     await expect(page.getByText(/Every lesson is an assumption/)).toBeVisible();
     await expect(page.locator('#hud')).toContainText(observation);
-    await expect(page.locator('#hud')).toContainText(/declared_(synthetic|unavailable)/);
+    if (id === 'L03') await expect(page.locator('#hud')).toContainText('Synthetic acknowledgment');
+    else await expect(page.locator('#hud')).toContainText(/declared_(synthetic|unavailable)/);
+    if (id === 'L03') await expect(page.locator('#hud')).toContainText('Declared synthetic cue recorded.');
     await page.keyboard.press(key);
-    await expect(page.locator('#debrief')).toContainText('action recorded');
+    if (id === 'L03') {
+      await expect(page.locator('#hud')).toContainText('Synthetic acknowledgment recorded.');
+      await expect(page.locator('#l03-runtime-trace')).toContainText('Recorded synthetic acknowledgment record.');
+    } else await expect(page.locator('#debrief')).toContainText('action recorded');
   }
 });
 
@@ -193,16 +227,16 @@ test('reaches the L03 trace and debrief by keyboard with textual evidence and bo
   await expect(page.locator('#l03-static-trace')).toContainText('not a runtime record');
   await expect(page.locator('#l03-runtime-trace')).toContainText('Unavailable: no runtime record.');
   await page.keyboard.press('Space');
+  await expect(page.locator('#hud')).toContainText('Declared synthetic cue recorded.');
   await page.keyboard.press('KeyF');
-  await expect(page.locator('#l03-runtime-trace')).toContainText('Synthetic episode evidence');
-  await expect(page.locator('#l03-runtime-trace')).toContainText('Registered reef action evidence');
-  await expect(page.locator('#l03-runtime-trace')).toContainText('Declared checkpoint evidence');
-  await expect(page.locator('#l03-runtime-trace')).toContainText('Event ID:');
-  await expect(page.locator('#l03-runtime-trace')).toContainText('Recorded cause reference:');
-  await expect(page.locator('#debrief')).toContainText('Static lesson-manifest declaration');
-  await expect(page.locator('#debrief')).toContainText('Current runtime trace');
-  await expect(page.locator('#l03-trace-boundary')).toHaveText('Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance.');
-  await expect(page.locator('#l03-trace-section')).not.toContainText(/\b(?:knot|meter|mile|degree|second|minute|hour|bearing|threshold)\b/i);
+  await expect(page.locator('#hud')).toContainText('Synthetic acknowledgment recorded.');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Synthetic cue record');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Synthetic acknowledgment record');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Synthetic checkpoint record');
+  await expect(page.locator('#l03-runtime-trace')).toContainText('Recorded synthetic acknowledgment record.');
+  await expect(page.locator('#debrief')).toContainText('Synthetic acknowledgment debrief');
+  await expect(page.locator('#l03-trace-boundary')).toHaveText('Synthetic acknowledgment records only. No measurement, advisory, navigation, or physical response is modeled.');
+  await expect(page.locator('#l03-trace-section')).not.toContainText(/\b(?:knot|meter|mile|degree|second|minute|hour|bearing|threshold|safety|performance)\b/i);
 });
 
 test('renders uniquely named L04 runtime evidence from keyboard actions without conflating it with static declarations', async ({ page }) => {

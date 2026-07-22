@@ -5,6 +5,41 @@ export const L03_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim',
 export const L04_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] as const;
 export const L05_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'decision_pass', 'decision_wait', 'decision_return', 'pause', 'resume', 'reset'] as const;
 
+/**
+ * The L03 V2 identity binds this narrow synthetic acknowledgment record. It
+ * contains no environmental measurement, operating guidance, or physics.
+ */
+export interface L03SyntheticAcknowledgmentProfileV2 {
+  profile_id: 'l03-synthetic-acknowledgment-profile-v2';
+  lesson_id: 'L03';
+  cue_state: 'gust_wave_observed';
+  terminal_episode: 'complete';
+  terminal_selection: 'selected';
+  acknowledgment_action: 'reef';
+}
+
+export const l03SyntheticAcknowledgmentProfileV2: L03SyntheticAcknowledgmentProfileV2 = Object.freeze({
+  profile_id: 'l03-synthetic-acknowledgment-profile-v2',
+  lesson_id: 'L03',
+  cue_state: 'gust_wave_observed',
+  terminal_episode: 'complete',
+  terminal_selection: 'selected',
+  acknowledgment_action: 'reef',
+});
+
+export function isL03SyntheticAcknowledgmentProfileV2(value: unknown): value is L03SyntheticAcknowledgmentProfileV2 {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  const keys = ['profile_id', 'lesson_id', 'cue_state', 'terminal_episode', 'terminal_selection', 'acknowledgment_action'];
+  return Object.keys(candidate).length === keys.length && keys.every((key) => Object.hasOwn(candidate, key)) &&
+    candidate.profile_id === l03SyntheticAcknowledgmentProfileV2.profile_id &&
+    candidate.lesson_id === l03SyntheticAcknowledgmentProfileV2.lesson_id &&
+    candidate.cue_state === l03SyntheticAcknowledgmentProfileV2.cue_state &&
+    candidate.terminal_episode === l03SyntheticAcknowledgmentProfileV2.terminal_episode &&
+    candidate.terminal_selection === l03SyntheticAcknowledgmentProfileV2.terminal_selection &&
+    candidate.acknowledgment_action === l03SyntheticAcknowledgmentProfileV2.acknowledgment_action;
+}
+
 type LessonId = 'L02' | 'L03' | 'L04' | 'L05';
 export type LessonAction = (typeof L02_SEMANTIC_ACTIONS)[number] | (typeof L03_SEMANTIC_ACTIONS)[number] | (typeof L04_SEMANTIC_ACTIONS)[number] | (typeof L05_SEMANTIC_ACTIONS)[number];
 
@@ -47,19 +82,18 @@ export const l02Manifest: DraftLessonManifest = Object.freeze({
 });
 export const l03Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L03', scenario_version: 'l03-scenario-v0-draft', validation_record_id: 'VR-L03-v0',
-  initial_state: 'training-sloop-v1 deterministic synthetic gust/wave episode before its declared checkpoint',
+  initial_state: 'training-sloop-v1 deterministic synthetic cue before its declared acknowledgment checkpoint',
   required_observations: [
     { key: 'gust_wave_cue', accessible_label: 'Synthetic gust/wave cue / 합성 돌풍·파도 신호', status: 'declared_synthetic' },
-    { key: 'apparent_wind', accessible_label: 'Apparent wind / 체감 바람', status: 'declared_unavailable' },
-    { key: 'sail_reef_state', accessible_label: 'Sail reef state / 세일 리프 상태', status: 'declared_synthetic' },
-    { key: 'declared_control_indicator', accessible_label: 'Declared control indicator / 선언된 제어 표시', status: 'declared_unavailable' },
+    { key: 'synthetic_acknowledgment', accessible_label: 'Synthetic acknowledgment / 합성 확인', status: 'declared_synthetic' },
+    { key: 'declared_checkpoint', accessible_label: 'Declared synthetic checkpoint / 선언된 합성 체크포인트', status: 'declared_synthetic' },
   ] as const,
-  permitted_actions: L03_SEMANTIC_ACTIONS, checkpoints: ['observe_episode', 'record_conservative_mitigation', 'reach_declared_post_episode_control'],
-  pass_semantics: 'Draft-only: conservative synthetic mitigation can satisfy the declared checkpoint.', fail_semantics: 'Draft-only ignored episode, omitted mitigation, or declared terminal boundary.',
-  safe_recovery_semantics: 'Draft-only recoverable episode may be mitigated; this is not real-world reef timing advice.',
-  hint_and_debrief: 'Connect deterministic gust/wave cues, reef configuration, control action, and declared outcome.',
-  retry_comparison: ['episode_observation_order', 'reef_control_events', 'state_trajectory', 'boundary_event', 'safety_first_cause'],
-  failure_or_boundary_acceptance: 'VR-L03-v0 assumption; all episode and reef meanings remain synthetic.',
+  permitted_actions: L03_SEMANTIC_ACTIONS, checkpoints: ['observe_synthetic_cue', 'record_synthetic_acknowledgment', 'reach_declared_synthetic_checkpoint'],
+  pass_semantics: 'Synthetic acknowledgment records only; no operational result is asserted.', fail_semantics: 'Only the declared terminal record boundary is represented.',
+  safe_recovery_semantics: 'Synthetic acknowledgment records only; no operational recovery is represented.',
+  hint_and_debrief: 'Record the declared synthetic cue and its declared synthetic checkpoint only.',
+  retry_comparison: ['synthetic_cue_record', 'acknowledgment_record', 'checkpoint_record'],
+  failure_or_boundary_acceptance: 'VR-L03-v0 assumption; all cue and acknowledgment meanings remain synthetic.',
 });
 export const l04Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L04', scenario_version: 'l04-scenario-v0-draft', validation_record_id: 'VR-L04-v0',

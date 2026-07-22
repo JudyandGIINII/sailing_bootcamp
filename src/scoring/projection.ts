@@ -19,7 +19,7 @@ export interface DebriefFact {
 }
 
 export interface L03TraceEvidence {
-  readonly label: 'Synthetic episode evidence' | 'Registered reef action evidence' | 'Declared checkpoint evidence';
+  readonly label: 'Synthetic cue record' | 'Synthetic acknowledgment record' | 'Synthetic checkpoint record';
   readonly status: 'recorded' | 'unavailable_no_runtime_record';
   readonly event_id?: string;
   readonly recorded_cause?: string;
@@ -29,8 +29,8 @@ export interface L03RuntimeTraceProjection {
   readonly static_declaration: {
     readonly heading: 'Static lesson-manifest declaration';
     readonly status: 'declared_synthetic';
-    readonly episode_label: 'Synthetic gust/wave episode declaration';
-    readonly reef_action_label: 'Registered reef action declaration';
+    readonly episode_label: 'Declared synthetic cue';
+    readonly reef_action_label: 'Declared synthetic acknowledgment';
   };
   readonly runtime_trace: {
     readonly heading: 'Current runtime trace';
@@ -38,7 +38,7 @@ export interface L03RuntimeTraceProjection {
     readonly reef_action: L03TraceEvidence;
     readonly checkpoint: L03TraceEvidence;
   };
-  readonly boundary_copy: 'Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance.';
+  readonly boundary_copy: 'Synthetic acknowledgment records only. No measurement, advisory, navigation, or physical response is modeled.';
 }
 
 export interface L04TraceEvidence {
@@ -232,24 +232,24 @@ export function projectL03RuntimeTrace(
 
   const manifest = getLessonManifest('L03');
   if (!manifest || manifest.lesson_id !== 'L03') return undefined;
-  const hasDeclaredEpisode = manifest?.required_observations.some((observation) => observation.key === 'gust_wave_cue' && observation.status === 'declared_synthetic') ?? false;
-  const hasRegisteredReefAction = manifest?.permitted_actions.includes('reef') ?? false;
-  if (!hasDeclaredEpisode || !hasRegisteredReefAction) return undefined;
+  const hasDeclaredCue = manifest.required_observations.some((observation) => observation.key === 'gust_wave_cue' && observation.status === 'declared_synthetic');
+  const hasDeclaredAcknowledgment = manifest.required_observations.some((observation) => observation.key === 'synthetic_acknowledgment' && observation.status === 'declared_synthetic');
+  if (!hasDeclaredCue || !hasDeclaredAcknowledgment || !manifest.permitted_actions.includes('reef')) return undefined;
 
   return Object.freeze({
     static_declaration: Object.freeze({
       heading: 'Static lesson-manifest declaration',
       status: 'declared_synthetic',
-      episode_label: 'Synthetic gust/wave episode declaration',
-      reef_action_label: 'Registered reef action declaration',
+      episode_label: 'Declared synthetic cue',
+      reef_action_label: 'Declared synthetic acknowledgment',
     }),
     runtime_trace: Object.freeze({
       heading: 'Current runtime trace',
-      episode: traceEvidence('Synthetic episode evidence', ledger.find((event) => event.type === 'ENVIRONMENT_EPISODE' && event.lesson_id === 'L03')),
-      reef_action: traceEvidence('Registered reef action evidence', ledger.find((event) => event.type === 'ACTION_ACCEPTED' && event.action === 'reef')),
-      checkpoint: traceEvidence('Declared checkpoint evidence', ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L03')),
+      episode: traceEvidence('Synthetic cue record', ledger.find((event) => event.type === 'ENVIRONMENT_EPISODE' && event.lesson_id === 'L03' && event.cause === 'deterministic synthetic gust/wave cue')),
+      reef_action: traceEvidence('Synthetic acknowledgment record', ledger.find((event) => event.type === 'ACTION_ACCEPTED' && event.action === 'reef' && event.lesson_id === undefined)),
+      checkpoint: traceEvidence('Synthetic checkpoint record', ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L03')),
     }),
-    boundary_copy: 'Simulation-only runtime trace. Unvalidated content. Not navigation or safety guidance.',
+    boundary_copy: 'Synthetic acknowledgment records only. No measurement, advisory, navigation, or physical response is modeled.',
   });
 }
 
