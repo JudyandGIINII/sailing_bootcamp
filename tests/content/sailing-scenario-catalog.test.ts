@@ -1,10 +1,72 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalJson, classifyCurrent, classifyDominantWavePeriod, classifyWave, classifyWind, sha256Canonical, validateScenarioPackage, type ScenarioPackageV1 } from '../../src/contracts/scenario.js';
+import { canonicalJson, classifyCurrent, classifyDominantWavePeriod, classifyWave, classifyWind, scenario1ContractV1, scenario1DefaultConfigurationV1, sha256Canonical, validateScenarioPackage, type ScenarioPackageV1 } from '../../src/contracts/scenario.js';
 import { createSyntheticScenario, defaultScenarioConfiguration } from '../../src/content/scenario-catalog.js';
 import { syntheticCalibrationV1 } from '../../src/content/scenario-calibration.js';
+import { lessonManifestRegistry } from '../../src/content/lesson-manifest.js';
 import { materializeVariation, isValidVariationTrace } from '../../src/sim/scenario-variation.js';
 
+function expectDeepFrozen(value: unknown): void {
+  expect(Object.isFrozen(value)).toBe(true);
+  if (value && typeof value === 'object') Object.values(value).forEach(expectDeepFrozen);
+}
+
 describe('synthetic scenario catalog', () => {
+  it('declares the exact versioned Scenario 1 synthetic default and calibration contract', () => {
+    expect(scenario1DefaultConfigurationV1).toEqual({
+      configuration_version: 'scenario-1-default-configuration-v1',
+      start: {
+        point_of_sail: 'beam_reach',
+        sails_deployed: { main: true, jib: true },
+        wind_speed_kt: 8,
+        wave_height_m: 2,
+        current_speed_kt: 0,
+        weather: { sky: 'clear', season: 'autumn' },
+      },
+    });
+    expect(scenario1ContractV1).toMatchObject({
+      scenario_id: 'scenario-1',
+      contract_version: 'scenario-1-contract-v1',
+      scope: { calibration: 'synthetic-game-only', navigation: 'not-modeled', safety: 'not-modeled', certification: 'not-modeled', runtime_wiring: 'not-wired' },
+      default_configuration: scenario1DefaultConfigurationV1,
+      score: {
+        component_weights_basis_points: { sail_wind_fit: 5000, course_control: 3000, propulsion_context: 2000 },
+        course_control: { heading_unit: 'centidegree', full_score_through_error_centidegrees: 200, zero_score_at_or_above_error_centidegrees: 3000, interpolation: 'floor_linear' },
+        propulsion_context: {
+          normalized_engine_output: { minimum: 0, maximum: 10000 },
+          engine_only_penalty_start: 500,
+          sails_deployed_high_output_penalty_start_exclusive: 6500,
+          engine_only_maximum_penalty: 6000,
+          sails_deployed_high_output_maximum_penalty: 8000,
+        },
+      },
+      end_voyage: {
+        canonical_input: 'end_voyage',
+        same_tick_processing: 'ascending_sequence',
+        computes_after: 'lower_sequence_records',
+        freeze: 'score_contributors_and_debrief_without_another_tick',
+        higher_sequence_score_affecting_records: 'post_terminal_rejected',
+      },
+      scheduling: { stability_pacing_trigger_after_logical_seconds: 10, stability_is_completion_or_score: false },
+    });
+  });
+
+  it('keeps the Scenario 1 contract deeply immutable and JSON-serializable', () => {
+    expectDeepFrozen(scenario1DefaultConfigurationV1);
+    expectDeepFrozen(scenario1ContractV1);
+    expect(JSON.parse(JSON.stringify(scenario1ContractV1))).toEqual(scenario1ContractV1);
+  });
+
+  it('preserves the L01-L05 catalogue identity and action characterizations', () => {
+    expect(Object.keys(lessonManifestRegistry)).toEqual(['L01', 'L02', 'L03', 'L04', 'L05']);
+    expect(Object.values(lessonManifestRegistry).map(({ lesson_id, scenario_version, permitted_actions }) => ({ lesson_id, scenario_version, permitted_actions }))).toEqual([
+      { lesson_id: 'L01', scenario_version: 'l01-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'pause', 'resume', 'reset'] },
+      { lesson_id: 'L02', scenario_version: 'l02-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] },
+      { lesson_id: 'L03', scenario_version: 'l03-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'reef', 'pause', 'resume', 'reset'] },
+      { lesson_id: 'L04', scenario_version: 'l04-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] },
+      { lesson_id: 'L05', scenario_version: 'l05-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'decision_pass', 'decision_wait', 'decision_return', 'pause', 'resume', 'reset'] },
+    ]);
+  });
+
   it('classifies every declared band boundary without rounding through wind gaps', () => {
     expect([0, .6, .600001, 2, 2.000001, 3].map(classifyWave)).toEqual(['low', 'low', 'medium', 'medium', 'high', 'high']);
     expect([0, .5, .500001, 1.5, 1.500001, 2.5].map(classifyCurrent)).toEqual(['weak', 'weak', 'medium', 'medium', 'strong', 'strong']);

@@ -2,6 +2,133 @@ export const SCENARIO_SCHEMA_VERSION = 'scenario-package-v1' as const;
 export const SCENARIO_CALIBRATION_VERSION = 'synthetic-calibration-v1' as const;
 export const SYNTHETIC_SCENARIO_DATUM_V1 = 'SYNTHETIC_SCENARIO_DATUM_V1' as const;
 
+/**
+ * Data-only identity for the separately authored Scenario 1 calibration.
+ * It is intentionally not a lesson binding, replay schema, or runtime input.
+ */
+export const SCENARIO_1_CONTRACT_VERSION = 'scenario-1-contract-v1' as const;
+export const SCENARIO_1_DEFAULT_CONFIGURATION_VERSION = 'scenario-1-default-configuration-v1' as const;
+
+export interface Scenario1DefaultConfigurationV1 {
+  readonly configuration_version: typeof SCENARIO_1_DEFAULT_CONFIGURATION_VERSION;
+  readonly start: {
+    readonly point_of_sail: 'beam_reach';
+    readonly sails_deployed: { readonly main: true; readonly jib: true };
+    readonly wind_speed_kt: 8;
+    readonly wave_height_m: 2;
+    readonly current_speed_kt: 0;
+    readonly weather: { readonly sky: 'clear'; readonly season: 'autumn' };
+  };
+}
+
+export interface Scenario1ContractV1 {
+  readonly scenario_id: 'scenario-1';
+  readonly contract_version: typeof SCENARIO_1_CONTRACT_VERSION;
+  readonly scope: {
+    readonly calibration: 'synthetic-game-only';
+    readonly navigation: 'not-modeled';
+    readonly safety: 'not-modeled';
+    readonly certification: 'not-modeled';
+    readonly runtime_wiring: 'not-wired';
+  };
+  readonly default_configuration: Scenario1DefaultConfigurationV1;
+  readonly score: {
+    readonly component_weights_basis_points: {
+      readonly sail_wind_fit: 5000;
+      readonly course_control: 3000;
+      readonly propulsion_context: 2000;
+    };
+    readonly course_control: {
+      readonly heading_unit: 'centidegree';
+      readonly full_score_through_error_centidegrees: 200;
+      readonly zero_score_at_or_above_error_centidegrees: 3000;
+      readonly interpolation: 'floor_linear';
+    };
+    readonly propulsion_context: {
+      readonly normalized_engine_output: { readonly minimum: 0; readonly maximum: 10000 };
+      readonly engine_only_penalty_start: 500;
+      readonly sails_deployed_high_output_penalty_start_exclusive: 6500;
+      readonly engine_only_maximum_penalty: 6000;
+      readonly sails_deployed_high_output_maximum_penalty: 8000;
+    };
+  };
+  readonly end_voyage: {
+    readonly canonical_input: 'end_voyage';
+    readonly same_tick_processing: 'ascending_sequence';
+    readonly computes_after: 'lower_sequence_records';
+    readonly freeze: 'score_contributors_and_debrief_without_another_tick';
+    readonly higher_sequence_score_affecting_records: 'post_terminal_rejected';
+  };
+  readonly scheduling: {
+    readonly stability_pacing_trigger_after_logical_seconds: 10;
+    readonly stability_is_completion_or_score: false;
+  };
+}
+
+function deepFreeze<T>(value: T): T {
+  if (typeof value === 'object' && value !== null && !Object.isFrozen(value)) {
+    for (const nested of Object.values(value)) deepFreeze(nested);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export const scenario1DefaultConfigurationV1: Scenario1DefaultConfigurationV1 = deepFreeze({
+  configuration_version: SCENARIO_1_DEFAULT_CONFIGURATION_VERSION,
+  start: {
+    point_of_sail: 'beam_reach',
+    sails_deployed: { main: true, jib: true },
+    wind_speed_kt: 8,
+    wave_height_m: 2,
+    current_speed_kt: 0,
+    weather: { sky: 'clear', season: 'autumn' },
+  },
+});
+
+export const scenario1ContractV1: Scenario1ContractV1 = deepFreeze({
+  scenario_id: 'scenario-1',
+  contract_version: SCENARIO_1_CONTRACT_VERSION,
+  scope: {
+    calibration: 'synthetic-game-only',
+    navigation: 'not-modeled',
+    safety: 'not-modeled',
+    certification: 'not-modeled',
+    runtime_wiring: 'not-wired',
+  },
+  default_configuration: scenario1DefaultConfigurationV1,
+  score: {
+    component_weights_basis_points: {
+      sail_wind_fit: 5000,
+      course_control: 3000,
+      propulsion_context: 2000,
+    },
+    course_control: {
+      heading_unit: 'centidegree',
+      full_score_through_error_centidegrees: 200,
+      zero_score_at_or_above_error_centidegrees: 3000,
+      interpolation: 'floor_linear',
+    },
+    propulsion_context: {
+      normalized_engine_output: { minimum: 0, maximum: 10000 },
+      engine_only_penalty_start: 500,
+      sails_deployed_high_output_penalty_start_exclusive: 6500,
+      engine_only_maximum_penalty: 6000,
+      sails_deployed_high_output_maximum_penalty: 8000,
+    },
+  },
+  end_voyage: {
+    canonical_input: 'end_voyage',
+    same_tick_processing: 'ascending_sequence',
+    computes_after: 'lower_sequence_records',
+    freeze: 'score_contributors_and_debrief_without_another_tick',
+    higher_sequence_score_affecting_records: 'post_terminal_rejected',
+  },
+  scheduling: {
+    stability_pacing_trigger_after_logical_seconds: 10,
+    stability_is_completion_or_score: false,
+  },
+});
+
 export type WaveBand = 'low' | 'medium' | 'high';
 export type CurrentBand = 'weak' | 'medium' | 'strong';
 export type WindBand = 'weak' | 'medium' | 'strong';
