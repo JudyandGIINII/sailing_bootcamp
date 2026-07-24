@@ -8,11 +8,11 @@
 >
 > **Personal-use boundary:** current work remains personal, browser-local, synthetic, and non-navigation. Registry records remain `assumption`; no real-world sailing, safety, certification, physical-model, or historical-environment claim is asserted.
 >
-> **Integrated semantic-slice status (2026-07-21):** `f55877d` integrated the L01 versioned synthetic wind/course educational model; `89ab655` integrated the L02 versioned synthetic trim-input acknowledgment. Both are browser-local, deterministic, synthetic, unvalidated, and non-navigation source increments. Neither changes the registry, asserts physical sailing/trim/performance/safety truth, nor authorizes release or deployment.
+> **Integrated semantic-slice status (2026-07-21–22):** `f55877d` integrated the L01 versioned synthetic wind/course educational model; `89ab655` integrated the L02 synthetic trim-input acknowledgment; and `60202d8` integrated the bounded L03 synthetic cue/checkpoint repair. All remain browser-local, deterministic, synthetic, unvalidated, and non-navigation source increments. None changes the registry or asserts physical sailing/trim/performance/safety truth.
 >
-> **Current continuation boundary:** `ALF-20260721-0855-l03-next-slice` approved a bounded L03 synthetic cue/checkpoint acknowledgment plan. Its isolated candidate remains uncommitted because browser-local pre-terminal paused Replay V2 save/load is still under repair; it has not been integrated, pushed, deployed, or used as release evidence. Preserve the existing product/domain/release hard stops.
+> **Current continuation boundary (2026-07-24):** Scenario 1 planning correction is committed as documentation/Seed work only. `docs/design/scenario1-synthetic-score-calibration-v2.md` and `seeds/scenario1-first-playable-planning-v1.yaml` preserve the approved 50/30/20 synthetic allocation and target-heading course rule. They do **not** authorize source implementation. The next user decision is a versioned synthetic propulsion penalty curve/composition rule, followed by a separate bounded implementation authorization.
 >
-> **Resume artifact:** `docs/HANDOFF_NEXT_SESSION_L03_REPAIR_AND_DEPLOYMENT_2026-07-21.md` is the durable next-session procedure for the L03 repair and deployment preparation; it does not authorize deployment of the uncommitted candidate.
+> **Historical resume artifact:** `docs/HANDOFF_NEXT_SESSION_L03_REPAIR_AND_DEPLOYMENT_2026-07-21.md` preserves the previous L03 repair/deployment-preparation context. L03 repair is now integrated; that artifact does not authorize future deployment or Scenario 1 source work.
 
 ## 목적
 

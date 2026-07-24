@@ -1,0 +1,101 @@
+goal: >-
+  Freeze an implementation-ready planning contract for one local-only, mobile-web-first,
+  independently designed synthetic Scenario 1 in the existing Sailing Training browser
+  repository, preserving deterministic replay and explicit synthetic scoring boundaries
+  without beginning source implementation.
+task_type: analysis
+brownfield_context:
+  project_type: brownfield
+  context_references:
+    - prd.md
+    - AGENTS.md
+    - docs/contracts/determinism-replay-contract.md
+    - docs/contracts/coordinate-contract.md
+    - docs/HANDOFF.md
+    - docs/content/domain-validation-registry.yaml
+  existing_patterns:
+    - Strict TypeScript and Vite browser application
+    - PixiJS and DOM are projections; canonical truth is pure deterministic TypeScript
+    - Logical tick plus sequence is input authority; browser timestamps are non-authoritative
+    - Replay V2 must fail closed for missing or incompatible full identity
+    - Browser-local replay storage only; no backend, account, analytics, or live marine data
+  existing_dependencies:
+    - TypeScript
+    - Vite
+    - Vitest
+    - Playwright
+    - PixiJS
+constraints:
+  - Use independent UX and assets; never copy referenced games, screens, wording, or control mappings.
+  - The first playable remains local-only and touch-first, with desktop keyboard/mouse support.
+  - Scope is Scenario 1 only; the other 11 scenarios, marina flows, accounts, invitation codes, sharing, remote storage, backend, analytics, deployment, and release are out of scope.
+  - Controls remain limited to steering, engine, main/jib sail controls, sail selection/reefing, and autopilot; fixed mobile controls are steering, throttle, and immediate autopilot disengage, with detailed controls in expandable panels.
+  - Camera remains independent: ocean-area drag orbit, pinch zoom, and a fixed cockpit-switch button.
+  - End Voyage remains available at any time; stability is only a deterministic 10-second pacing trigger and never a success, failure, or completion state.
+  - All sailing rules, targets, scores, thresholds, and penalties are synthetic game calibration only and must never assert real-world navigation, safety, performance, or certification validity.
+  - Preserve exact replay determinism and pure simulation boundaries; no renderer cadence, wall clock, DOM, storage, network, or unseeded randomness may be canonical authority.
+  - Every target profile is immutable and versioned; environment events may change it only by naming a replay-visible replacement profile.
+  - Component weights are sail_wind_fit 5000, course_control 3000, and propulsion_context 2000; absent/unversioned score data fails closed and weights are never redistributed.
+  - course_control uses only shortest absolute current-heading error against the active profile synthetic_target_heading_degrees: full through 2 degrees, linearly declining to zero at 30 degrees, zero at and above 30 degrees.
+  - Approved propulsion configuration is engine-only start 500, sails-deployed high-output start strictly above 6500, and maximum penalties 6000 and 8000 on a normalized 0..10000 output scale.
+  - No propulsion interpolation or penalty-composition rule is invented: an explicit versioned curve/composition rule and fixtures require a future user decision before code can claim a complete composite score.
+acceptance_criteria:
+  - The committed planning contract consists of this Seed at seeds/scenario1-first-playable-planning-v1.yaml and docs/design/scenario1-synthetic-score-calibration-v2.md; together they identify the existing browser repository as brownfield and name its deterministic simulation, renderer, Replay V2, logical-input, local-storage, and dependency boundaries.
+  - The contract specifies an immutable versioned target profile with synthetic_target_heading_degrees and proves in boundary fixtures that course control depends only on shortest absolute heading error, is full at 2 degrees or less, linearly declines between 2 and 30 degrees, and is zero at 30 degrees or more.
+  - The contract fixes the synthetic 50/30/20 component allocation, normalized propulsion thresholds and maximum penalties, and states that absent or unversioned score data fails closed without weight redistribution.
+  - The contract states deterministic profile-change, End Voyage, HUD/debrief, and replay evidence requirements without treating environment/stability events as score, success, failure, navigation, or safety outcomes.
+  - The contract explicitly preserves the local-only, independent-design, non-navigation, non-safety, non-performance, and non-certification boundaries and enumerates excluded access, sharing, backend, analytics, deployment, release, and other-scenario work.
+  - The contract records the unresolved propulsion curve/composition decision as the only required scoring decision before a separate implementation authorization, forbids an implementation from inferring it, and gives concrete fixture categories for the eventual decision.
+ontology_schema:
+  name: Scenario1PlanningContract
+  description: >-
+    A durable planning contract for a deterministic, synthetic Scenario 1 implementation;
+    it is not runtime state or implementation authority.
+  fields:
+    - name: scenario_version
+      type: string
+      description: Versioned Scenario 1 content/calibration identity.
+      required: true
+    - name: target_profile
+      type: object
+      description: Immutable profile containing versioned synthetic target heading and authored targets.
+      required: true
+    - name: scoring_allocation
+      type: object
+      description: Integer-basis-point weights and approved propulsion thresholds/caps.
+      required: true
+    - name: deterministic_replay_requirements
+      type: object
+      description: Logical-tick, ordered-input, event, score, and debrief equivalence requirements.
+      required: true
+    - name: implementation_hold
+      type: object
+      description: Explicit propulsion curve/composition decision required before source implementation.
+      required: true
+evaluation_principles:
+  - name: decision_fidelity
+    description: Every recorded user-approved value is preserved exactly without invented policy.
+    weight: 0.35
+  - name: testability
+    description: Each planned behavior has observable fixtures or fail-closed checks.
+    weight: 0.25
+  - name: determinism
+    description: Canonical scoring and replay remain renderer- and wall-clock-independent.
+    weight: 0.2
+  - name: boundary_honesty
+    description: Synthetic/local-only limitations are explicit and no real-world claim is implied.
+    weight: 0.2
+exit_conditions:
+  - name: planning_contract_committed
+    description: Seed and linked planning contract are committed with documentation-only scope.
+    criteria: Both artifacts are tracked, syntax-checked, and match the stated acceptance criteria.
+  - name: implementation_hold_visible
+    description: The remaining propulsion curve/composition decision is explicit.
+    criteria: No artifact claims source implementation authorization or a complete score before that decision.
+metadata:
+  seed_id: seed_d5fffe901d94-corrected-planning-v1
+  supersedes_seed_id: seed_d5fffe901d94
+  interview_id: interview_20260723_111744
+  user_decision_date: '2026-07-24'
+  ambiguity_score: 0.10
+  status: user-approved planning correction; no source implementation authority

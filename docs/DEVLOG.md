@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-07-24 — Scenario 1 corrected planning Seed and synthetic score contract
+
+- User-approved documentation correction records the existing browser project as brownfield and stores the corrected planning Seed at `seeds/scenario1-first-playable-planning-v1.yaml` with a linked normative contract at `docs/design/scenario1-synthetic-score-calibration-v2.md`.
+- It preserves only recorded synthetic product decisions: `sail_wind_fit`/`course_control`/`propulsion_context` allocation `50/30/20`; immutable versioned synthetic target heading; course score at `<=2°` full, linear to zero at `>=30°`; and normalized engine-only/high-output thresholds `500`/`>6500` with caps `6000`/`8000`.
+- The document explicitly holds source implementation until the product owner selects a versioned synthetic propulsion penalty curve/composition rule. No interpolation, defaulting, or 20% weight redistribution is authorized.
+- No application source, dependency, replay-format, registry, backend, analytics, access-control, deployment, release, tag, or public-access policy changed. This remains a local-only, synthetic, non-navigation/non-safety/non-performance/non-certification planning checkpoint.
+
 ## 2026-07-22 — L03 paused Replay V2 repair, integration, and static deployment
 
 - User-approved L03 acknowledgment-only repair was completed in an isolated Orca candidate worktree, independently source-reviewed (**APPROVE**, no P0/P1), reapplied in a fresh current-`main` integration worktree, fully retested, fast-forwarded, and pushed.
