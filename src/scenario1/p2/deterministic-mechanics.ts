@@ -158,7 +158,11 @@ function exactAction(value: unknown, expectedKeys: readonly string[]): Record<st
   }
 }
 
-function parseAction(action: unknown): ParsedAction | undefined {
+/**
+ * Parses an exact P2 action envelope without coercion.  P3 reuses this guard
+ * when it carries a P2 action in its own canonical record envelope.
+ */
+export function parseP2Action(action: unknown): ParsedAction | undefined {
   const base = exactAction(action, ['type']);
   if (base && (base.type === 'reset' || base.type === 'pause' || base.type === 'resume' || base.type === 'advance')) return base as ParsedAction;
 
@@ -192,7 +196,7 @@ function setControl<K extends keyof P2Controls>(state: P2State, key: K, value: P
 
 /** Reduces one strictly validated action without browser, timer, or random input. */
 export function reduceP2State(state: P2State, action: unknown): P2State {
-  const parsed = parseAction(action);
+  const parsed = parseP2Action(action);
   if (!parsed) return state;
   switch (parsed.type) {
     case 'reset':
