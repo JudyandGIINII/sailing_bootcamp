@@ -1,10 +1,16 @@
 # DEVLOG
 
+## 2026-07-24 — Scenario 1 simple propulsion-score rule
+
+- The product owner explicitly chose a deliberately simple synthetic propulsion rule: zero penalty in `marina`, `low_speed`, or neutral output; otherwise mutually exclusive engine-only `min(6000, max(0, output-500))` or sails-deployed `min(8000, max(0, output-6500))` penalty.
+- The active penalty converts linearly and deterministically to the fixed 20-point contributor, with half-up integer rounding; no physical engine, fuel, propulsion, performance, safety, navigation, or certification meaning is implied.
+- The corrected Seed and calibration contract were updated under the same documentation-only/implementation-not-authorized boundary. No source, dependency, runtime, deployment, release, or access-policy change is included.
+
 ## 2026-07-24 — Scenario 1 corrected planning Seed and synthetic score contract
 
 - User-approved documentation correction records the existing browser project as brownfield and stores the corrected planning Seed at `seeds/scenario1-first-playable-planning-v1.yaml` with a linked normative contract at `docs/design/scenario1-synthetic-score-calibration-v2.md`.
 - It preserves only recorded synthetic product decisions: `sail_wind_fit`/`course_control`/`propulsion_context` allocation `50/30/20`; immutable versioned synthetic target heading; course score at `<=2°` full, linear to zero at `>=30°`; and normalized engine-only/high-output thresholds `500`/`>6500` with caps `6000`/`8000`.
-- The document explicitly holds source implementation until the product owner selects a versioned synthetic propulsion penalty curve/composition rule. No interpolation, defaulting, or 20% weight redistribution is authorized.
+- The document records the intentionally simple mutually exclusive propulsion formula and deterministic 20-point linear conversion. Source implementation remains a separate authorization; no additional propulsion-model design decision is required.
 - No application source, dependency, replay-format, registry, backend, analytics, access-control, deployment, release, tag, or public-access policy changed. This remains a local-only, synthetic, non-navigation/non-safety/non-performance/non-certification planning checkpoint.
 
 ## 2026-07-22 — L03 paused Replay V2 repair, integration, and static deployment

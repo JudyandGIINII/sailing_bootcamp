@@ -4,7 +4,7 @@
 **Interview:** `interview_20260723_111744`
 **Original generated Seed:** `seed_d5fffe901d94`
 **Corrected planning Seed:** `seeds/scenario1-first-playable-planning-v1.yaml`
-**Status:** User-approved documentation correction; **no source implementation authority**.
+**Status:** User-approved documentation correction with complete synthetic score contract; **no source implementation authority**.
 
 ## Decision record
 
@@ -23,15 +23,15 @@ The product owner confirmed the course-control baseline and then approved applyi
 
 Initial Seed QA returned **REVISE, 0.42/1.00** because the generated Seed incorrectly declared a greenfield project and omitted the approved calibration/target-heading contract. The correction resolves those omissions by moving the artifact to a planning Seed and attaching the normative calibration contract.
 
-## Deliberately unresolved: propulsion curve/composition
+## Resolved: deliberately simple propulsion rule
 
-The approved thresholds and caps do **not** state the penalty progression between threshold and cap or whether both penalties combine, choose one, or follow another authored rule. This correction intentionally does not invent one.
+The product owner chose a minimal synthetic rule rather than a detailed engine model. In `marina`, `low_speed`, or neutral output, propulsion penalty is zero. Otherwise the mutually exclusive engine-only and sails-deployed formulas, their caps, and the deterministic linear conversion into the fixed 20-point contributor are recorded in `docs/design/scenario1-synthetic-score-calibration-v2.md` and the planning Seed.
 
-Before a future code authorization can claim a complete composite score, the product owner must approve one versioned synthetic propulsion curve/composition rule and its boundary fixtures. Until then, source must fail closed for any profile needing that unavailable contributor; it may not interpolate/default/reweight the 20% component.
+The `sails-deployed` cap remains an authored synthetic configuration even if the normalized 0..10000 input range does not reach it with this intentionally simple rule. Nothing is inferred from physical sailing behavior.
 
 ## QA result
 
-The corrected planning Seed passed independent structural QA at **0.96/1.00** (threshold `0.90`). The final small observability clarification names the paired artifact paths directly in the first acceptance criterion; it does not expand scope or create source authority.
+The initial corrected planning Seed passed independent structural QA at **0.96/1.00** (threshold `0.90`) after the brownfield/target-heading correction. The later simple-propulsion documentation pass verified YAML parsing, formula boundary arithmetic, contract structure, and `git diff --check` locally. Its independent evaluator remained **REVISE, 0.66/1.00** because it required a complete Replay event-kind/payload/state-transition schema beyond the user-approved engine-calibration scope. The user explicitly chose to keep the deliberately simple propulsion rule and defer that whole-Replay expansion to the separately authorized implementation phase. This checkpoint makes no source-authority claim.
 
 ## QA scope for this checkpoint
 
@@ -46,4 +46,4 @@ No application source, dependencies, runtime contract, code-level scoring, workt
 
 ## Next user decision
 
-After this documentation checkpoint, the next material decision is not an automatic code start: define and approve the synthetic propulsion penalty curve/composition rule (or explicitly narrow Scenario 1 to score-unavailable while that component is absent), then separately authorize a bounded implementation scope.
+The scoring contract is now complete. A separate explicit bounded code-implementation authorization is required before creating or changing application source; it must name the intended Scenario 1 slice and retain the exact fixture categories in this Seed.

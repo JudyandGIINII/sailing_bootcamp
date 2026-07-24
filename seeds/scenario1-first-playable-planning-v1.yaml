@@ -36,16 +36,16 @@ constraints:
   - Preserve exact replay determinism and pure simulation boundaries; no renderer cadence, wall clock, DOM, storage, network, or unseeded randomness may be canonical authority.
   - Every target profile is immutable and versioned; environment events may change it only by naming a replay-visible replacement profile.
   - Component weights are sail_wind_fit 5000, course_control 3000, and propulsion_context 2000; absent/unversioned score data fails closed and weights are never redistributed.
-  - course_control uses only shortest absolute current-heading error against the active profile synthetic_target_heading_degrees: full through 2 degrees, linearly declining to zero at 30 degrees, zero at and above 30 degrees.
+  - course_control uses only shortest absolute current-heading error against the active profile synthetic_target_heading_degrees. Headings are canonical centidegrees in 0..35999: full through error 200, floor-linear decline for 200<error<3000, and zero at and above 3000; malformed headings fail closed.
   - Approved propulsion configuration is engine-only start 500, sails-deployed high-output start strictly above 6500, and maximum penalties 6000 and 8000 on a normalized 0..10000 output scale.
-  - No propulsion interpolation or penalty-composition rule is invented: an explicit versioned curve/composition rule and fixtures require a future user decision before code can claim a complete composite score.
+  - Propulsion uses the approved simple synthetic rule: in marina or low_speed, or at neutral output, penalty is zero; otherwise engine-only uses min(6000, max(0, output minus 500)) and any-sail-deployed uses min(8000, max(0, output minus 6500)). The cases are mutually exclusive. Convert penalty p to propulsion_q with 10000 minus half-up rounded p times 10000 divided by its active cap; the composite applies the fixed 2000 basis-point propulsion weight.
 acceptance_criteria:
   - The committed planning contract consists of this Seed at seeds/scenario1-first-playable-planning-v1.yaml and docs/design/scenario1-synthetic-score-calibration-v2.md; together they identify the existing browser repository as brownfield and name its deterministic simulation, renderer, Replay V2, logical-input, local-storage, and dependency boundaries.
-  - The contract specifies an immutable versioned target profile with synthetic_target_heading_degrees and proves in boundary fixtures that course control depends only on shortest absolute heading error, is full at 2 degrees or less, linearly declines between 2 and 30 degrees, and is zero at 30 degrees or more.
-  - The contract fixes the synthetic 50/30/20 component allocation, normalized propulsion thresholds and maximum penalties, and states that absent or unversioned score data fails closed without weight redistribution.
-  - The contract states deterministic profile-change, End Voyage, HUD/debrief, and replay evidence requirements without treating environment/stability events as score, success, failure, navigation, or safety outcomes.
+  - The contract specifies an immutable versioned target profile with synthetic_target_heading_degrees and exact canonical-centidegree course formula/fixtures: shortest absolute heading error is full through 200, floor-linear between 200 and 3000, and zero at 3000 or more; missing/malformed headings fail closed.
+  - The contract fixes the synthetic 50/30/20 component allocation and its complete HUD composition equation, defines canonical context/output/deployment inputs and derived-only score contributors, verifies the simple mutually exclusive propulsion formulas/zero-penalty contexts/deterministic half-up conversion, and makes invalid input a stable non-numeric replay-comparable result without weight redistribution.
+  - The contract states deterministic profile-change, canonical end_voyage terminal freeze, HUD/debrief, post-terminal rejection, and replay evidence requirements without treating environment/stability events as score, success, failure, navigation, or safety outcomes.
   - The contract explicitly preserves the local-only, independent-design, non-navigation, non-safety, non-performance, and non-certification boundaries and enumerates excluded access, sharing, backend, analytics, deployment, release, and other-scenario work.
-  - The contract records the unresolved propulsion curve/composition decision as the only required scoring decision before a separate implementation authorization, forbids an implementation from inferring it, and gives concrete fixture categories for the eventual decision.
+  - The contract records the approved simple propulsion rule and its versioned data-only fixture table with exact engine-only, sails-deployed, marina, low_speed, neutral, threshold, cap, integer-rounding, course-boundary, composite-score, and replay-independent expected outputs before a separate implementation authorization.
 ontology_schema:
   name: Scenario1PlanningContract
   description: >-
@@ -62,15 +62,15 @@ ontology_schema:
       required: true
     - name: scoring_allocation
       type: object
-      description: Integer-basis-point weights and approved propulsion thresholds/caps.
+      description: Integer-basis-point weights, complete 0..100 HUD composition, and approved propulsion thresholds/caps.
       required: true
     - name: deterministic_replay_requirements
       type: object
       description: Logical-tick, ordered-input, event, score, and debrief equivalence requirements.
       required: true
-    - name: implementation_hold
+    - name: propulsion_rule
       type: object
-      description: Explicit propulsion curve/composition decision required before source implementation.
+      description: Approved simple mutually exclusive penalty formulas, active cap, and deterministic integer conversion.
       required: true
 evaluation_principles:
   - name: decision_fidelity
@@ -89,9 +89,9 @@ exit_conditions:
   - name: planning_contract_committed
     description: Seed and linked planning contract are committed with documentation-only scope.
     criteria: Both artifacts are tracked, syntax-checked, and match the stated acceptance criteria.
-  - name: implementation_hold_visible
-    description: The remaining propulsion curve/composition decision is explicit.
-    criteria: No artifact claims source implementation authorization or a complete score before that decision.
+  - name: implementation_authorization_still_separate
+    description: The complete planning contract is present, while source implementation still needs separate explicit approval.
+    criteria: No artifact claims source implementation authorization, deployment, release, or real-world validity.
 metadata:
   seed_id: seed_d5fffe901d94-corrected-planning-v1
   supersedes_seed_id: seed_d5fffe901d94
