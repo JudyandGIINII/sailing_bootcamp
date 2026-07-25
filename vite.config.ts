@@ -9,6 +9,7 @@ export default defineConfig({
       input: {
         legacy: resolve(import.meta.dirname, 'index.html'),
         'scenario1-p4': resolve(import.meta.dirname, 'scenario1-p4.html'),
+        'scenario1-p5': resolve(import.meta.dirname, 'scenario1-p5.html'),
       },
     },
   },
