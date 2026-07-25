@@ -1,5 +1,14 @@
 # DEVLOG
 
+## 2026-07-25 — Scenario 1 P4/D10 local first playable
+
+- The approved local-only D1–D10 scope is implemented in this isolated worktree as additive `scenario1-p4.html` and `src/scenario1/p4/*`: a deterministic P2→P3 bridge and same-seed memory-only retry.
+- `scenario1-p2-p3-binding-v1` is P4 in-memory only. It does not change Replay V2, IndexedDB, the legacy main entry, L01–L05, backend/network behavior, deployment, or access policy.
+- The exact synthetic `sail_wind_fit_q` contributor uses six fields—main/jib deployment, main/jib trim, and main/jib reef—and makes no wind or physical inference. User P2 input is followed by canonical derived bridge records; invalid ordering, direct bridge input, malformed identity, and forged derived data fail closed during reduction or verification.
+- The P4 UI explicitly states synthetic/non-navigation and no-saved-replay boundaries. Reload loses the P4 attempt and must not modify legacy saved replays.
+- Independent worktree QA passed `npm run typecheck`; focused 11 P4 unit tests; `npm test` (21 files / 226 tests); `npm run build`; `npm run test:smoke -- --grep 'dedicated P4 entry'` (1 passed); `git diff --check`; and browser entry walkthrough/visual check. No deployment was performed.
+- The change remains awaiting the normal scoped commit → fresh `main` integration → `origin/main` push under the repository’s approved automatic-Git policy. No release or public-access change is claimed.
+
 ## 2026-07-24 — Scenario 1 simple propulsion-score rule
 
 - The product owner explicitly chose a deliberately simple synthetic propulsion rule: zero penalty in `marina`, `low_speed`, or neutral output; otherwise mutually exclusive engine-only `min(6000, max(0, output-500))` or sails-deployed `min(8000, max(0, output-6500))` penalty.

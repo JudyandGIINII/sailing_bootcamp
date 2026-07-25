@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scenario 1 — Synthetic Control Deck</title>
+    <style>
+      :root { color-scheme: light; font-family: system-ui, sans-serif; background: #07131f; color: #f8fafc; }
+      body { margin: 0; } main { max-width: 1100px; margin: auto; padding: 1rem; }
+      .boundary { border: 3px solid #facc15; background: #1f2937; color: #fef3c7; padding: .75rem; font-weight: 750; }
+      .card, .world, .deck { border: 2px solid #94a3b8; background: #102233; padding: 1rem; }
+      .layout { display: grid; gap: 1rem; } .world { min-height: 13rem; } .world-art { min-height: 8rem; display: grid; place-items: center; border: 3px dashed #38bdf8; color: #dbeafe; font-weight: 800; text-align: center; }
+      .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; } .control { border: 1px solid #64748b; padding: .5rem; }
+      button { min-height: 44px; padding: .55rem .8rem; margin: .15rem; color: #07131f; background: #e2e8f0; border: 2px solid #f8fafc; border-radius: 0; font: inherit; font-weight: 800; }
+      button:hover { background: #facc15; } button:disabled { opacity: .55; } button:focus, button:focus-visible { outline: 4px solid #facc15; outline-offset: 3px; }
+      dl { display: grid; grid-template-columns: max-content 1fr; gap: .35rem .8rem; } dt { font-weight: 800; } dd { margin: 0; } [hidden] { display: none !important; }
+      @media (min-width: 760px) { .layout { grid-template-columns: 1fr 1fr; } .controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+      @media (max-width: 759px) { .deck { position: sticky; bottom: 0; border-color: #facc15; } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+    </style>
+  </head>
+  <body><main id="p4-app"></main><script type="module" src="/src/scenario1/p4/browser-main.ts"></script></body>
+</html>

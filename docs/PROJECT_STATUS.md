@@ -1,44 +1,40 @@
 # Sailing Bootcamp — Project Status
 
-> 갱신: 2026-07-22 KST
-> 상태: **L03 synthetic acknowledgment-only repair integrated, verified, and publicly deployed as a static Vercel prototype.** Source/deployment baseline: `main = origin/main = 561d011788f7ceac9b5cd3b14745828d47a02cfc` before this documentation-only closeout commit.
+> 갱신: 2026-07-25 KST
+> 상태: **Approved local-only Scenario 1 P4/D10 first-playable work is implemented and independently QA-verified in this isolated worktree; it awaits normal scoped commit, fresh `main` integration, and `origin/main` push.**
 
 ## 1. Current position
 
-The L03 paused Replay V2 persistence repair is closed.
+The approved D1–D10 P4 scope is complete in this isolated worktree.
 
-- `60202d8` fixes delayed post-cue L03 acknowledgment replay authority while preserving the existing `pending → gust_wave_observed → complete/selected` synthetic-only sequence.
-- `561d011` adds minimal Vite static deployment configuration: `vercel.json` (`npm run build` → `dist`) plus `.vercelignore` for coordination/test/docs/artifact build inputs.
-- The repair was committed in an isolated candidate worktree, independently reviewed with no P0/P1 findings, reapplied in a fresh current-`main` integration worktree, retested, fast-forwarded to `main`, and pushed to `origin/main`.
+- Additive entry and implementation: `scenario1-p4.html` and `src/scenario1/p4/*`.
+- P4 provides a deterministic P2→P3 bridge with fail-closed canonical order and verification, plus same-seed memory-only retry.
+- `scenario1-p2-p3-binding-v1` is P4 in-memory only. It does not change Replay V2, IndexedDB, the legacy main entry, L01–L05, backend/network, deployment, or access policy.
+- The exact synthetic `sail_wind_fit_q` policy has six fields: main/jib deployment, main/jib trim, and main/jib reef. It does not infer wind or physical sailing behavior.
 
 ## 2. Current verification
 
 | Check | Result |
 |---|---|
-| TypeScript | PASS |
-| Vitest | 18 files / **193 tests** PASS |
-| Playwright Chromium smoke | **16 tests** PASS |
-| Vite production build | PASS |
+| TypeScript | PASS (`npm run typecheck`) |
+| Focused P4 unit tests | **11 tests** PASS |
+| Full Vitest | **21 files / 226 tests** PASS (`npm test`) |
+| Dedicated P4 entry smoke | **1 passed** (`npm run test:smoke -- --grep 'dedicated P4 entry'`) |
+| Vite production build | PASS (`npm run build`) |
 | Whitespace/diff integrity | PASS (`git diff --check`) |
-| Independent final source review | APPROVE; no P0/P1 findings |
-| Vercel dry preflight | Vite detected; `.agent`, docs, tests, artifacts, and prior `dist` excluded |
-| Public deployment probe | HTTP `200`, expected static HTML; browser loaded product title/notices/lesson selector |
+| Browser check | Dedicated entry walkthrough and visual check PASS |
 
-## 3. Deployment state
+## 3. Local-only boundaries
 
-- Vercel project: `sailing-training`
-- Deployment: `dpl_68Hqj4yDJQekxwhNYfy2sPvDKNuA`
-- URL: https://sailing-training.vercel.app
-- Vercel target reported: **production**; aliases are active and the URL was publicly reachable during verification.
-
-The deployment is a synthetic, unvalidated prototype surface only. It is not a navigation, safety, physical-performance, certification, domain-validation, release-readiness, or supported-browser claim.
+- P4 UI explicitly labels the display synthetic, unvalidated, and non-navigation; it is not safety, certification, or real-world sailing guidance.
+- P4 has no saved replay: attempts are memory-only, reload loses the P4 attempt, and P4 must not modify legacy saved replays.
+- No backend, network, deployment, or access-policy behavior was added or changed.
 
 ## 4. Product and technical boundaries
 
-- Local replay/session behavior remains browser-local; no backend, account, analytics SDK, live marine/weather data, or real-world decision authority was added.
-- L01–L05 remain synthetic/assumption-oriented prototype modules. Passing tests do not promote registry dispositions or create domain factual validation.
-- L04/L05, calculated trim/environment behavior, public productization, or access-policy changes require new scopes; none are implied by the completed L03 repair.
+- The P4 binding and scoring policy are local synthetic calibration only. They do not promote registry dispositions or create domain factual validation.
+- L01–L05, Replay V2, IndexedDB, the legacy main entry, and public/deployment access remain outside this P4 change.
 
 ## 5. Next controlled action
 
-No implementation is currently active. The next code change must start from a new bounded, evidence-backed plan and explicit user authorization. Public/protected/preview-only deployment access is a separate policy decision; the current factual state is public HTTP `200`.
+The verified P4 candidate remains awaiting the normal scoped commit → fresh `main` integration → `origin/main` push under the repository’s approved automatic-Git policy. No deployment was performed, and no release or public-access change is implied.

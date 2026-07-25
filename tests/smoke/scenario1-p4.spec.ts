@@ -1,0 +1,30 @@
+import { expect, test } from '@playwright/test';
+
+test('runs the dedicated P4 entry through onboarding, keyboard controls, debrief, retry, and reload', async ({ page }) => {
+  await page.goto('/scenario1-p4.html');
+  await expect(page.getByText('This attempt is memory-only. No saved replay is available.')).toBeVisible();
+  await page.getByRole('button', { name: 'Start' }).click();
+  await expect(page.getByRole('heading', { name: 'Before you begin' })).toBeVisible();
+  await page.getByRole('button', { name: 'Enter active play' }).click();
+  await expect(page.getByRole('heading', { name: 'Abstract synthetic world' })).toBeVisible();
+  const headingButton = page.getByRole('button', { name: 'Heading +100' });
+  await headingButton.focus();
+  await expect(headingButton).toBeFocused();
+  await expect(headingButton).toHaveCSS('outline-style', 'solid');
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Synthetic control committed in canonical logical order.')).toBeVisible();
+  await page.getByRole('button', { name: 'Pause' }).click();
+  await expect(page.locator('#hud')).toContainText('paused');
+  await expect(page.getByRole('button', { name: 'Heading +100' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Resume' }).click();
+  await page.getByRole('button', { name: 'End Voyage' }).click();
+  await expect(page.getByRole('heading', { name: 'End Voyage?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm End Voyage' }).click();
+  await expect(page.getByRole('heading', { name: 'Frozen debrief' })).toBeVisible();
+  await expect(page.getByText(/Frozen synthetic score|Score unavailable/)).toBeVisible();
+  await page.getByRole('button', { name: 'Retry same seed' }).click();
+  await expect(page.getByText('Fresh memory-only attempt created with the same public seed.')).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Scenario 1 — Synthetic Control Deck', exact: true })).toBeVisible();
+  await expect(page.getByText('This attempt is memory-only. No saved replay is available.')).toBeVisible();
+});
