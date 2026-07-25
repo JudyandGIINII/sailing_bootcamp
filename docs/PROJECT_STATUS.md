@@ -1,7 +1,7 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-07-25 KST
-> 상태: **Approved local-only Scenario 1 P4/D10 first-playable work is implemented and independently QA-verified in this isolated worktree; it awaits normal scoped commit, fresh `main` integration, and `origin/main` push.**
+> 상태: **Approved local-only Scenario 1 P4/D10 first-playable work is implemented and independently QA-verified; commit `e87b3145ca777dcd84f616d4fbcfe39e497ab35e` has been fast-forward integrated to local `main` and pushed, and `origin/main` contains it.**
 
 ## 1. Current position
 
@@ -37,4 +37,4 @@ The approved D1–D10 P4 scope is complete in this isolated worktree.
 
 ## 5. Next controlled action
 
-The verified P4 candidate remains awaiting the normal scoped commit → fresh `main` integration → `origin/main` push under the repository’s approved automatic-Git policy. No deployment was performed, and no release or public-access change is implied.
+The verified P4 change was fast-forward integrated to local `main` and pushed in commit `e87b3145ca777dcd84f616d4fbcfe39e497ab35e`; `origin/main` contains it. No deployment was performed, and no release or public-access change is implied.
