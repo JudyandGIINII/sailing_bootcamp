@@ -1,5 +1,14 @@
 # DEVLOG
 
+## 2026-07-25 — Scenario 1 P5 memory-only debrief comparison integration candidate
+
+- P5 source milestone `8f6677aff6d0e4ea729ea366d2aca96e1ab36878` (`feat(scenario1): add P5 memory-only debrief comparison`) was fast-forwarded into this fresh integration worktree from the verified P4 documentation baseline `d68266a...`.
+- The additive P5 surface is `scenario1-p5.html`, `src/scenario1/p5/*`, dedicated tests, and one Vite multipage-input addition. P4/P2/P3/Replay V2/IndexedDB/the legacy entry/L01–L05 remain unchanged.
+- P5 retains at most two terminal attempts in browser memory. Reload or navigation clears them; it accepts only the fixed seed, exact P4 binding identity, and exact target. Malformed or tampered history, and numeric, target, control, or trace mismatches, fail closed.
+- Terminal canonical values are deep immutable copies; displayed differences are current minus previous. The UI uses neutral previous/current/difference and changed/unchanged presentation only, without physical, safety, navigation, certification, or qualitative-improvement claims.
+- Final controller QA in this integration candidate passed `npm run typecheck`; `npm test` (**22 files / 232 tests**); `npm run build`; `npm run test:smoke -- --grep 'P4|P5'` (**3 passed**); `git diff --check`; independent read-only source review (**APPROVE**); and the manual dedicated-entry walkthrough (baseline → retry → previous/current comparison). Accessibility proof includes keyboard focus retention, AT-style non-pointer activation, 320px touch, focusable/keyboard-scrollable comparison regions, and visibility no-mutation.
+- P5 source/integration verification is complete; no deployment, release, or public-access action is included.
+
 ## 2026-07-25 — Scenario 1 P4/D10 local first playable
 
 - The approved local-only D1–D10 scope is implemented in this isolated worktree as additive `scenario1-p4.html` and `src/scenario1/p4/*`: a deterministic P2→P3 bridge and same-seed memory-only retry.
