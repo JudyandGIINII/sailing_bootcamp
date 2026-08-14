@@ -1,11 +1,14 @@
 import { hasStrictL01ReplayV2TerminalAuthority, hasStrictL02ReplayV2TerminalAuthority, hasStrictL03ReplayV2TerminalAuthority, type ReplayIdentity, type ReplayV2 } from '../contracts/replay.js';
 import { isLessonActionAllowedV2, resolveLessonPolicy, type DeclaredLessonAction } from '../content/lesson-manifest.js';
 import { isL01SyntheticEnvironmentV1, l01SyntheticEnvironmentV1, type L01SyntheticEnvironmentV1 } from '../contracts/l01-synthetic-environment.js';
+import { POLAR_KINEMATICS_MODEL_VERSION, isPolarKinematicsEnvironmentV1, polarKinematicsEnvironmentV1, type PolarKinematicsEnvironmentV1 } from '../contracts/polar-kinematics-environment.js';
 import { isL02SyntheticTrimProfileV1, l02SyntheticTrimProfileV1, type L02SyntheticTrimProfileV1 } from '../contracts/l02-synthetic-trim.js';
 import { isL03SyntheticAcknowledgmentProfileV2, l03SyntheticAcknowledgmentProfileV2, type L03SyntheticAcknowledgmentProfileV2 } from '../content/l02-l05.js';
 import { projectL01SyntheticObservations, type L01SyntheticObservations } from './l01-observation.js';
 import { createInitialL01SyntheticState, transitionL01SyntheticState, type L01SyntheticState } from './l01-synthetic-model.js';
 import { createInitialL02SyntheticTrimObservation, reduceL02SyntheticTrimObservation, type L02SyntheticTrimObservation } from './l02-synthetic-model.js';
+import { createInitialPolarKinematicState, transitionPolarKinematicState, type PolarKinematicState } from './polar-kinematics-model.js';
+import { projectPolarObservations, type PolarObservations } from './polar-observation.js';
 
 export type HelmCommand = 'neutral' | 'port' | 'starboard';
 export type SessionAction = DeclaredLessonAction;
@@ -21,7 +24,7 @@ export interface LedgerEvent {
   id: string;
   tick: number;
   sequence: number;
-  type: 'SESSION_STARTED' | 'ACTION_ACCEPTED' | 'LESSON_CHECKPOINT' | 'ENVIRONMENT_EPISODE' | 'SAFETY_BLOCKED' | 'L01_SYNTHETIC_TRANSITION';
+  type: 'SESSION_STARTED' | 'ACTION_ACCEPTED' | 'LESSON_CHECKPOINT' | 'ENVIRONMENT_EPISODE' | 'SAFETY_BLOCKED' | 'L01_SYNTHETIC_TRANSITION' | 'POLAR_KINEMATIC_TRANSITION';
   action?: SessionAction;
   contract_status?: 'UNVALIDATED_DOMAIN_MODEL';
   synthetic?: true;
@@ -49,6 +52,25 @@ export interface LedgerEvent {
     next_state: L01SyntheticState;
     observations: L01SyntheticObservations;
   }>;
+  polar_transition?: Readonly<{
+    environment_id: string;
+    environment_version: number;
+    model_id: string;
+    model_version: string;
+    canonical_precision_version: string;
+    accepted_helm_command: HelmCommand;
+    /** Ordered immutable input evidence consumed by this exact transition. */
+    causal_controls: readonly Readonly<{
+      logical_tick: number;
+      sequence: number;
+      helm_command: HelmCommand;
+      action_event_id: string;
+      checkpoint_event_id: string;
+    }>[];
+    prior_state: PolarKinematicState;
+    next_state: PolarKinematicState;
+    observations: PolarObservations;
+  }>;
 }
 
 export interface RawSimulationState {
@@ -70,6 +92,17 @@ export interface RawSimulationState {
   decision_state?: 'undecided' | 'pass_recorded' | 'wait_recorded' | 'return_recorded';
   l01_synthetic_state?: L01SyntheticState;
   l01_last_helm_sequence?: number;
+  /**
+   * Present only on a session whose identity declares the polar kinematics
+   * model. Deliberately optional (not part of `base`): every non-polar raw
+   * state — including legacy L01 and L02-L05 — must keep its exact existing
+   * shape so golden fixtures compare byte-identical under strict `toEqual`.
+   */
+  stw?: 'declared-unavailable' | number;
+  sog?: 'declared-unavailable' | number;
+  drift_angle?: 'declared-unavailable' | number;
+  polar_kinematic_state?: PolarKinematicState;
+  polar_last_helm_sequence?: number;
 }
 
 export interface DeterministicSession {
@@ -127,7 +160,7 @@ function immutableLedger(events: readonly LedgerEvent[]): readonly LedgerEvent[]
   return freeze(events.map((event) => freeze({ ...event })));
 }
 
-function initialRaw(seedState: number, scenario: string, l01Profile?: L01SyntheticEnvironmentV1, l02Profile?: L02SyntheticTrimProfileV1, l03Profile?: L03SyntheticAcknowledgmentProfileV2): RawSimulationState {
+function initialRaw(seedState: number, scenario: string, l01Profile?: L01SyntheticEnvironmentV1, l02Profile?: L02SyntheticTrimProfileV1, l03Profile?: L03SyntheticAcknowledgmentProfileV2, polarProfile?: PolarKinematicsEnvironmentV1): RawSimulationState {
   const base = {
     logical_tick: 0,
     rng_state: seedState,
@@ -139,6 +172,24 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
     contract_status: 'UNVALIDATED_DOMAIN_MODEL',
   } as const;
   if (scenario.startsWith('l01-')) {
+    if (polarProfile) {
+      const initialState = createInitialPolarKinematicState(polarProfile);
+      const initialTransition = transitionPolarKinematicState(polarProfile, initialState, []);
+      const observations = projectPolarObservations(polarProfile, initialTransition);
+      return freeze({
+        ...base,
+        helm_command: initialState.helm_command,
+        heading: observations.heading_rad,
+        cog: observations.cog_rad,
+        true_wind: freeze({ from_rad: observations.true_wind_from_rad, speed_mps: observations.true_wind_speed_mps }),
+        apparent_wind: freeze({ from_rad: observations.apparent_wind_from_rad, speed_mps: observations.apparent_wind_speed_mps }),
+        stw: observations.stw_mps,
+        sog: observations.sog_mps,
+        drift_angle: observations.drift_angle_rad,
+        polar_kinematic_state: initialState,
+        polar_last_helm_sequence: 0,
+      });
+    }
     if (!l01Profile) throw new CanonicalInputContractError('L01 synthetic profile is missing.');
     const initialState = createInitialL01SyntheticState(l01Profile);
     const initialTransition = transitionL01SyntheticState(l01Profile, initialState, []);
@@ -171,8 +222,11 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
 function isV2(identity: ReplayIdentity | ReplayV2): identity is ReplayV2 { return 'schema_version' in identity && identity.schema_version === 'replay-v2'; }
 function sessionLesson(identity: ReplayIdentity | ReplayV2): string { return isV2(identity) ? `${identity.lesson_binding.lesson_id.toLowerCase()}-` : identity.scenario_version; }
 function allowed(identity: ReplayIdentity | ReplayV2, action: unknown): action is DeclaredLessonAction { return isV2(identity) ? isLessonActionAllowedV2(identity.lesson_binding, action) : Boolean(resolveLessonPolicy(identity)?.permitted_actions.includes(action as DeclaredLessonAction)); }
+/** The declared model_version selects exactly one L01 environment carrier; never both. */
+function declaredModelVersion(identity: ReplayIdentity | ReplayV2): string { return isV2(identity) ? identity.lesson_binding.model_version : identity.model_version; }
 function l01Profile(identity: ReplayIdentity | ReplayV2): L01SyntheticEnvironmentV1 | undefined {
   if (!sessionLesson(identity).startsWith('l01-')) return undefined;
+  if (declaredModelVersion(identity) === POLAR_KINEMATICS_MODEL_VERSION) return undefined;
   const profile = identity.l01_synthetic_environment;
   if (!isL01SyntheticEnvironmentV1(profile) ||
     profile.environment_id !== l01SyntheticEnvironmentV1.environment_id ||
@@ -192,6 +246,30 @@ function l01Profile(identity: ReplayIdentity | ReplayV2): L01SyntheticEnvironmen
   }
   return l01SyntheticEnvironmentV1;
 }
+function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvironmentV1 | undefined {
+  if (!sessionLesson(identity).startsWith('l01-')) return undefined;
+  if (declaredModelVersion(identity) !== POLAR_KINEMATICS_MODEL_VERSION) return undefined;
+  const profile = identity.polar_kinematics_environment;
+  if (!isPolarKinematicsEnvironmentV1(profile) ||
+    profile.environment_id !== polarKinematicsEnvironmentV1.environment_id ||
+    profile.environment_version !== polarKinematicsEnvironmentV1.environment_version ||
+    profile.model_id !== polarKinematicsEnvironmentV1.model_id ||
+    profile.model_version !== polarKinematicsEnvironmentV1.model_version ||
+    profile.logical_step_seconds !== polarKinematicsEnvironmentV1.logical_step_seconds ||
+    profile.initial_position_m.x !== polarKinematicsEnvironmentV1.initial_position_m.x ||
+    profile.initial_position_m.y !== polarKinematicsEnvironmentV1.initial_position_m.y ||
+    profile.initial_heading_rad !== polarKinematicsEnvironmentV1.initial_heading_rad ||
+    profile.polar_profile_id !== polarKinematicsEnvironmentV1.polar_profile_id ||
+    profile.true_wind_from_rad !== polarKinematicsEnvironmentV1.true_wind_from_rad ||
+    profile.true_wind_speed_mps !== polarKinematicsEnvironmentV1.true_wind_speed_mps ||
+    profile.current_to_rad !== polarKinematicsEnvironmentV1.current_to_rad ||
+    profile.current_speed_mps !== polarKinematicsEnvironmentV1.current_speed_mps ||
+    profile.full_helm_turn_rad_per_step !== polarKinematicsEnvironmentV1.full_helm_turn_rad_per_step ||
+    profile.canonical_precision_version !== polarKinematicsEnvironmentV1.canonical_precision_version) {
+    throw new CanonicalInputContractError('Polar kinematics replay profile is invalid.');
+  }
+  return polarKinematicsEnvironmentV1;
+}
 function l02Profile(identity: ReplayIdentity | ReplayV2): L02SyntheticTrimProfileV1 | undefined {
   if (!isV2(identity) || identity.lesson_binding.lesson_id !== 'L02') return undefined;
   if (!hasStrictL02ReplayV2TerminalAuthority(identity) || !isL02SyntheticTrimProfileV1(identity.l02_synthetic_trim_profile)) {
@@ -207,8 +285,13 @@ function l03Profile(identity: ReplayIdentity | ReplayV2): L03SyntheticAcknowledg
   return l03SyntheticAcknowledgmentProfileV2;
 }
 function l01TransitionEventId(tick: number): string { return `l01-transition:${tick}`; }
+function polarTransitionEventId(tick: number): string { return `polar-transition:${tick}`; }
 function isL01Raw(raw: RawSimulationState): raw is RawSimulationState & { l01_synthetic_state: L01SyntheticState; l01_last_helm_sequence: number } {
   return raw.l01_synthetic_state !== undefined && raw.l01_last_helm_sequence !== undefined;
+}
+/** Mirrors `isL01Raw` for the polar carrier; `isL01Raw` itself stays untouched. */
+function isPolarRaw(raw: RawSimulationState): raw is RawSimulationState & { polar_kinematic_state: PolarKinematicState; polar_last_helm_sequence: number } {
+  return raw.polar_kinematic_state !== undefined && raw.polar_last_helm_sequence !== undefined;
 }
 
 function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number): readonly Readonly<{
@@ -251,19 +334,21 @@ function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: n
 export function createSession(identity: ReplayIdentity | ReplayV2): DeterministicSession {
   const seedState = seededState(identity.seed);
   const profile = l01Profile(identity);
+  const polarKinematicsProfile = polarProfile(identity);
   const trimProfile = l02Profile(identity);
   const acknowledgmentProfile = l03Profile(identity);
   const storedIdentity = freeze({
     ...identity,
     ordered_input_log: freeze([...identity.ordered_input_log]),
     ...(profile ? { l01_synthetic_environment: profile } : {}),
+    ...(polarKinematicsProfile ? { polar_kinematics_environment: polarKinematicsProfile } : {}),
     ...(trimProfile ? { l02_synthetic_trim_profile: trimProfile } : {}),
     ...(acknowledgmentProfile ? { l03_synthetic_acknowledgment_profile: acknowledgmentProfile } : {}),
   }) as ReplayIdentity | ReplayV2;
   return freeze({
     identity: storedIdentity,
     initial_seed_state: seedState,
-    raw: initialRaw(seedState, sessionLesson(identity), profile, trimProfile, acknowledgmentProfile),
+    raw: initialRaw(seedState, sessionLesson(identity), profile, trimProfile, acknowledgmentProfile, polarKinematicsProfile),
     ledger: immutableLedger([
       { id: eventId(0, 0, 0), tick: 0, sequence: 0, type: 'SESSION_STARTED', contract_status: 'UNVALIDATED_DOMAIN_MODEL' },
     ]),
@@ -347,6 +432,52 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
       ledger: immutableLedger([...session.ledger, event]),
     });
   }
+  if (isPolarRaw(session.raw)) {
+    const profile = polarProfile(session.identity);
+    if (!profile) throw new CanonicalInputContractError('Polar kinematics replay profile is missing.');
+    const causalControls = l01CausalControlsForTick(session.ledger, session.raw.logical_tick);
+    const transition = transitionPolarKinematicState(profile, session.raw.polar_kinematic_state, causalControls);
+    const observations = projectPolarObservations(profile, transition);
+    const transitionId = polarTransitionEventId(session.raw.logical_tick);
+    const event: LedgerEvent = {
+      id: transitionId,
+      tick: session.raw.logical_tick,
+      sequence: causalControls.at(-1)?.sequence ?? session.raw.polar_last_helm_sequence,
+      type: 'POLAR_KINEMATIC_TRANSITION',
+      lesson_id: 'L01',
+      synthetic: true,
+      polar_transition: freeze({
+        environment_id: profile.environment_id,
+        environment_version: profile.environment_version,
+        model_id: profile.model_id,
+        model_version: profile.model_version,
+        canonical_precision_version: profile.canonical_precision_version,
+        accepted_helm_command: transition.accepted_helm_command,
+        causal_controls: causalControls,
+        prior_state: transition.prior_state,
+        next_state: transition.next_state,
+        observations,
+      }),
+    };
+    return withSession(session, {
+      raw: freeze({
+        ...session.raw,
+        logical_tick: transition.next_state.logical_tick,
+        rng_state: nextRng(session.raw.rng_state),
+        helm_command: transition.accepted_helm_command,
+        heading: observations.heading_rad,
+        cog: observations.cog_rad,
+        true_wind: freeze({ from_rad: observations.true_wind_from_rad, speed_mps: observations.true_wind_speed_mps }),
+        apparent_wind: freeze({ from_rad: observations.apparent_wind_from_rad, speed_mps: observations.apparent_wind_speed_mps }),
+        stw: observations.stw_mps,
+        sog: observations.sog_mps,
+        drift_angle: observations.drift_angle_rad,
+        polar_kinematic_state: transition.next_state,
+        polar_last_helm_sequence: causalControls.at(-1)?.sequence ?? session.raw.polar_last_helm_sequence,
+      }),
+      ledger: immutableLedger([...session.ledger, event]),
+    });
+  }
   if (session.raw.lesson_id === 'L03' && session.raw.logical_tick === 0) {
     const episode: LedgerEvent = { id: eventId(0, 0, session.ledger.length), tick: 0, sequence: 0, type: 'ENVIRONMENT_EPISODE', lesson_id: 'L03', cause: 'deterministic synthetic gust/wave cue' };
     return withSession(session, { raw: freeze({ ...session.raw, logical_tick: 1, rng_state: nextRng(session.raw.rng_state), synthetic_episode: 'gust_wave_observed' }), ledger: immutableLedger([...session.ledger, episode]) });
@@ -379,7 +510,7 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
     action,
     contract_status: 'UNVALIDATED_DOMAIN_MODEL',
   };
-  let raw: RawSimulationState = isL01Raw(session.raw)
+  let raw: RawSimulationState = (isL01Raw(session.raw) || isPolarRaw(session.raw))
     ? session.raw
     : action === 'helm_port'
       ? freeze({ ...session.raw, helm_command: 'port' as const })

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { l01ReplayBindings } from '../../src/content/l01.js';
 import { l02ReplayBindings } from '../../src/content/l02-l05.js';
+import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 import { CanonicalInputContractError, applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from '../../src/sim/session.js';
 import { projectDebrief, projectScore } from '../../src/scoring/projection.js';
 import { composeGroundRelativeVelocity } from '../../src/sim/vector.js';
@@ -34,6 +35,22 @@ const fixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'u
   terminal_ticks: number;
   expected: { raw: unknown; ledger: unknown };
 };
+
+/**
+ * An L01 identity declaring the polar kinematics model. Same scenario_version
+ * as legacy L01 (per src/contracts/replay.ts); model_version alone selects
+ * which environment carrier and which model runs.
+ */
+const polarReplayBindings = Object.freeze({
+  scenario_version: l01ReplayBindings.scenario_version,
+  model_version: POLAR_KINEMATICS_MODEL_VERSION,
+  boat_profile_version: l01ReplayBindings.boat_profile_version,
+  contract_version: l01ReplayBindings.contract_version,
+  coordinate_contract_version: l01ReplayBindings.coordinate_contract_version,
+  determinism_contract_version: l01ReplayBindings.determinism_contract_version,
+  comparison_policy_version: l01ReplayBindings.comparison_policy_version,
+  polar_kinematics_environment: polarKinematicsEnvironmentV1,
+});
 
 const disallowedReplayInputCases: readonly (readonly [CanonicalInput[]])[] = [
   [[{ logical_tick: 0, sequence: 1, input: { action: 'reef' } }]],
@@ -259,6 +276,80 @@ describe('deterministic raw L01 session', () => {
       expect(projectDebrief(session.raw, session.ledger)).toContainEqual({ id: `safety:${safety!.id}`, kind: 'safety_blocked', cause_event_id: safety!.id });
     }
     expect(createSession({ ...l01ReplayBindings, seed: 'no-safety', ordered_input_log: [] }).ledger).not.toContainEqual(expect.objectContaining({ type: 'SAFETY_BLOCKED' }));
+  });
+});
+
+describe('deterministic raw polar kinematics session', () => {
+  it('creates a polar session with numeric stw/sog/drift_angle observations at tick 0', () => {
+    const identity = { ...polarReplayBindings, seed: 'polar-initial', ordered_input_log: [] };
+    const session = createSession(identity);
+    expect(session.raw.stw).toEqual(expect.any(Number));
+    expect(session.raw.sog).toEqual(expect.any(Number));
+    expect(session.raw.drift_angle).toEqual(expect.any(Number));
+    expect(session.raw.polar_kinematic_state).toBeDefined();
+  });
+
+  it('advancing a polar session appends a POLAR_KINEMATIC_TRANSITION event recording the polar model identifiers and ordered causal controls', () => {
+    const identity = { ...polarReplayBindings, seed: 'polar-advance', ordered_input_log: [] };
+    const advanced = advanceLogicalTick(createSession(identity));
+    const transition = advanced.ledger.find((event) => event.type === 'POLAR_KINEMATIC_TRANSITION');
+    expect(transition).toEqual(expect.objectContaining({
+      lesson_id: 'L01',
+      synthetic: true,
+      polar_transition: expect.objectContaining({
+        environment_id: polarKinematicsEnvironmentV1.environment_id,
+        environment_version: polarKinematicsEnvironmentV1.environment_version,
+        model_id: polarKinematicsEnvironmentV1.model_id,
+        model_version: POLAR_KINEMATICS_MODEL_VERSION,
+        canonical_precision_version: polarKinematicsEnvironmentV1.canonical_precision_version,
+        causal_controls: [],
+        prior_state: expect.any(Object),
+        next_state: expect.any(Object),
+        observations: expect.any(Object),
+      }),
+    }));
+    expect(advanced.ledger.some((event) => event.type === 'L01_SYNTHETIC_TRANSITION')).toBe(false);
+  });
+
+  it('reports sog === stw and cog === heading once the declared current is zero (FR-04, end to end)', () => {
+    expect(polarKinematicsEnvironmentV1.current_speed_mps).toBe(0);
+    const identity = { ...polarReplayBindings, seed: 'polar-fr04', ordered_input_log: [] };
+    const advanced = advanceLogicalTick(createSession(identity));
+    expect(typeof advanced.raw.sog).toBe('number');
+    expect(advanced.raw.sog).toBe(advanced.raw.stw);
+    expect(advanced.raw.cog).toBe(advanced.raw.heading);
+  });
+
+  it('keeps a legacy L01 session on the L01_SYNTHETIC_TRANSITION path with stw/sog/drift_angle left unpopulated (regression guard)', () => {
+    const identity = { ...l01ReplayBindings, seed: 'legacy-regression-guard', ordered_input_log: [] };
+    const advanced = advanceLogicalTick(createSession(identity));
+    expect(advanced.ledger.some((event) => event.type === 'L01_SYNTHETIC_TRANSITION')).toBe(true);
+    expect(advanced.ledger.some((event) => event.type === 'POLAR_KINEMATIC_TRANSITION')).toBe(false);
+    // stw/sog/drift_angle are deliberately absent (not 'declared-unavailable') on every
+    // non-polar raw state: see the field comment on RawSimulationState in src/sim/session.ts
+    // for why this stays undefined instead of a defaulted sentinel.
+    expect(advanced.raw.stw).toBeUndefined();
+    expect(advanced.raw.sog).toBeUndefined();
+    expect(advanced.raw.drift_angle).toBeUndefined();
+    expect(advanced.raw.polar_kinematic_state).toBeUndefined();
+  });
+
+  it('throws when a polar identity is missing its declared polar kinematics environment', () => {
+    const { polar_kinematics_environment: _omitted, ...rest } = polarReplayBindings;
+    void _omitted;
+    const identity = { ...rest, seed: 'polar-missing-env', ordered_input_log: [] };
+    expect(() => createSession(identity)).toThrow(CanonicalInputContractError);
+  });
+
+  it('produces deep-equal raw state and ledger for two identical polar sessions advanced the same number of ticks', () => {
+    const identity = { ...polarReplayBindings, seed: 'polar-determinism', ordered_input_log: [] };
+    let one = createSession(identity);
+    let two = createSession(identity);
+    for (let tick = 0; tick < 3; tick += 1) {
+      one = advanceLogicalTick(one);
+      two = advanceLogicalTick(two);
+    }
+    expect({ raw: one.raw, ledger: one.ledger }).toEqual({ raw: two.raw, ledger: two.ledger });
   });
 });
 
