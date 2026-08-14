@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { createSession, replayInputs, type CanonicalInput, type LedgerEvent } from '../../src/sim/session.js';
+import { advanceLogicalTick, createSession, replayInputs, type CanonicalInput, type LedgerEvent } from '../../src/sim/session.js';
 import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore } from '../../src/scoring/projection.js';
+import { l01ReplayBindings } from '../../src/content/l01.js';
+import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 
 const rawFixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: []; terminal_ticks: number };
 const scoreFixture = JSON.parse(readFileSync('tests/fixtures/l01-score-debrief-golden.json', 'utf8')) as { score: unknown; debrief_fact_kinds: unknown };
@@ -20,6 +22,29 @@ describe('score/debrief pure causality projections', () => {
     expect(projectScore(session.raw, session.ledger)).toEqual(scoreFixture.score);
     expect(projectDebrief(session.raw, session.ledger).map((fact) => fact.kind)).toEqual(scoreFixture.debrief_fact_kinds);
     expect({ raw: session.raw, ledger: session.ledger }).toEqual(rawBefore);
+  });
+
+  it('projects one synthetic_transition fact per POLAR_KINEMATIC_TRANSITION ledger event, each tied to its causing event (regression guard for the L01 polar debrief gap)', () => {
+    const identity = {
+      scenario_version: l01ReplayBindings.scenario_version,
+      seed: 'polar-debrief-regression',
+      ordered_input_log: [],
+      model_version: POLAR_KINEMATICS_MODEL_VERSION,
+      boat_profile_version: l01ReplayBindings.boat_profile_version,
+      contract_version: l01ReplayBindings.contract_version,
+      coordinate_contract_version: l01ReplayBindings.coordinate_contract_version,
+      determinism_contract_version: l01ReplayBindings.determinism_contract_version,
+      comparison_policy_version: l01ReplayBindings.comparison_policy_version,
+      polar_kinematics_environment: polarKinematicsEnvironmentV1,
+    };
+    const session = advanceLogicalTick(advanceLogicalTick(createSession(identity)));
+    const transitions = session.ledger.filter((event) => event.type === 'POLAR_KINEMATIC_TRANSITION');
+    expect(transitions).toHaveLength(2);
+
+    const syntheticTransitionFacts = projectDebrief(session.raw, session.ledger).filter((fact) => fact.kind === 'synthetic_transition');
+    expect(syntheticTransitionFacts).toHaveLength(2);
+    expect(syntheticTransitionFacts.map((fact) => fact.cause_event_id)).toEqual(transitions.map((event) => event.id));
+    expect(syntheticTransitionFacts.every((fact) => fact.synthetic === true)).toBe(true);
   });
 
   it('deduplicates repeated causes and makes a safety block non-offsettable', () => {

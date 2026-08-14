@@ -152,7 +152,7 @@ export function projectDebrief(raw: RawSimulationState, ledger: readonly LedgerE
     if (event.type === 'ACTION_ACCEPTED') facts.push({ id: `action:${event.id}`, kind: 'action_recorded', cause_event_id: event.id });
     if (event.type === 'LESSON_CHECKPOINT') facts.push({ id: `checkpoint:${event.id}`, kind: 'lesson_checkpoint', cause_event_id: event.id });
     if (event.type === 'ENVIRONMENT_EPISODE') facts.push({ id: `episode:${event.id}`, kind: 'environment_episode', cause_event_id: event.id });
-    if (event.type === 'L01_SYNTHETIC_TRANSITION') facts.push({ id: `synthetic-transition:${event.id}`, kind: 'synthetic_transition', cause_event_id: event.id, synthetic: true });
+    if (event.type === 'L01_SYNTHETIC_TRANSITION' || event.type === 'POLAR_KINEMATIC_TRANSITION') facts.push({ id: `synthetic-transition:${event.id}`, kind: 'synthetic_transition', cause_event_id: event.id, synthetic: true });
   }
   return Object.freeze(facts.map((fact) => Object.freeze(fact)));
 }
