@@ -5,6 +5,7 @@ import { createSyntheticScenario, defaultScenarioConfiguration } from '../../src
 import { l01ReplayBindings } from '../../src/content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2 } from '../../src/content/l02-l05.js';
 import { l01SyntheticEnvironmentV1 } from '../../src/contracts/l01-synthetic-environment.js';
+import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 import { l02SyntheticTrimProfileV1 } from '../../src/contracts/l02-synthetic-trim.js';
 import { materializeVariation } from '../../src/sim/scenario-variation.js';
 import { sha256Canonical } from '../../src/contracts/scenario.js';
@@ -843,5 +844,137 @@ describe('Replay V2', () => {
         : { ...base, l01_terminal_logical_tick: terminalBoundary };
     expect(isReplayV2Shape(storedPayload)).toBe(false);
     await expect(resolveReplayV2(storedPayload)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload });
+  });
+});
+
+describe('polar kinematics replay identity carrier', () => {
+  const polarL01ReplayBindings = Object.freeze({
+    scenario_version: l01ReplayBindings.scenario_version,
+    model_version: POLAR_KINEMATICS_MODEL_VERSION,
+    boat_profile_version: l01ReplayBindings.boat_profile_version,
+    contract_version: l01ReplayBindings.contract_version,
+    coordinate_contract_version: l01ReplayBindings.coordinate_contract_version,
+    determinism_contract_version: l01ReplayBindings.determinism_contract_version,
+    comparison_policy_version: l01ReplayBindings.comparison_policy_version,
+    polar_kinematics_environment: polarKinematicsEnvironmentV1,
+  });
+  const polarIdentity = { ...polarL01ReplayBindings, seed: 'polar-identity', ordered_input_log: [] };
+  const legacyIdentity = { ...l01ReplayBindings, seed: 'legacy-identity', ordered_input_log: [] };
+
+  it('accepts an L01 identity that declares the polar model and carries its canonical environment', () => {
+    expect(polarIdentity.scenario_version).toBe(l01ReplayBindings.scenario_version);
+    expect(polarIdentity.model_version).not.toBe(l01ReplayBindings.model_version);
+    expect(isReplayIdentity(polarIdentity)).toBe(true);
+    expect(resolveStoredReplay(polarIdentity, polarL01ReplayBindings)).toEqual({ outcome: 'accepted', replay: polarIdentity });
+    expect(resolveExactReplayIdentity(polarIdentity, polarIdentity)).toEqual({ outcome: 'accepted', replay: polarIdentity });
+  });
+
+  it('rejects a polar-model identity whose environment is missing, preserving the stored payload', () => {
+    const { polar_kinematics_environment: omitted, ...missing } = polarIdentity;
+    expect(omitted).toEqual(polarKinematicsEnvironmentV1);
+    expect(isReplayIdentity(missing)).toBe(false);
+    expect(resolveExactReplayIdentity(missing, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_MISSING', stored_payload: missing });
+    expect(resolveStoredReplay(missing, polarL01ReplayBindings)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_MISSING', stored_payload: missing });
+  });
+
+  it('rejects a polar-model identity that substitutes the legacy environment', () => {
+    const { polar_kinematics_environment: dropped, ...withoutPolar } = polarIdentity;
+    expect(dropped).toBeDefined();
+    const storedPayload = { ...withoutPolar, l01_synthetic_environment: l01SyntheticEnvironmentV1 };
+    expect(isReplayIdentity(storedPayload)).toBe(false);
+    expect(resolveExactReplayIdentity(storedPayload, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_MISSING', stored_payload: storedPayload });
+  });
+
+  it('rejects a tampered polar environment without altering the stored payload', () => {
+    const tampered = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, current_speed_mps: 1.5 } };
+    expect(isReplayIdentity(tampered)).toBe(true);
+    expect(resolveExactReplayIdentity(tampered, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: tampered });
+    expect(resolveStoredReplay(tampered, polarL01ReplayBindings)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: tampered });
+
+    const windTampered = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, true_wind_speed_mps: 6.5 } };
+    expect(resolveExactReplayIdentity(windTampered, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: windTampered });
+
+    const malformed = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, current_speed_mps: -1 } };
+    expect(isReplayIdentity(malformed)).toBe(false);
+    expect(resolveExactReplayIdentity(malformed, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_PAYLOAD_CORRUPT', stored_payload: malformed });
+  });
+
+  it('rejects an identity that carries both the legacy and the polar environment', () => {
+    const bothOnPolar = { ...polarIdentity, l01_synthetic_environment: l01SyntheticEnvironmentV1 };
+    expect(isReplayIdentity(bothOnPolar)).toBe(false);
+    expect(resolveExactReplayIdentity(bothOnPolar, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_PAYLOAD_CORRUPT', stored_payload: bothOnPolar });
+
+    const bothOnLegacy = { ...legacyIdentity, polar_kinematics_environment: polarKinematicsEnvironmentV1 };
+    expect(isReplayIdentity(bothOnLegacy)).toBe(false);
+    expect(resolveExactReplayIdentity(bothOnLegacy, legacyIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_PAYLOAD_CORRUPT', stored_payload: bothOnLegacy });
+  });
+
+  it('leaves the legacy L01 identity path byte-identical', () => {
+    expect(legacyIdentity.model_version).toBe('l01-synthetic-kinematics-v1');
+    expect(isReplayIdentity(legacyIdentity)).toBe(true);
+    expect(resolveStoredReplay(legacyIdentity, l01ReplayBindings)).toEqual({ outcome: 'accepted', replay: legacyIdentity });
+    expect(resolveExactReplayIdentity(legacyIdentity, legacyIdentity)).toEqual({ outcome: 'accepted', replay: legacyIdentity });
+    const strayPolar = { ...legacyIdentity, l01_synthetic_environment: polarKinematicsEnvironmentV1 };
+    expect(isReplayIdentity(strayPolar)).toBe(false);
+  });
+
+  async function createPolarL01V2Payload(seed: string): Promise<Record<string, unknown>> {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, l01_synthetic_environment: ignoredEnvironment, ...lessonBindingValues } = l01ReplayBindings;
+    void ignoredScenarioVersion;
+    void ignoredEnvironment;
+    return {
+      schema_version: 'replay-v2' as const,
+      lesson_binding: { lesson_id: 'L01' as const, ...lessonBindingValues, model_version: POLAR_KINEMATICS_MODEL_VERSION },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      polar_kinematics_environment: polarKinematicsEnvironmentV1,
+      l01_terminal_logical_tick: 0,
+      l01_terminal_paused: false,
+    };
+  }
+
+  it('accepts the polar-carrying L01 Replay V2 shape and requires the polar environment for it', async () => {
+    const payload = await createPolarL01V2Payload('v2-polar-shape');
+    expect(isReplayV2Shape(payload)).toBe(true);
+
+    const { polar_kinematics_environment: omitted, ...missing } = payload;
+    expect(omitted).toEqual(polarKinematicsEnvironmentV1);
+    expect(isReplayV2Shape(missing)).toBe(false);
+    await expect(resolveReplayV2(missing)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: missing });
+
+    const both = { ...payload, l01_synthetic_environment: l01SyntheticEnvironmentV1 };
+    expect(isReplayV2Shape(both)).toBe(false);
+    await expect(resolveReplayV2(both)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: both });
+
+    const legacyModelWithPolarEnvironment = { ...payload, lesson_binding: { ...(payload.lesson_binding as Record<string, unknown>), model_version: l01ReplayBindings.model_version } };
+    expect(isReplayV2Shape(legacyModelWithPolarEnvironment)).toBe(false);
+    await expect(resolveReplayV2(legacyModelWithPolarEnvironment)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: legacyModelWithPolarEnvironment });
+  });
+
+  it('still resolves a legacy L01 Replay V2 payload end to end', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, l01_synthetic_environment, ...lessonBindingValues } = l01ReplayBindings;
+    void ignoredScenarioVersion;
+    const seed = 'v2-legacy-still-accepted';
+    const payload = {
+      schema_version: 'replay-v2' as const,
+      lesson_binding: { lesson_id: 'L01' as const, ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      l01_synthetic_environment,
+      l01_terminal_logical_tick: 0,
+      l01_terminal_paused: false,
+    };
+    expect(isReplayV2Shape(payload)).toBe(true);
+    await expect(resolveReplayV2(payload)).resolves.toMatchObject({ outcome: 'accepted' });
+
+    const { l01_synthetic_environment: omitted, ...missing } = payload;
+    expect(omitted).toBeDefined();
+    await expect(resolveReplayV2(missing)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: missing });
   });
 });

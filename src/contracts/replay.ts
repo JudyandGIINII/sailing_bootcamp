@@ -2,6 +2,7 @@ import { getLessonManifest, isLessonActionAllowed, isLessonActionAllowedV2 } fro
 import { validateScenarioPackage, type ScenarioPackageV1 } from './scenario.js';
 import { isValidVariationTrace, type VariationTraceV1 } from '../sim/scenario-variation.js';
 import { isL01SyntheticEnvironmentV1, l01SyntheticEnvironmentV1, type L01SyntheticEnvironmentV1 } from './l01-synthetic-environment.js';
+import { POLAR_KINEMATICS_MODEL_VERSION, isPolarKinematicsEnvironmentV1, polarKinematicsEnvironmentV1, type PolarKinematicsEnvironmentV1 } from './polar-kinematics-environment.js';
 import { isL02SyntheticTrimProfileV1, l02SyntheticTrimProfileV1, type L02SyntheticTrimProfileV1 } from './l02-synthetic-trim.js';
 import { isL03SyntheticAcknowledgmentProfileV2, l03SyntheticAcknowledgmentProfileV2, type L03SyntheticAcknowledgmentProfileV2 } from '../content/l02-l05.js';
 
@@ -20,6 +21,13 @@ export const REPLAY_IDENTITY_FIELDS = [
 export type ReplayIdentityField = (typeof REPLAY_IDENTITY_FIELDS)[number];
 const L01_REPLAY_IDENTITY_FIELD = 'l01_synthetic_environment' as const;
 export const L01_REPLAY_IDENTITY_FIELDS = [...REPLAY_IDENTITY_FIELDS, L01_REPLAY_IDENTITY_FIELD] as const;
+const POLAR_REPLAY_IDENTITY_FIELD = 'polar_kinematics_environment' as const;
+/**
+ * An L01 identity keeps the same `scenario_version`; only `model_version` names
+ * which model ran. The declared model selects exactly one environment carrier,
+ * so an identity can never carry both.
+ */
+export const POLAR_L01_REPLAY_IDENTITY_FIELDS = [...REPLAY_IDENTITY_FIELDS, POLAR_REPLAY_IDENTITY_FIELD] as const;
 
 /** Versioned, renderer-independent shape for stored replay identity. */
 export const replayIdentitySchemaV1Draft = {
@@ -31,6 +39,12 @@ export const replayIdentitySchemaV1Draft = {
   variants: {
     l01: {
       required_fields: L01_REPLAY_IDENTITY_FIELDS,
+      additional_fields: 'forbidden',
+    },
+    l01_polar: {
+      selector_field: 'model_version',
+      selector_value: POLAR_KINEMATICS_MODEL_VERSION,
+      required_fields: POLAR_L01_REPLAY_IDENTITY_FIELDS,
       additional_fields: 'forbidden',
     },
     non_l01: {
@@ -60,6 +74,8 @@ export interface ReplayIdentity {
   comparison_policy_version: string;
   /** Required only for L01; legacy/incomplete L01 payloads fail closed. */
   l01_synthetic_environment?: L01SyntheticEnvironmentV1;
+  /** Required only for an L01 identity whose `model_version` is the polar kinematics model. */
+  polar_kinematics_environment?: PolarKinematicsEnvironmentV1;
 }
 
 export const REPLAY_V2_SCHEMA_VERSION = 'replay-v2' as const;
@@ -76,6 +92,8 @@ export interface ReplayV2 {
   seed: string;
   ordered_input_log: readonly OrderedInput[];
   l01_synthetic_environment?: L01SyntheticEnvironmentV1;
+  /** Required only when the L01 lesson binding declares the polar kinematics model. */
+  polar_kinematics_environment?: PolarKinematicsEnvironmentV1;
   /**
    * Required only by the strict L01 Replay V2 variant. It identifies the
    * canonical session after ordered inputs at this tick, before its advance.
@@ -151,10 +169,16 @@ function isReplayableLegacyLessonActionInput(identity: ReplayIdentity, value: un
   return identity.scenario_version !== 'l01-scenario-v0-draft' || (value as { action: unknown }).action !== 'reset';
 }
 
+/**
+ * `scenario_version` still decides whether this is an L01 identity at all;
+ * `model_version` decides only which environment carrier that identity must
+ * declare. A legacy identity therefore resolves to exactly the fields it does today.
+ */
 function identityFieldsFor(candidate: Record<string, unknown>): readonly string[] {
-  return candidate.scenario_version === 'l01-scenario-v0-draft'
-    ? L01_REPLAY_IDENTITY_FIELDS
-    : REPLAY_IDENTITY_FIELDS;
+  if (candidate.scenario_version !== 'l01-scenario-v0-draft') return REPLAY_IDENTITY_FIELDS;
+  return candidate.model_version === POLAR_KINEMATICS_MODEL_VERSION
+    ? POLAR_L01_REPLAY_IDENTITY_FIELDS
+    : L01_REPLAY_IDENTITY_FIELDS;
 }
 
 function sameL01Environment(value: unknown): boolean {
@@ -172,6 +196,56 @@ function sameL01Environment(value: unknown): boolean {
     value.true_wind_speed_mps === l01SyntheticEnvironmentV1.true_wind_speed_mps &&
     value.full_helm_turn_rad_per_step === l01SyntheticEnvironmentV1.full_helm_turn_rad_per_step &&
     value.canonical_precision_version === l01SyntheticEnvironmentV1.canonical_precision_version;
+}
+
+function samePolarEnvironment(value: unknown): boolean {
+  if (!isPolarKinematicsEnvironmentV1(value)) return false;
+  return value.environment_id === polarKinematicsEnvironmentV1.environment_id &&
+    value.environment_version === polarKinematicsEnvironmentV1.environment_version &&
+    value.model_id === polarKinematicsEnvironmentV1.model_id &&
+    value.model_version === polarKinematicsEnvironmentV1.model_version &&
+    value.logical_step_seconds === polarKinematicsEnvironmentV1.logical_step_seconds &&
+    value.initial_position_m.x === polarKinematicsEnvironmentV1.initial_position_m.x &&
+    value.initial_position_m.y === polarKinematicsEnvironmentV1.initial_position_m.y &&
+    value.initial_heading_rad === polarKinematicsEnvironmentV1.initial_heading_rad &&
+    value.polar_profile_id === polarKinematicsEnvironmentV1.polar_profile_id &&
+    value.true_wind_from_rad === polarKinematicsEnvironmentV1.true_wind_from_rad &&
+    value.true_wind_speed_mps === polarKinematicsEnvironmentV1.true_wind_speed_mps &&
+    value.current_to_rad === polarKinematicsEnvironmentV1.current_to_rad &&
+    value.current_speed_mps === polarKinematicsEnvironmentV1.current_speed_mps &&
+    value.full_helm_turn_rad_per_step === polarKinematicsEnvironmentV1.full_helm_turn_rad_per_step &&
+    value.canonical_precision_version === polarKinematicsEnvironmentV1.canonical_precision_version;
+}
+
+/** An L01 identity declares one model, so it may never carry both environment carriers. */
+interface L01EnvironmentCarrier {
+  model_version?: unknown;
+  l01_synthetic_environment?: unknown;
+  polar_kinematics_environment?: unknown;
+}
+
+function declaresBothL01Environments(candidate: L01EnvironmentCarrier): boolean {
+  return candidate.l01_synthetic_environment !== undefined && candidate.polar_kinematics_environment !== undefined;
+}
+
+/**
+ * Structural gate: the environment named by `model_version` must be present and
+ * well formed. This deliberately does not compare against the canonical profile,
+ * so a complete-but-altered environment stays an identity mismatch, not a corrupt payload.
+ */
+function hasWellFormedL01Environment(candidate: L01EnvironmentCarrier): boolean {
+  if (declaresBothL01Environments(candidate)) return false;
+  return candidate.model_version === POLAR_KINEMATICS_MODEL_VERSION
+    ? isPolarKinematicsEnvironmentV1(candidate.polar_kinematics_environment)
+    : isL01SyntheticEnvironmentV1(candidate.l01_synthetic_environment);
+}
+
+/** Identity gate: the environment named by `model_version` must equal the canonical profile. */
+function hasCanonicalL01Environment(candidate: L01EnvironmentCarrier): boolean {
+  if (declaresBothL01Environments(candidate)) return false;
+  return candidate.model_version === POLAR_KINEMATICS_MODEL_VERSION
+    ? samePolarEnvironment(candidate.polar_kinematics_environment)
+    : sameL01Environment(candidate.l01_synthetic_environment);
 }
 
 export function isReplayIdentity(value: unknown): value is ReplayIdentity {
@@ -194,7 +268,7 @@ export function isReplayIdentity(value: unknown): value is ReplayIdentity {
     isNonEmptyString(candidate.coordinate_contract_version) &&
     isNonEmptyString(candidate.determinism_contract_version) &&
     isNonEmptyString(candidate.comparison_policy_version) &&
-    (candidate.scenario_version !== 'l01-scenario-v0-draft' || isL01SyntheticEnvironmentV1(candidate.l01_synthetic_environment))
+    (candidate.scenario_version !== 'l01-scenario-v0-draft' || hasWellFormedL01Environment(candidate))
   );
 }
 
@@ -216,7 +290,7 @@ export function resolveStoredReplay(
     }
   }
   if (storedPayload.scenario_version === 'l01-scenario-v0-draft' &&
-    (!sameL01Environment(storedPayload.l01_synthetic_environment) || !sameL01Environment(supportedBindings.l01_synthetic_environment))) {
+    (!hasCanonicalL01Environment(storedPayload) || !hasCanonicalL01Environment(supportedBindings))) {
     return { outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: storedPayload };
   }
   if (!storedPayload.ordered_input_log.every((entry) => isReplayableLegacyLessonActionInput(storedPayload, entry.input))) {
@@ -236,7 +310,7 @@ export function resolveExactReplayIdentity(storedPayload: unknown, expectedIdent
       return { outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: storedPayload };
     }
   }
-  if (storedPayload.scenario_version === 'l01-scenario-v0-draft' && (!sameL01Environment(storedPayload.l01_synthetic_environment) || !sameL01Environment(expectedIdentity.l01_synthetic_environment))) {
+  if (storedPayload.scenario_version === 'l01-scenario-v0-draft' && (!hasCanonicalL01Environment(storedPayload) || !hasCanonicalL01Environment(expectedIdentity))) {
     return { outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: storedPayload };
   }
   if (!storedPayload.ordered_input_log.every((entry) => isReplayableLegacyLessonActionInput(storedPayload, entry.input))) {
@@ -255,6 +329,7 @@ const L03_REPLAY_V2_PROFILE_FIELD = 'l03_synthetic_acknowledgment_profile' as co
 const L03_REPLAY_V2_TERMINAL_TICK_FIELD = 'l03_terminal_logical_tick' as const;
 const L03_REPLAY_V2_TERMINAL_PAUSED_FIELD = 'l03_terminal_paused' as const;
 const l01V2Keys = [...v2Keys, L01_REPLAY_IDENTITY_FIELD, L01_REPLAY_V2_TERMINAL_TICK_FIELD, L01_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
+const polarL01V2Keys = [...v2Keys, POLAR_REPLAY_IDENTITY_FIELD, L01_REPLAY_V2_TERMINAL_TICK_FIELD, L01_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 const l02V2Keys = [...v2Keys, L02_REPLAY_V2_PROFILE_FIELD, L02_REPLAY_V2_TERMINAL_TICK_FIELD, L02_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 const l03V2Keys = [...v2Keys, L03_REPLAY_V2_PROFILE_FIELD, L03_REPLAY_V2_TERMINAL_TICK_FIELD, L03_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 const lessonBindingKeys = ['lesson_id', 'model_version', 'boat_profile_version', 'contract_version', 'coordinate_contract_version', 'determinism_contract_version', 'comparison_policy_version'] as const;
@@ -277,7 +352,8 @@ export function isReplayV2Shape(value: unknown): value is Omit<ReplayV2, 'scenar
   const isL01 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L01';
   const isL02 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L02';
   const isL03 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L03';
-  if (!exactKeys(candidate, isL01 ? l01V2Keys : isL02 ? l02V2Keys : isL03 ? l03V2Keys : v2Keys)) return false;
+  const isPolarL01 = isL01 && (candidate.lesson_binding as { model_version?: unknown } | undefined)?.model_version === POLAR_KINEMATICS_MODEL_VERSION;
+  if (!exactKeys(candidate, isL01 ? (isPolarL01 ? polarL01V2Keys : l01V2Keys) : isL02 ? l02V2Keys : isL03 ? l03V2Keys : v2Keys)) return false;
   const terminalTick = isL01 ? candidate.l01_terminal_logical_tick : isL02 ? candidate.l02_terminal_logical_tick : candidate.l03_terminal_logical_tick;
   const hasValidStrictTerminalBoundary = typeof terminalTick === 'number' &&
     Number.isSafeInteger(terminalTick) &&
@@ -485,7 +561,11 @@ export async function resolveReplayV2(storedPayload: unknown): Promise<ReplayV2R
   if (!isReplayV2Shape(storedPayload)) return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
   const replay = storedPayload as unknown as ReplayV2;
   if (!isRegisteredLessonBindingV2(replay.lesson_binding)) return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
-  if (replay.lesson_binding.lesson_id === 'L01' && (!isL01SyntheticEnvironmentV1(replay.l01_synthetic_environment) || !sameL01Environment(replay.l01_synthetic_environment))) return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
+  if (replay.lesson_binding.lesson_id === 'L01' && !hasCanonicalL01Environment({
+    model_version: replay.lesson_binding.model_version,
+    l01_synthetic_environment: replay.l01_synthetic_environment,
+    polar_kinematics_environment: replay.polar_kinematics_environment,
+  })) return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
   const scenario = await validateScenarioPackage(replay.scenario_snapshot);
   if (!scenario.ok || scenario.scenario.source_kind !== 'synthetic' || scenario.scenario.calibration_version !== 'synthetic-calibration-v1') return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCENARIO_INVALID', stored_payload: storedPayload };
   if (!await isValidVariationTrace(replay.variation_trace, scenario.scenario, replay.seed)) return { outcome: 'rejected', reason_code: 'REPLAY_V2_VARIATION_INVALID', stored_payload: storedPayload };
