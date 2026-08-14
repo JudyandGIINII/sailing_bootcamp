@@ -34,10 +34,15 @@ export function projectPolarObservations(
 ): PolarObservations {
   assertPolarKinematicsEnvironmentV1(profile);
   const ground = transition.ground_velocity_mps;
-  if (!Number.isFinite(ground.x) || !Number.isFinite(ground.y)) {
-    throw new TypeError('Polar observation ground velocity must be finite.');
-  }
   const heading = transition.next_state.heading_rad;
+  const apparentFrom = transition.next_state.apparent_wind_from_rad;
+  const apparentSpeed = transition.next_state.apparent_wind_speed_mps;
+  if (
+    !Number.isFinite(ground.x) || !Number.isFinite(ground.y) ||
+    !Number.isFinite(heading) || !Number.isFinite(apparentFrom) || !Number.isFinite(apparentSpeed)
+  ) {
+    throw new TypeError('Polar observation transition fields must be finite.');
+  }
   const sog = canonicalizeL01Number(Math.hypot(ground.x, ground.y));
   const stopped = sog === 0;
   let cog: number | UnavailableObservation;
@@ -58,7 +63,7 @@ export function projectPolarObservations(
     drift_angle_rad: drift,
     true_wind_from_rad: canonicalizeL01Number(normalizeL01Heading(profile.true_wind_from_rad)),
     true_wind_speed_mps: canonicalizeL01Number(profile.true_wind_speed_mps),
-    apparent_wind_from_rad: transition.next_state.apparent_wind_from_rad,
-    apparent_wind_speed_mps: transition.next_state.apparent_wind_speed_mps,
+    apparent_wind_from_rad: apparentFrom,
+    apparent_wind_speed_mps: apparentSpeed,
   });
 }
