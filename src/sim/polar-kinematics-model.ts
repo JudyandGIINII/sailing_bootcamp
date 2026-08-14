@@ -75,10 +75,9 @@ export function createInitialPolarKinematicState(profile: PolarKinematicsEnviron
     heading_rad: normalizeL01Heading(profile.initial_heading_rad),
     helm_command: 'neutral',
     // Declared initial condition: boat speed is zero, so apparent wind equals true wind.
-    // Seeded directly from the profile value (not renormalized) so it stays bit-exact
-    // with the configured true_wind_from_rad; every later tick's value is still
-    // canonicalized when it is actually derived via l01DirectionFromVector.
-    apparent_wind_from_rad: profile.true_wind_from_rad,
+    // Canonicalized like every other stored float, so state fed into the next tick's
+    // polar lookup is always 6-decimal canonical (never a raw, full-precision literal).
+    apparent_wind_from_rad: normalizeL01Heading(profile.true_wind_from_rad),
     apparent_wind_speed_mps: canonicalizeL01Number(profile.true_wind_speed_mps),
   });
 }

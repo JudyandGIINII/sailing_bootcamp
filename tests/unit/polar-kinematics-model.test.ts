@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { canonicalizeL01Number } from '../../src/contracts/l01-synthetic-environment.js';
 import { polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 import { createInitialPolarKinematicState, transitionPolarKinematicState } from '../../src/sim/polar-kinematics-model.js';
 
@@ -8,8 +9,10 @@ const withCurrent = Object.freeze({ ...polarKinematicsEnvironmentV1, current_to_
 describe('polar kinematics model', () => {
   it('seeds the initial apparent wind from true wind at zero boat speed', () => {
     const initial = createInitialPolarKinematicState(noCurrent);
-    expect(initial.apparent_wind_from_rad).toBe(noCurrent.true_wind_from_rad);
-    expect(initial.apparent_wind_speed_mps).toBe(noCurrent.true_wind_speed_mps);
+    // State is always canonicalized (6 decimals), including the tick-0 seed, so this
+    // pins the precision contract rather than comparing to the raw, full-precision literal.
+    expect(initial.apparent_wind_from_rad).toBe(canonicalizeL01Number(noCurrent.true_wind_from_rad));
+    expect(initial.apparent_wind_speed_mps).toBe(canonicalizeL01Number(noCurrent.true_wind_speed_mps));
     expect(initial.logical_tick).toBe(0);
   });
 
