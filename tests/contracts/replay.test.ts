@@ -4,6 +4,7 @@ import { L01_REPLAY_IDENTITY_FIELDS, REPLAY_IDENTITY_FIELDS, isReplayIdentity, i
 import { createSyntheticScenario, defaultScenarioConfiguration } from '../../src/content/scenario-catalog.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2 } from '../../src/content/l02-l05.js';
+import { l06ReplayBindings } from '../../src/content/l06-polar.js';
 import { l01SyntheticEnvironmentV1 } from '../../src/contracts/l01-synthetic-environment.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 import { l02SyntheticTrimProfileV1 } from '../../src/contracts/l02-synthetic-trim.js';
@@ -976,5 +977,33 @@ describe('polar kinematics replay identity carrier', () => {
     const { l01_synthetic_environment: omitted, ...missing } = payload;
     expect(omitted).toBeDefined();
     await expect(resolveReplayV2(missing)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: missing });
+  });
+
+  /**
+   * Before a lesson registered the polar model, this exact shape was unreachable:
+   * `isRegisteredLessonBindingV2` gates on the manifest registry before the
+   * environment check ever runs. Registering L06 makes it resolve end to end.
+   */
+  it('accepts a Replay V2 identity for L06 declaring polar-kinematics-v1 with a valid polar environment, end to end', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, polar_kinematics_environment, ...lessonBindingValues } = l06ReplayBindings;
+    void ignoredScenarioVersion;
+    const seed = 'v2-l06-accepted';
+    const payload = {
+      schema_version: 'replay-v2' as const,
+      lesson_binding: { lesson_id: 'L06' as const, ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      polar_kinematics_environment,
+    };
+    expect(isReplayV2Shape(payload)).toBe(true);
+    await expect(resolveReplayV2(payload)).resolves.toMatchObject({ outcome: 'accepted' });
+
+    const { polar_kinematics_environment: omittedEnvironment, ...missingEnvironment } = payload;
+    expect(omittedEnvironment).toBeDefined();
+    expect(isReplayV2Shape(missingEnvironment)).toBe(false);
+    await expect(resolveReplayV2(missingEnvironment)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: missingEnvironment });
   });
 });

@@ -1,10 +1,11 @@
 import type { LessonBindingV2, ReplayIdentity } from '../contracts/replay.js';
 import { l01Manifest, type L01Manifest, type L01SemanticAction, type RequiredObservation, type SyntheticSafetyEventDeclaration } from './l01.js';
 import { l02Manifest, l03Manifest, l04Manifest, l05Manifest, type DraftLessonManifest, type LessonAction } from './l02-l05.js';
+import { l06Manifest, type L06Manifest, type L06SemanticAction } from './l06-polar.js';
 
-export type LessonId = 'L01' | 'L02' | 'L03' | 'L04' | 'L05';
-export type DeclaredLessonAction = L01SemanticAction | LessonAction;
-export type LessonManifest = L01Manifest | DraftLessonManifest;
+export type LessonId = 'L01' | 'L02' | 'L03' | 'L04' | 'L05' | 'L06';
+export type DeclaredLessonAction = L01SemanticAction | LessonAction | L06SemanticAction;
+export type LessonManifest = L01Manifest | DraftLessonManifest | L06Manifest;
 export type LessonPolicyIdentity = Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>;
 export interface LessonObservationProjection {
   readonly key: string;
@@ -27,6 +28,7 @@ export const lessonManifestRegistry: Readonly<Record<LessonId, LessonManifest>> 
   L03: l03Manifest,
   L04: l04Manifest,
   L05: l05Manifest,
+  L06: l06Manifest,
 });
 
 export function getLessonManifest(lessonId: unknown): LessonManifest | undefined {

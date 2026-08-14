@@ -29,7 +29,7 @@ export interface LedgerEvent {
   contract_status?: 'UNVALIDATED_DOMAIN_MODEL';
   synthetic?: true;
   cause?: string;
-  lesson_id?: 'L01' | 'L02' | 'L03' | 'L04' | 'L05';
+  lesson_id?: 'L01' | 'L02' | 'L03' | 'L04' | 'L05' | 'L06';
   /** Immutable backward link from an L01 checkpoint to its already-recorded action. */
   action_event_id?: string;
   transition_event_id?: string;
@@ -82,7 +82,7 @@ export interface RawSimulationState {
   true_wind: 'declared-unavailable' | Readonly<{ from_rad: number; speed_mps: number }>;
   apparent_wind: 'declared-unavailable' | Readonly<{ from_rad: number; speed_mps: number }>;
   contract_status: 'UNVALIDATED_DOMAIN_MODEL';
-  lesson_id?: 'L02' | 'L03' | 'L04' | 'L05';
+  lesson_id?: 'L02' | 'L03' | 'L04' | 'L05' | 'L06';
   l02_trim_acknowledgment?: L02SyntheticTrimObservation;
   reef_state?: 'not_selected' | 'selected';
   synthetic_episode?: 'pending' | 'gust_wave_observed' | 'complete';
@@ -215,6 +215,26 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
   }
   if (scenario.startsWith('l04-')) return freeze({ ...base, lesson_id: 'L04', declared_navigation_concepts: 'heading_cog_stw_sog_drift_mark', mark_state: 'declared-approach' });
   if (scenario.startsWith('l05-')) return freeze({ ...base, lesson_id: 'L05', synthetic_environment: 'tide_depth_visibility_declared', decision_state: 'undecided' });
+  if (scenario.startsWith('l06-')) {
+    if (!polarProfile) throw new CanonicalInputContractError('Polar kinematics profile is missing.');
+    const initialState = createInitialPolarKinematicState(polarProfile);
+    const initialTransition = transitionPolarKinematicState(polarProfile, initialState, []);
+    const observations = projectPolarObservations(polarProfile, initialTransition);
+    return freeze({
+      ...base,
+      lesson_id: 'L06',
+      helm_command: initialState.helm_command,
+      heading: observations.heading_rad,
+      cog: observations.cog_rad,
+      true_wind: freeze({ from_rad: observations.true_wind_from_rad, speed_mps: observations.true_wind_speed_mps }),
+      apparent_wind: freeze({ from_rad: observations.apparent_wind_from_rad, speed_mps: observations.apparent_wind_speed_mps }),
+      stw: observations.stw_mps,
+      sog: observations.sog_mps,
+      drift_angle: observations.drift_angle_rad,
+      polar_kinematic_state: initialState,
+      polar_last_helm_sequence: 0,
+    });
+  }
   return freeze(base);
 }
 
@@ -247,7 +267,8 @@ function l01Profile(identity: ReplayIdentity | ReplayV2): L01SyntheticEnvironmen
   return l01SyntheticEnvironmentV1;
 }
 function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvironmentV1 | undefined {
-  if (!sessionLesson(identity).startsWith('l01-')) return undefined;
+  const lesson = sessionLesson(identity);
+  if (!lesson.startsWith('l01-') && !lesson.startsWith('l06-')) return undefined;
   if (declaredModelVersion(identity) !== POLAR_KINEMATICS_MODEL_VERSION) return undefined;
   const profile = identity.polar_kinematics_environment;
   if (!isPolarKinematicsEnvironmentV1(profile) ||
@@ -293,8 +314,12 @@ function isL01Raw(raw: RawSimulationState): raw is RawSimulationState & { l01_sy
 function isPolarRaw(raw: RawSimulationState): raw is RawSimulationState & { polar_kinematic_state: PolarKinematicState; polar_last_helm_sequence: number } {
   return raw.polar_kinematic_state !== undefined && raw.polar_last_helm_sequence !== undefined;
 }
+/** The polar carrier is shared by L01 (dead-but-built) and L06; every other lesson tags itself directly. */
+function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L06' {
+  return sessionLesson(identity).startsWith('l06-') ? 'L06' : 'L01';
+}
 
-function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number): readonly Readonly<{
+function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number, lessonId: 'L01' | 'L06'): readonly Readonly<{
   logical_tick: number;
   sequence: number;
   helm_command: HelmCommand;
@@ -303,7 +328,7 @@ function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: n
 }>[] {
   const checkpointsByActionId = new Map<string, LedgerEvent>();
   for (const event of ledger) {
-    if (event.type !== 'LESSON_CHECKPOINT' || event.lesson_id !== 'L01' || event.tick !== logicalTick) continue;
+    if (event.type !== 'LESSON_CHECKPOINT' || event.lesson_id !== lessonId || event.tick !== logicalTick) continue;
     if (!event.action_event_id || checkpointsByActionId.has(event.action_event_id)) {
       throw new CanonicalInputContractError('L01 checkpoint causal evidence is invalid.');
     }
@@ -392,7 +417,7 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
   if (isL01Raw(session.raw)) {
     const profile = l01Profile(session.identity);
     if (!profile) throw new CanonicalInputContractError('L01 synthetic replay profile is missing.');
-    const causalControls = l01CausalControlsForTick(session.ledger, session.raw.logical_tick);
+    const causalControls = l01CausalControlsForTick(session.ledger, session.raw.logical_tick, 'L01');
     const transition = transitionL01SyntheticState(profile, session.raw.l01_synthetic_state, causalControls);
     const observations = projectL01SyntheticObservations(profile, transition);
     const transitionId = l01TransitionEventId(session.raw.logical_tick);
@@ -435,7 +460,8 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
   if (isPolarRaw(session.raw)) {
     const profile = polarProfile(session.identity);
     if (!profile) throw new CanonicalInputContractError('Polar kinematics replay profile is missing.');
-    const causalControls = l01CausalControlsForTick(session.ledger, session.raw.logical_tick);
+    const lessonTag = polarLessonTag(session.identity);
+    const causalControls = l01CausalControlsForTick(session.ledger, session.raw.logical_tick, lessonTag);
     const transition = transitionPolarKinematicState(profile, session.raw.polar_kinematic_state, causalControls);
     const observations = projectPolarObservations(profile, transition);
     const transitionId = polarTransitionEventId(session.raw.logical_tick);
@@ -444,7 +470,7 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
       tick: session.raw.logical_tick,
       sequence: causalControls.at(-1)?.sequence ?? session.raw.polar_last_helm_sequence,
       type: 'POLAR_KINEMATIC_TRANSITION',
-      lesson_id: 'L01',
+      lesson_id: lessonTag,
       synthetic: true,
       polar_transition: freeze({
         environment_id: profile.environment_id,
@@ -518,8 +544,8 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
         ? freeze({ ...session.raw, helm_command: 'starboard' as const })
         : session.raw;
   let extra: LedgerEvent | undefined;
-  if (sessionLesson(session.identity).startsWith('l01-') && (action === 'helm_port' || action === 'helm_starboard')) {
-    extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L01', cause: 'declared helm correction recorded', action_event_id: event.id };
+  if ((isL01Raw(session.raw) || isPolarRaw(session.raw)) && (action === 'helm_port' || action === 'helm_starboard')) {
+    extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: polarLessonTag(session.identity), cause: 'declared helm correction recorded', action_event_id: event.id };
   }
   if (raw.lesson_id === 'L02' && (action === 'main_trim' || action === 'jib_trim')) {
     const previousAcknowledgment = raw.l02_trim_acknowledgment;

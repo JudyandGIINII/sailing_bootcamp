@@ -57,13 +57,14 @@ describe('synthetic scenario catalog', () => {
   });
 
   it('preserves the L01-L05 catalogue identity and action characterizations', () => {
-    expect(Object.keys(lessonManifestRegistry)).toEqual(['L01', 'L02', 'L03', 'L04', 'L05']);
+    expect(Object.keys(lessonManifestRegistry)).toEqual(['L01', 'L02', 'L03', 'L04', 'L05', 'L06']);
     expect(Object.values(lessonManifestRegistry).map(({ lesson_id, scenario_version, permitted_actions }) => ({ lesson_id, scenario_version, permitted_actions }))).toEqual([
       { lesson_id: 'L01', scenario_version: 'l01-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'pause', 'resume', 'reset'] },
       { lesson_id: 'L02', scenario_version: 'l02-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] },
       { lesson_id: 'L03', scenario_version: 'l03-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'reef', 'pause', 'resume', 'reset'] },
       { lesson_id: 'L04', scenario_version: 'l04-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] },
       { lesson_id: 'L05', scenario_version: 'l05-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'decision_pass', 'decision_wait', 'decision_return', 'pause', 'resume', 'reset'] },
+      { lesson_id: 'L06', scenario_version: 'l06-polar-scenario-v0-draft', permitted_actions: ['helm_port', 'helm_starboard', 'pause', 'resume', 'reset'] },
     ]);
   });
 

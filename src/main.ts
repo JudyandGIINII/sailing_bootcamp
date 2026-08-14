@@ -23,7 +23,7 @@ if (!app) throw new Error('Application mount point is missing.');
 const mount = app;
 
 type ReplayBindings = Omit<ReplayIdentity, 'seed' | 'ordered_input_log'>;
-type LessonRuntime = { id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05'; bindings: ReplayBindings; actions: readonly CanonicalInput['input']['action'][]; controls: string };
+type LessonRuntime = { id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05' | 'L06'; bindings: ReplayBindings; actions: readonly CanonicalInput['input']['action'][]; controls: string };
 const lessons: readonly LessonRuntime[] = [
   { id: 'L01', bindings: l01ReplayBindings, actions: getLessonManifest('L01')!.permitted_actions, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
   { id: 'L02', bindings: l02ReplayBindings, actions: getLessonManifest('L02')!.permitted_actions, controls: 'M adjusts declared main trim; J adjusts declared jib trim; Left/Right helm; Space pause/resume.' },

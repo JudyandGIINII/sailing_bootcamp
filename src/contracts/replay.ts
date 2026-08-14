@@ -80,7 +80,7 @@ export interface ReplayIdentity {
 
 export const REPLAY_V2_SCHEMA_VERSION = 'replay-v2' as const;
 export interface LessonBindingV2 {
-  lesson_id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05';
+  lesson_id: 'L01' | 'L02' | 'L03' | 'L04' | 'L05' | 'L06';
   model_version: string; boat_profile_version: string; contract_version: string;
   coordinate_contract_version: string; determinism_contract_version: string; comparison_policy_version: string;
 }
@@ -92,7 +92,7 @@ export interface ReplayV2 {
   seed: string;
   ordered_input_log: readonly OrderedInput[];
   l01_synthetic_environment?: L01SyntheticEnvironmentV1;
-  /** Required only when the L01 lesson binding declares the polar kinematics model. */
+  /** Required when the L01 lesson binding declares the polar kinematics model, and always for L06. */
   polar_kinematics_environment?: PolarKinematicsEnvironmentV1;
   /**
    * Required only by the strict L01 Replay V2 variant. It identifies the
@@ -332,6 +332,8 @@ const l01V2Keys = [...v2Keys, L01_REPLAY_IDENTITY_FIELD, L01_REPLAY_V2_TERMINAL_
 const polarL01V2Keys = [...v2Keys, POLAR_REPLAY_IDENTITY_FIELD, L01_REPLAY_V2_TERMINAL_TICK_FIELD, L01_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 const l02V2Keys = [...v2Keys, L02_REPLAY_V2_PROFILE_FIELD, L02_REPLAY_V2_TERMINAL_TICK_FIELD, L02_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 const l03V2Keys = [...v2Keys, L03_REPLAY_V2_PROFILE_FIELD, L03_REPLAY_V2_TERMINAL_TICK_FIELD, L03_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
+/** L06 is not a strict terminal-authority variant; it carries only the polar environment. */
+const l06V2Keys = [...v2Keys, POLAR_REPLAY_IDENTITY_FIELD] as const;
 const lessonBindingKeys = ['lesson_id', 'model_version', 'boat_profile_version', 'contract_version', 'coordinate_contract_version', 'determinism_contract_version', 'comparison_policy_version'] as const;
 const orderedInputKeys = ['logical_tick', 'sequence', 'input'] as const;
 function exactKeys(value: unknown, keys: readonly string[]): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key)); }
@@ -352,15 +354,16 @@ export function isReplayV2Shape(value: unknown): value is Omit<ReplayV2, 'scenar
   const isL01 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L01';
   const isL02 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L02';
   const isL03 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L03';
+  const isL06 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L06';
   const isPolarL01 = isL01 && (candidate.lesson_binding as { model_version?: unknown } | undefined)?.model_version === POLAR_KINEMATICS_MODEL_VERSION;
-  if (!exactKeys(candidate, isL01 ? (isPolarL01 ? polarL01V2Keys : l01V2Keys) : isL02 ? l02V2Keys : isL03 ? l03V2Keys : v2Keys)) return false;
+  if (!exactKeys(candidate, isL01 ? (isPolarL01 ? polarL01V2Keys : l01V2Keys) : isL02 ? l02V2Keys : isL03 ? l03V2Keys : isL06 ? l06V2Keys : v2Keys)) return false;
   const terminalTick = isL01 ? candidate.l01_terminal_logical_tick : isL02 ? candidate.l02_terminal_logical_tick : candidate.l03_terminal_logical_tick;
   const hasValidStrictTerminalBoundary = typeof terminalTick === 'number' &&
     Number.isSafeInteger(terminalTick) &&
     terminalTick >= 0 &&
     Array.isArray(candidate.ordered_input_log) &&
     candidate.ordered_input_log.every((entry) => isReplayV2OrderedInput(entry) && entry.logical_tick <= terminalTick);
-  return candidate.schema_version === REPLAY_V2_SCHEMA_VERSION && isNonEmptyString(candidate.seed) && Array.isArray(candidate.ordered_input_log) && candidate.ordered_input_log.every(isReplayV2OrderedInput) && isStrictlyOrderedInputLog(candidate.ordered_input_log) && exactKeys(candidate.lesson_binding, lessonBindingKeys) && Object.values(candidate.lesson_binding as Record<string, unknown>).every(isNonEmptyString) && ['L01', 'L02', 'L03', 'L04', 'L05'].includes((candidate.lesson_binding as Record<string, unknown>).lesson_id as string) &&
+  return candidate.schema_version === REPLAY_V2_SCHEMA_VERSION && isNonEmptyString(candidate.seed) && Array.isArray(candidate.ordered_input_log) && candidate.ordered_input_log.every(isReplayV2OrderedInput) && isStrictlyOrderedInputLog(candidate.ordered_input_log) && exactKeys(candidate.lesson_binding, lessonBindingKeys) && Object.values(candidate.lesson_binding as Record<string, unknown>).every(isNonEmptyString) && ['L01', 'L02', 'L03', 'L04', 'L05', 'L06'].includes((candidate.lesson_binding as Record<string, unknown>).lesson_id as string) &&
     (!isL01 || (hasValidStrictTerminalBoundary && typeof candidate.l01_terminal_paused === 'boolean')) &&
     (!isL02 || (isL02SyntheticTrimProfileV1(candidate.l02_synthetic_trim_profile) && hasValidStrictTerminalBoundary && typeof candidate.l02_terminal_paused === 'boolean')) &&
     (!isL03 || (isL03SyntheticAcknowledgmentProfileV2(candidate.l03_synthetic_acknowledgment_profile) && hasValidStrictTerminalBoundary && typeof candidate.l03_terminal_paused === 'boolean'));
@@ -561,7 +564,7 @@ export async function resolveReplayV2(storedPayload: unknown): Promise<ReplayV2R
   if (!isReplayV2Shape(storedPayload)) return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
   const replay = storedPayload as unknown as ReplayV2;
   if (!isRegisteredLessonBindingV2(replay.lesson_binding)) return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
-  if (replay.lesson_binding.lesson_id === 'L01' && !hasCanonicalL01Environment({
+  if ((replay.lesson_binding.lesson_id === 'L01' || replay.lesson_binding.lesson_id === 'L06') && !hasCanonicalL01Environment({
     model_version: replay.lesson_binding.model_version,
     l01_synthetic_environment: replay.l01_synthetic_environment,
     polar_kinematics_environment: replay.polar_kinematics_environment,

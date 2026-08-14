@@ -147,6 +147,7 @@ records:
     lesson_id:
       - L01
       - L04
+      - L06
     claim_or_assumption: >-
       Synthetic 8x6 polar table mapping (apparent wind angle, true wind speed) to a
       target speed through water for training-sloop-v1, together with the declared
