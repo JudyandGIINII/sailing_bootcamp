@@ -5,3 +5,4 @@ playwright-report/
 blob-report/
 playwright/.cache/
 artifacts/release-evidence/generated/
+.superpowers/
