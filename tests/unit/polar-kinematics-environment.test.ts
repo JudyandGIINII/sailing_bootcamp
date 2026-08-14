@@ -23,4 +23,18 @@ describe('polar kinematics environment contract', () => {
     expect(() => assertPolarKinematicsEnvironmentV1({ ...polarKinematicsEnvironmentV1, model_id: 'other' })).toThrow(TypeError);
     expect(() => assertPolarKinematicsEnvironmentV1(null)).toThrow(TypeError);
   });
+
+  it('rejects profiles with a missing key or an extra unknown key', () => {
+    const { current_to_rad, ...missingKey } = polarKinematicsEnvironmentV1;
+    void current_to_rad;
+    expect(() => assertPolarKinematicsEnvironmentV1(missingKey)).toThrow(TypeError);
+
+    const extraKey = { ...polarKinematicsEnvironmentV1, unexpected_field: 1 };
+    expect(() => assertPolarKinematicsEnvironmentV1(extraKey)).toThrow(TypeError);
+  });
+
+  it('enforces >= 0 for current_speed_mps and > 0 for logical_step_seconds', () => {
+    expect(() => assertPolarKinematicsEnvironmentV1({ ...polarKinematicsEnvironmentV1, current_speed_mps: 0 })).not.toThrow();
+    expect(() => assertPolarKinematicsEnvironmentV1({ ...polarKinematicsEnvironmentV1, logical_step_seconds: 0 })).toThrow(TypeError);
+  });
 });
