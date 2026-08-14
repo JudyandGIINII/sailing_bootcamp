@@ -1,4 +1,5 @@
 import { assertL01SyntheticEnvironmentV1, canonicalizeL01Number, type L01SyntheticEnvironmentV1 } from '../contracts/l01-synthetic-environment.js';
+import { validateHelmControls } from './helm-controls.js';
 
 export type L01HelmCommand = 'neutral' | 'port' | 'starboard';
 
@@ -70,19 +71,6 @@ export function l01DirectionFromVector(vector: Readonly<{ x: number; y: number }
   return normalizeL01Heading(Math.atan2(vector.x, vector.y));
 }
 
-function validatedControls(prior: L01SyntheticState, controls: readonly L01HelmControl[]): readonly L01HelmControl[] {
-  const ordered = [...controls].sort((left, right) => left.logical_tick - right.logical_tick || left.sequence - right.sequence);
-  for (let index = 0; index < ordered.length; index += 1) {
-    const control = ordered[index];
-    const previous = ordered[index - 1];
-    if (!control || control.logical_tick !== prior.logical_tick || !Number.isSafeInteger(control.sequence) || control.sequence < 0 || !['neutral', 'port', 'starboard'].includes(control.helm_command) ||
-      (previous !== undefined && previous.logical_tick === control.logical_tick && previous.sequence === control.sequence)) {
-      throw new TypeError('L01 helm controls must have unique ordered logical tick and sequence values.');
-    }
-  }
-  return Object.freeze(ordered.map((control) => Object.freeze({ ...control })));
-}
-
 /**
  * One renderer-independent fixed logical step. All outputs are copied and
  * canonicalized only for authoritative state/event serialization.
@@ -94,7 +82,7 @@ export function transitionL01SyntheticState(
 ): L01SyntheticTransition {
   assertL01SyntheticEnvironmentV1(profile);
   assertFiniteState(priorState);
-  const controls = validatedControls(priorState, orderedControls);
+  const controls = validateHelmControls(priorState.logical_tick, orderedControls);
   const acceptedHelm = controls.at(-1)?.helm_command ?? priorState.helm_command;
   const turn = acceptedHelm === 'port' ? -profile.full_helm_turn_rad_per_step : acceptedHelm === 'starboard' ? profile.full_helm_turn_rad_per_step : 0;
   const heading = normalizeL01Heading(priorState.heading_rad + turn);
