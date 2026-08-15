@@ -1006,4 +1006,49 @@ describe('polar kinematics replay identity carrier', () => {
     expect(isReplayV2Shape(missingEnvironment)).toBe(false);
     await expect(resolveReplayV2(missingEnvironment)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: missingEnvironment });
   });
+
+  it('preserves the polar kinematics environment through save, resolve, and replay for a live L06 session', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredScenarioVersion, polar_kinematics_environment, ...lessonBindingValues } = l06ReplayBindings;
+    void ignoredScenarioVersion;
+    const seed = 'l06-v2-round-trip';
+    const inputs: CanonicalInput[] = [
+      { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } },
+    ];
+    const attempt: ReplayV2 = {
+      schema_version: 'replay-v2',
+      lesson_binding: { lesson_id: 'L06', ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      polar_kinematics_environment,
+    };
+
+    const initial = createSession(attempt);
+    const afterHelm = applyCanonicalInput(initial, inputs[0]!);
+    const complete = advanceLogicalTick(afterHelm);
+    const live = {
+      raw: complete.raw,
+      ledger: complete.ledger,
+      paused: complete.paused,
+      debrief: projectDebrief(complete.raw, complete.ledger),
+    };
+
+    const persisted = serializeReplayV2Attempt(attempt, inputs, complete.raw.logical_tick, complete.paused);
+    expect(persisted.ordered_input_log).toEqual(inputs);
+    expect(persisted.polar_kinematics_environment).toEqual(polar_kinematics_environment);
+    const resolution = await resolveReplayV2(persisted);
+    expect(resolution.outcome).toBe('accepted');
+    if (resolution.outcome !== 'accepted') return;
+    expect(resolution.replay.polar_kinematics_environment).toEqual(polar_kinematics_environment);
+
+    const restored = replayInputs(resolution.replay, resolution.replay.ordered_input_log as readonly CanonicalInput[], complete.raw.logical_tick);
+    expect({
+      raw: restored.raw,
+      ledger: restored.ledger,
+      paused: restored.paused,
+      debrief: projectDebrief(restored.raw, restored.ledger),
+    }).toEqual(live);
+  });
 });

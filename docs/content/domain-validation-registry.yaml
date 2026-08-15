@@ -145,8 +145,6 @@ records:
     disposition: assumption
   - validation_record_id: VR-POLAR-v0
     lesson_id:
-      - L01
-      - L04
       - L06
     claim_or_assumption: >-
       Synthetic 8x6 polar table mapping (apparent wind angle, true wind speed) to a

@@ -5,6 +5,8 @@
 
 ## 1. Current position
 
+Before this work, Scenario 1 P2–P5 (deterministic mechanics, a scoring freeze, a memory-only P4 control deck, and a P5 debrief comparison) were completed and already integrated: `origin/main` at commit `2b99636` (`docs(scenario1): record P5 debrief verification`) carries that work, and this branch is built on top of it (confirmed via `git log`).
+
 A polar-based boat model plus water-current vector composition is reachable through **L06**, a new lesson exposed in the browser UI. L06 is **not** a sixth mandatory lesson — the PRD (§7.2) fixes the mandatory set as L01–L05, and L06 exists to make the polar model reachable and testable.
 
 - `src/contracts/polar-profile.ts` declares a synthetic 8×6 polar table (apparent wind angle × true wind speed → target speed through water): 48 invented educational values, `validation_record_id: 'VR-POLAR-v0'`, `validation_disposition: 'assumption'`.
@@ -37,7 +39,7 @@ A polar-based boat model plus water-current vector composition is reachable thro
 
 What this work closes (for L06 only):
 - PRD §8.1 wind row — `(apparent wind angle, true wind speed) → target speed` is genuinely computed.
-- PRD §8.1 current row — SOG/COG and drift derive from vector composition.
+- PRD §8.1 current row — SOG/COG and drift derive from vector composition, but the shipped L06 environment (`src/contracts/polar-kinematics-environment.ts`) declares `current_to_rad: 0` and `current_speed_mps: 0`, and the replay identity check pins every reachable session to that exact profile. At runtime, SOG therefore always equals STW and COG always equals heading, and drift is always 0. The composition path itself is implemented and covered by unit tests that construct a non-zero `withCurrent` override, but that path is not exercised by anything a user can reach today.
 - PRD §8.2 polar bullet; PRD FR-04 — STW/SOG and heading/COG are separated and computed.
 
 What this work does **not** close:
