@@ -1,51 +1,59 @@
 # Sailing Bootcamp — Project Status
 
-> 갱신: 2026-07-25 KST
-> 상태: **Approved local-only Scenario 1 P4/D10 first-playable work remains implemented and independently QA-verified; commit `e87b3145ca777dcd84f616d4fbcfe39e497ab35e` was fast-forward integrated to local `main` and pushed, and `origin/main` contains it. P5 source/integration verification is complete.**
+> 갱신: 2026-08-15 KST
+> 상태: **A polar-based boat model and water-current vector composition are implemented, additively, behind a NEW non-mandatory lesson L06. L01–L05 (the PRD §7.2 mandatory MVP set) are byte-identical to before this work.**
 
 ## 1. Current position
 
-The approved D1–D10 P4 scope is complete in this isolated worktree.
+A polar-based boat model plus water-current vector composition is reachable through **L06**, a new lesson exposed in the browser UI. L06 is **not** a sixth mandatory lesson — the PRD (§7.2) fixes the mandatory set as L01–L05, and L06 exists to make the polar model reachable and testable.
 
-- Additive entry and implementation: `scenario1-p4.html` and `src/scenario1/p4/*`.
-- P4 provides a deterministic P2→P3 bridge with fail-closed canonical order and verification, plus same-seed memory-only retry.
-- `scenario1-p2-p3-binding-v1` is P4 in-memory only. It does not change Replay V2, IndexedDB, the legacy main entry, L01–L05, backend/network, deployment, or access policy.
-- The exact synthetic `sail_wind_fit_q` policy has six fields: main/jib deployment, main/jib trim, and main/jib reef. It does not infer wind or physical sailing behavior.
+- `src/contracts/polar-profile.ts` declares a synthetic 8×6 polar table (apparent wind angle × true wind speed → target speed through water): 48 invented educational values, `validation_record_id: 'VR-POLAR-v0'`, `validation_disposition: 'assumption'`.
+- `src/sim/polar.ts` performs the bilinear lookup with symmetric angle folding and out-of-grid clamping.
+- `src/contracts/polar-kinematics-environment.ts` declares the environment contract (`model_version: 'polar-kinematics-v1'`); it has no `forward_speed_mps` and instead adds `current_to_rad` / `current_speed_mps`.
+- `src/sim/polar-kinematics-model.ts` computes the per-tick transition: speed comes from the polar, and the current vector is composed into ground velocity via the pre-existing `composeGroundRelativeVelocity`. `src/sim/polar-observation.ts` projects STW / SOG / COG / drift from it.
+- `src/contracts/replay.ts` carries and validates `polar_kinematics_environment` on the replay identity, selected by `model_version`.
+- `src/sim/session.ts` runs the polar path and emits `POLAR_KINEMATIC_TRANSITION` ledger events; `src/scoring/projection.ts` projects a `synthetic_transition` debrief fact for each one.
+- `src/content/l06-polar.ts` is the L06 lesson manifest; `src/main.ts` makes L06 selectable in the UI with its observations rendered.
+- `docs/content/domain-validation-registry.yaml` registers `VR-POLAR-v0` with `disposition: assumption`.
 
-P5 is a separate integration candidate from P4 documentation baseline `d68266a...`: source milestone `8f6677aff6d0e4ea729ea366d2aca96e1ab36878` (`feat(scenario1): add P5 memory-only debrief comparison`) was fast-forwarded into this fresh integration worktree.
-
-- Additive P5 paths are `scenario1-p5.html`, `src/scenario1/p5/*`, dedicated tests, and one Vite multipage-input addition. P4/P2/P3/Replay V2/IndexedDB/the legacy entry/L01–L05 remain unchanged.
-- P5 holds no more than two terminal attempts in browser memory; reload or navigation clears them. It accepts only the fixed seed, exact P4 binding identity, and exact target; malformed/tampered history and numeric/target/control/trace mismatches fail closed.
-- Terminal canonical values are deep immutable copies, with differences calculated as current minus previous. Its neutral previous/current/difference and changed/unchanged UI makes no physical, safety, navigation, certification, or qualitative-improvement claim.
+**Design decision recorded honestly:** migrating L01 (and L04) onto the polar model was considered and abandoned. L01's replay bindings are derived live from its manifest and relied on at 78 call sites across 5 test files — flipping its `model_version` would have silently reinterpreted all of them and broken 37 tests. L04 has no kinematic simulation path at all (only declared string states), so migrating its `model_version` would have declared a model that never runs for it. The polar model was therefore added additively as L06 instead. **L01 through L05 are byte-identical and still run the legacy fixed-speed model.** No existing golden fixture was regenerated.
 
 ## 2. Current verification
 
 | Check | Result |
 |---|---|
 | TypeScript | PASS (`npm run typecheck`) |
-| Focused P4 unit tests | **11 tests** PASS |
-| Full Vitest | **21 files / 226 tests** PASS (`npm test`) |
-| Dedicated P4 entry smoke | **1 passed** (`npm run test:smoke -- --grep 'dedicated P4 entry'`) |
+| Full Vitest | **27 files / 284 tests** PASS (`npm test`) |
 | Vite production build | PASS (`npm run build`) |
-| Whitespace/diff integrity | PASS (`git diff --check`) |
-| Browser check | Dedicated entry walkthrough and visual check PASS |
-| P5 full Vitest | **22 files / 232 tests** PASS (`npm test`) |
-| P5 smoke | **3 passed** (`npm run test:smoke -- --grep 'P4|P5'`) |
-| P5 review and walkthrough | Independent read-only source review **APPROVE**; baseline → retry → previous/current comparison PASS |
-| P5 accessibility proof | Keyboard focus retention, AT-style non-pointer activation, 320px touch, focusable/keyboard-scrollable comparison regions, and visibility no-mutation PASS |
+| Playwright smoke | **22 / 22 passed** (`npm run test:smoke`) — 19 pre-existing plus 3 new L06 tests |
 
 ## 3. Local-only boundaries
 
-- P4 UI explicitly labels the display synthetic, unvalidated, and non-navigation; it is not safety, certification, or real-world sailing guidance.
-- P4 has no saved replay: attempts are memory-only, reload loses the P4 attempt, and P4 must not modify legacy saved replays.
-- P5 comparison history is browser-memory-only and does not change P4/P2/P3/Replay V2/IndexedDB/the legacy entry/L01–L05.
-- No backend, network, deployment, or access-policy behavior was added or changed.
+- L06's UI explicitly carries the same shared non-navigation boundary text as every other lesson (`Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.`); it is not safety, certification, or real-world sailing guidance.
+- L06 uses the same local, browser-only replay/session/reset mechanism as L01–L05. No backend, network, deployment, or access-policy behavior was added or changed.
+- L01–L05, their manifests, and their golden fixtures are unchanged by this work.
 
 ## 4. Product and technical boundaries
 
-- The P4 binding and scoring policy are local synthetic calibration only. They do not promote registry dispositions or create domain factual validation.
-- L01–L05, Replay V2, IndexedDB, the legacy main entry, and public/deployment access remain outside this P4 change.
+What this work closes (for L06 only):
+- PRD §8.1 wind row — `(apparent wind angle, true wind speed) → target speed` is genuinely computed.
+- PRD §8.1 current row — SOG/COG and drift derive from vector composition.
+- PRD §8.2 polar bullet; PRD FR-04 — STW/SOG and heading/COG are separated and computed.
+
+What this work does **not** close:
+- Any of the above for **L01–L05** — they still declare these observations unavailable.
+- PRD §8.1 tide, wave, visibility — no model supplied.
+- PRD §8.2 trim/reef/wave/safety correction coefficients — the polar takes only apparent wind angle and wind speed, so trimming does not change speed; L02 (trim) and L03 (reef) gained nothing from this work.
+- PRD §8.2 draft, safety thresholds, hull/rig configuration.
+- PRD §7.3 five-component scoring — `total_points` remains 0.
+- **Domain validation** — `VR-POLAR-v0` is `disposition: assumption`. The 48 polar numbers are invented educational assumptions asserting no real hull performance.
+
+Two known limitations, tracked as debt rather than closed:
+1. **State-contract inconsistency** — `heading`/`cog`/`true_wind`/`apparent_wind` use the `'declared-unavailable'` string sentinel when absent, while `stw`/`sog`/`drift_angle` are optional fields that are `undefined` on non-polar lessons; a consumer must handle three states, not two. Fully resolving it would require regenerating the L02–L05 fixtures.
+2. **Defensive-branch coverage** — the HUD's handling of the `'declared-unavailable'` and `undefined` cases for STW/SOG/drift is not exercised by tests, because a live L06 session always produces numeric values; TypeScript `strict` mode, not a test, is what prevents a naive two-state rewrite.
+
+The L06 binding and polar model are local synthetic calibration only. They do not promote registry dispositions or create domain factual validation.
 
 ## 5. Next controlled action
 
-The verified P4 change was fast-forward integrated to local `main` and pushed in commit `e87b3145ca777dcd84f616d4fbcfe39e497ab35e`; `origin/main` contains it. P5 source/integration verification is complete. No deployment was performed, and no release or public-access action is included.
+No implementation is currently active. The next code change must start from a new bounded, evidence-backed plan and explicit user authorization. Deployment/integration decisions for this worktree are out of scope for this status update.
