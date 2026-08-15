@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { classifyLocalOnlyRequest } from '../../src/app/local-network-policy.js';
 
-async function startSession(page: Page, lessonId?: 'L01' | 'L02' | 'L03' | 'L04' | 'L05'): Promise<void> {
+async function startSession(page: Page, lessonId?: 'L01' | 'L02' | 'L03' | 'L04' | 'L05' | 'L06'): Promise<void> {
   if (lessonId) await page.locator('#lesson-select').selectOption(lessonId);
   await page.getByRole('button', { name: 'Start' }).click();
   await expect(page.getByText('Started: lesson, synthetic scenario, and variation trace are frozen.')).toBeVisible();
@@ -388,4 +388,41 @@ test('denies every active browser transport before dispatch with a stable local-
   });
   for (const result of Object.values(results)) expect(result).toBe('LocalOnlyTransportDeniedError:LOCAL_ONLY_TRANSPORT_DENIED:LOCAL_ONLY_TRANSPORT_DENIED');
   expect(forbiddenRequests).toEqual([]);
+});
+
+test('makes L06 selectable and runs it with the same non-navigation boundary text as other lessons', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L06');
+  await expect(page.getByRole('heading', { name: 'Sailing Training Sloop — L06' })).toBeVisible();
+  await expect(page.getByText('Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.')).toBeVisible();
+  await expect(page.locator('#synthetic-boundary')).toContainText('Synthetic educational model — unvalidated — not for navigation or safety guidance.');
+  await expect(page.getByText(/Every lesson is an assumption/)).toBeVisible();
+});
+
+test('shows numeric STW and SOG for the L06 polar lesson after advancing, never the raw unavailable sentinel', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L06');
+  await page.keyboard.press('ArrowRight');
+  const hud = page.locator('#hud');
+  await expect(hud).toContainText('Synthetic computed STW');
+  await expect(hud).toContainText('Synthetic computed SOG');
+  await expect(hud.locator('dd', { hasText: 'Synthetic computed STW' })).toHaveText(/^Synthetic computed STW -?\d+\.\d{6} mps\.$/);
+  await expect(hud.locator('dd', { hasText: 'Synthetic computed SOG' })).toHaveText(/^Synthetic computed SOG -?\d+\.\d{6} mps\.$/);
+  const hudText = await hud.textContent();
+  expect(hudText).not.toContain('declared-unavailable');
+  await expect(page.locator('#debrief')).toContainText('action recorded');
+});
+
+test('does not render numeric STW/SOG for non-polar lessons, showing unavailable/absent text instead', async ({ page }) => {
+  for (const id of ['L02', 'L04'] as const) {
+    await page.goto('/');
+    await startSession(page, id);
+    const hud = page.locator('#hud');
+    await expect(hud).not.toContainText('Synthetic computed STW');
+    await expect(hud).not.toContainText('Synthetic computed SOG');
+  }
+  // L04 is the non-polar lesson that declares stw/sog/drift observations directly (as
+  // declared_unavailable); this confirms the absent/unavailable status text renders in
+  // their place rather than a numeric value or an empty node.
+  await expect(page.locator('#hud')).toContainText('declared_unavailable');
 });
