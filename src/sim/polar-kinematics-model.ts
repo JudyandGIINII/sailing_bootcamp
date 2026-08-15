@@ -21,6 +21,7 @@ import { trainingSloopPolarV1 } from '../contracts/polar-profile.js';
 import { validateHelmControls, type HelmCommand, type HelmControl } from './helm-controls.js';
 import { l01DirectionFromVector, l01DirectionVector, normalizeL01Heading } from './l01-synthetic-model.js';
 import { lookupTargetSpeedMps } from './polar.js';
+import { deriveSyntheticCurrent } from './tidal-current.js';
 import { composeGroundRelativeVelocity } from './vector.js';
 
 export interface PolarKinematicState {
@@ -103,9 +104,10 @@ export function transitionPolarKinematicState(
   const stw = lookupTargetSpeedMps(trainingSloopPolarV1, awa, profile.true_wind_speed_mps);
 
   const waterVelocity = stw === 0 ? frozenPoint(0, 0) : l01DirectionVector(heading, stw);
-  const currentVelocity = profile.current_speed_mps === 0
+  const current = deriveSyntheticCurrent(profile.current_epoch_ms);
+  const currentVelocity = current.current_speed_mps === 0
     ? frozenPoint(0, 0)
-    : l01DirectionVector(normalizeL01Heading(profile.current_to_rad), profile.current_speed_mps);
+    : l01DirectionVector(normalizeL01Heading(current.current_to_rad), current.current_speed_mps);
   const groundVelocityRaw = composeGroundRelativeVelocity(waterVelocity, currentVelocity);
   const groundVelocity = frozenPoint(groundVelocityRaw.x, groundVelocityRaw.y);
   const displacement = frozenPoint(

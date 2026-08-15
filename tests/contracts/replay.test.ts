@@ -886,16 +886,23 @@ describe('polar kinematics replay identity carrier', () => {
     expect(resolveExactReplayIdentity(storedPayload, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_MISSING', stored_payload: storedPayload });
   });
 
-  it('rejects a tampered polar environment without altering the stored payload', () => {
-    const tampered = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, current_speed_mps: 1.5 } };
-    expect(isReplayIdentity(tampered)).toBe(true);
-    expect(resolveExactReplayIdentity(tampered, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: tampered });
-    expect(resolveStoredReplay(tampered, polarL01ReplayBindings)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: tampered });
+  it('rejects a tampered polar environment without altering the stored payload, except the one intentionally relaxed current_epoch_ms field', () => {
+    // current_epoch_ms is the one field NOT pinned to the canonical singleton: it
+    // legitimately varies per session (the real time the player started it), so a
+    // different but valid current_epoch_ms must be ACCEPTED, not treated as tampering.
+    const differentSessionStartTime = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, current_epoch_ms: 1_700_000_000_000 } };
+    expect(isReplayIdentity(differentSessionStartTime)).toBe(true);
+    expect(resolveExactReplayIdentity(differentSessionStartTime, polarIdentity)).toEqual({ outcome: 'accepted', replay: differentSessionStartTime });
+    expect(resolveStoredReplay(differentSessionStartTime, polarL01ReplayBindings)).toEqual({ outcome: 'accepted', replay: differentSessionStartTime });
 
+    // Every other field stays pinned to the canonical singleton by exact equality.
     const windTampered = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, true_wind_speed_mps: 6.5 } };
+    expect(isReplayIdentity(windTampered)).toBe(true);
     expect(resolveExactReplayIdentity(windTampered, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: windTampered });
+    expect(resolveStoredReplay(windTampered, polarL01ReplayBindings)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: windTampered });
 
-    const malformed = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, current_speed_mps: -1 } };
+    // A malformed (negative) current_epoch_ms is still rejected structurally, not silently accepted.
+    const malformed = { ...polarIdentity, polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, current_epoch_ms: -1 } };
     expect(isReplayIdentity(malformed)).toBe(false);
     expect(resolveExactReplayIdentity(malformed, polarIdentity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_PAYLOAD_CORRUPT', stored_payload: malformed });
   });

@@ -4,9 +4,13 @@ import { polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinemati
 import { createInitialPolarKinematicState, transitionPolarKinematicState } from '../../src/sim/polar-kinematics-model.js';
 import { l01DirectionFromVector, normalizeL01Heading } from '../../src/sim/l01-synthetic-model.js';
 import { projectPolarObservations } from '../../src/sim/polar-observation.js';
+import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
 
 const noCurrent = polarKinematicsEnvironmentV1;
-const withCurrent = Object.freeze({ ...polarKinematicsEnvironmentV1, current_to_rad: Math.PI / 2, current_speed_mps: 1.5 });
+// A quarter period gives sin(phase) === 1 exactly: current_speed_mps === MAX_CURRENT_MPS
+// (1.5) and current_to_rad === FLOOD_TO_RAD (PI/2), matching this suite's prior
+// hardcoded current fixture without changing any downstream expected value below.
+const withCurrent = Object.freeze({ ...polarKinematicsEnvironmentV1, current_epoch_ms: SEMIDIURNAL_PERIOD_MS / 4 });
 
 function observe(profile: typeof polarKinematicsEnvironmentV1) {
   const initial = createInitialPolarKinematicState(profile);

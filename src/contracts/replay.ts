@@ -198,6 +198,12 @@ function sameL01Environment(value: unknown): boolean {
     value.canonical_precision_version === l01SyntheticEnvironmentV1.canonical_precision_version;
 }
 
+/**
+ * `current_epoch_ms` is the one field deliberately NOT pinned to the
+ * canonical singleton: it legitimately varies per session (the real time the
+ * player started it), so it is checked structurally instead — a non-negative
+ * safe integer — while every other field stays pinned by exact equality.
+ */
 function samePolarEnvironment(value: unknown): boolean {
   if (!isPolarKinematicsEnvironmentV1(value)) return false;
   return value.environment_id === polarKinematicsEnvironmentV1.environment_id &&
@@ -211,8 +217,7 @@ function samePolarEnvironment(value: unknown): boolean {
     value.polar_profile_id === polarKinematicsEnvironmentV1.polar_profile_id &&
     value.true_wind_from_rad === polarKinematicsEnvironmentV1.true_wind_from_rad &&
     value.true_wind_speed_mps === polarKinematicsEnvironmentV1.true_wind_speed_mps &&
-    value.current_to_rad === polarKinematicsEnvironmentV1.current_to_rad &&
-    value.current_speed_mps === polarKinematicsEnvironmentV1.current_speed_mps &&
+    Number.isSafeInteger(value.current_epoch_ms) && value.current_epoch_ms >= 0 &&
     value.full_helm_turn_rad_per_step === polarKinematicsEnvironmentV1.full_helm_turn_rad_per_step &&
     value.canonical_precision_version === polarKinematicsEnvironmentV1.canonical_precision_version;
 }

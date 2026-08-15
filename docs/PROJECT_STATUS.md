@@ -1,7 +1,7 @@
 # Sailing Bootcamp — Project Status
 
 > 갱신: 2026-08-15 KST
-> 상태: **A polar-based boat model and water-current vector composition are implemented, additively, behind a NEW non-mandatory lesson L06. L01–L05 (the PRD §7.2 mandatory MVP set) are byte-identical to before this work.**
+> 상태: **A polar-based boat model and water-current vector composition are implemented, additively, behind a NEW non-mandatory lesson L06. The water current now varies with the real date/time a player starts an L06 session, via a simplified synthetic semidiurnal sinusoid — not real tide data. L01–L05 (the PRD §7.2 mandatory MVP set) are byte-identical to before this work.**
 
 ## 1. Current position
 
@@ -11,9 +11,10 @@ A polar-based boat model plus water-current vector composition is reachable thro
 
 - `src/contracts/polar-profile.ts` declares a synthetic 8×6 polar table (apparent wind angle × true wind speed → target speed through water): 48 invented educational values, `validation_record_id: 'VR-POLAR-v0'`, `validation_disposition: 'assumption'`.
 - `src/sim/polar.ts` performs the bilinear lookup with symmetric angle folding and out-of-grid clamping.
-- `src/contracts/polar-kinematics-environment.ts` declares the environment contract (`model_version: 'polar-kinematics-v1'`); it has no `forward_speed_mps` and instead adds `current_to_rad` / `current_speed_mps`.
-- `src/sim/polar-kinematics-model.ts` computes the per-tick transition: speed comes from the polar, and the current vector is composed into ground velocity via the pre-existing `composeGroundRelativeVelocity`. `src/sim/polar-observation.ts` projects STW / SOG / COG / drift from it.
-- `src/contracts/replay.ts` carries and validates `polar_kinematics_environment` on the replay identity, selected by `model_version`.
+- `src/contracts/polar-kinematics-environment.ts` declares the environment contract (`model_version: 'polar-kinematics-v2'`); it has no `forward_speed_mps` and instead adds `current_epoch_ms` — the real-world timestamp (epoch ms) a session was started, read exactly once by the UI layer.
+- `src/sim/tidal-current.ts` is a new pure module: `deriveSyntheticCurrent(epochMs)` derives a synthetic current vector from that stored timestamp using a single sinusoid over a simplified 12.42-hour semidiurnal period. It is a declared educational assumption, not real tide data, harmonic constants, or a navigational current prediction; `src/sim` never reads the wall clock itself — only `src/main.ts` reads it once per session start and stores the result in the replay identity, which keeps replays exactly reproducible.
+- `src/sim/polar-kinematics-model.ts` computes the per-tick transition: speed comes from the polar, the current vector is derived via `deriveSyntheticCurrent`, and it is composed into ground velocity via the pre-existing `composeGroundRelativeVelocity`. `src/sim/polar-observation.ts` projects STW / SOG / COG / drift from it.
+- `src/contracts/replay.ts` carries and validates `polar_kinematics_environment` on the replay identity, selected by `model_version`. Every field is pinned to the canonical singleton by exact equality except `current_epoch_ms`, which legitimately varies per session (the real time the player started it) and is instead checked structurally (a non-negative safe integer). `src/sim/session.ts` applies the same structural check.
 - `src/sim/session.ts` runs the polar path and emits `POLAR_KINEMATIC_TRANSITION` ledger events; `src/scoring/projection.ts` projects a `synthetic_transition` debrief fact for each one.
 - `src/content/l06-polar.ts` is the L06 lesson manifest; `src/main.ts` makes L06 selectable in the UI with its observations rendered.
 - `docs/content/domain-validation-registry.yaml` registers `VR-POLAR-v0` with `disposition: assumption`.
@@ -25,9 +26,9 @@ A polar-based boat model plus water-current vector composition is reachable thro
 | Check | Result |
 |---|---|
 | TypeScript | PASS (`npm run typecheck`) |
-| Full Vitest | **27 files / 284 tests** PASS (`npm test`) |
+| Full Vitest | **28 files / 293 tests** PASS (`npm test`) |
 | Vite production build | PASS (`npm run build`) |
-| Playwright smoke | **22 / 22 passed** (`npm run test:smoke`) — 19 pre-existing plus 3 new L06 tests |
+| Playwright smoke | **22 / 22 passed** (`npm run test:smoke`) |
 
 ## 3. Local-only boundaries
 
@@ -39,7 +40,7 @@ A polar-based boat model plus water-current vector composition is reachable thro
 
 What this work closes (for L06 only):
 - PRD §8.1 wind row — `(apparent wind angle, true wind speed) → target speed` is genuinely computed.
-- PRD §8.1 current row — SOG/COG and drift derive from vector composition, but the shipped L06 environment (`src/contracts/polar-kinematics-environment.ts`) declares `current_to_rad: 0` and `current_speed_mps: 0`, and the replay identity check pins every reachable session to that exact profile. At runtime, SOG therefore always equals STW and COG always equals heading, and drift is always 0. The composition path itself is implemented and covered by unit tests that construct a non-zero `withCurrent` override, but that path is not exercised by anything a user can reach today.
+- PRD §8.1 current row — SOG/COG and drift derive from vector composition, and the current itself is now derived from the real date and time the player starts an L06 session (`current_epoch_ms`, set once by `src/main.ts` from `Date.now()` and stored in the replay identity), fed through `deriveSyntheticCurrent`'s simplified semidiurnal sinusoid. SOG/COG/drift therefore genuinely diverge from STW/heading for a live session whenever the derived current is nonzero, which is observable end to end (`tests/unit/l06-polar-lesson.test.ts`). This is a declared synthetic assumption, not a real tidal prediction: the canonical fixture (`current_epoch_ms: 0`) still derives zero current, which keeps the pre-existing zero-current unit tests meaningful.
 - PRD §8.2 polar bullet; PRD FR-04 — STW/SOG and heading/COG are separated and computed.
 
 What this work does **not** close:

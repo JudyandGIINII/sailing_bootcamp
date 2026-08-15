@@ -312,7 +312,8 @@ describe('deterministic raw polar kinematics session', () => {
   });
 
   it('reports sog === stw and cog === heading once the declared current is zero (FR-04, end to end)', () => {
-    expect(polarKinematicsEnvironmentV1.current_speed_mps).toBe(0);
+    // sin(0) === 0, so the canonical current_epoch_ms of 0 derives zero current.
+    expect(polarKinematicsEnvironmentV1.current_epoch_ms).toBe(0);
     const identity = { ...polarReplayBindings, seed: 'polar-fr04', ordered_input_log: [] };
     const advanced = advanceLogicalTick(createSession(identity));
     expect(typeof advanced.raw.sog).toBe('number');

@@ -148,16 +148,21 @@ records:
       - L06
     claim_or_assumption: >-
       Synthetic 8x6 polar table mapping (apparent wind angle, true wind speed) to a
-      target speed through water for training-sloop-v1, together with the declared
-      synthetic current-to vector composed into ground-relative velocity.
+      target speed through water for training-sloop-v1, together with a synthetic
+      current-to vector composed into ground-relative velocity. The current vector
+      is derived from the real date and time the player starts a session via a
+      simplified single-sinusoid semidiurnal tidal shape (deriveSyntheticCurrent):
+      not real tide data, harmonic constants, or a navigational current prediction.
     source_or_evidence_gap_reason: >-
-      No approved sailing-domain evidence is attached. Values are invented educational
-      assumptions chosen for monotonicity in wind speed and a mid-angle maximum. This
-      record is boat-profile scoped and shared by every lesson bound to
-      polar-kinematics-v1; it asserts no real hull performance, weather, route, or
-      safety behaviour.
+      No approved sailing-domain evidence is attached. Polar values are invented
+      educational assumptions chosen for monotonicity in wind speed and a mid-angle
+      maximum. The tidal shape's period (12.42 h) and maximum current (1.5 m/s) are
+      likewise invented educational assumptions, not measured or approved tidal
+      constants. This record is boat-profile scoped and shared by every lesson bound
+      to polar-kinematics-v2; it asserts no real hull performance, weather, route,
+      tidal, or safety behaviour.
     scenario_version: not-scenario-scoped
-    model_version: polar-kinematics-v1
+    model_version: polar-kinematics-v2
     boat_profile_version: training-sloop-v1
     contract_version: lesson-model-contract-v0-draft
     coordinate_contract_version: coordinate-contract-v1-draft
@@ -168,6 +173,7 @@ records:
       - one-tick apparent wind lag used as the polar input
       - synthetic current-to vector and ground-relative velocity composition
       - STW/SOG and heading/COG separation and drift angle
+      - session-start-time-derived synthetic semidiurnal current (deriveSyntheticCurrent)
     reviewer: null
     review_date: null
     disposition: assumption

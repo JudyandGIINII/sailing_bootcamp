@@ -3,6 +3,7 @@ import { l06Manifest, l06ReplayBindings } from '../../src/content/l06-polar.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 import { advanceLogicalTick, applyCanonicalInput, createSession, type CanonicalInput } from '../../src/sim/session.js';
 import { projectDebrief } from '../../src/scoring/projection.js';
+import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
 
 const MANIFEST_FIELDS = [
   'lesson_id', 'scenario_version', 'model_version', 'boat_profile_version', 'contract_version',
@@ -14,7 +15,7 @@ const MANIFEST_FIELDS = [
 
 describe('L06 polar-kinematics lesson', () => {
   it('declares the polar model version and every non-empty lesson-contract field', () => {
-    expect(l06Manifest.model_version).toBe('polar-kinematics-v1');
+    expect(l06Manifest.model_version).toBe('polar-kinematics-v2');
     expect(l06Manifest.model_version).toBe(POLAR_KINEMATICS_MODEL_VERSION);
     for (const field of MANIFEST_FIELDS) {
       const value = l06Manifest[field];
@@ -79,12 +80,32 @@ describe('L06 polar-kinematics lesson', () => {
   });
 
   it('reports sog === stw and cog === heading once the declared current is zero (FR-04, end to end)', () => {
-    expect(polarKinematicsEnvironmentV1.current_speed_mps).toBe(0);
+    // sin(0) === 0, so the canonical current_epoch_ms of 0 derives zero current.
+    expect(polarKinematicsEnvironmentV1.current_epoch_ms).toBe(0);
     const identity = { ...l06ReplayBindings, seed: 'l06-fr04', ordered_input_log: [] };
     const advanced = advanceLogicalTick(createSession(identity));
     expect(typeof advanced.raw.sog).toBe('number');
     expect(advanced.raw.sog).toBe(advanced.raw.stw);
     expect(advanced.raw.cog).toBe(advanced.raw.heading);
+  });
+
+  it('reports sog !== stw and cog !== heading for a session started at a real-world timestamp that derives a nonzero current (end to end, drift now observable)', () => {
+    const nonzeroCurrentEnvironment = Object.freeze({
+      ...polarKinematicsEnvironmentV1,
+      current_epoch_ms: SEMIDIURNAL_PERIOD_MS / 4,
+    });
+    const identity = {
+      ...l06ReplayBindings,
+      polar_kinematics_environment: nonzeroCurrentEnvironment,
+      seed: 'l06-drift-observable',
+      ordered_input_log: [],
+    };
+    const advanced = advanceLogicalTick(createSession(identity));
+    expect(typeof advanced.raw.sog).toBe('number');
+    expect(typeof advanced.raw.cog).toBe('number');
+    expect(advanced.raw.sog).not.toBe(advanced.raw.stw);
+    expect(advanced.raw.cog).not.toBe(advanced.raw.heading);
+    expect(advanced.raw.drift_angle).not.toBe(0);
   });
 
   it('produces deep-equal raw state and ledger for two identical L06 sessions advanced the same number of ticks', () => {

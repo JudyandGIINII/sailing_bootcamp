@@ -266,6 +266,14 @@ function l01Profile(identity: ReplayIdentity | ReplayV2): L01SyntheticEnvironmen
   }
   return l01SyntheticEnvironmentV1;
 }
+/**
+ * `current_epoch_ms` is the one field deliberately NOT pinned to the
+ * canonical singleton: it legitimately varies per session (the real time the
+ * player started it), so it is checked structurally instead — a non-negative
+ * safe integer — while every other field stays pinned by exact equality.
+ * The returned profile therefore preserves the caller's declared
+ * `current_epoch_ms` rather than always returning the canonical `0`.
+ */
 function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvironmentV1 | undefined {
   const lesson = sessionLesson(identity);
   if (!lesson.startsWith('l01-') && !lesson.startsWith('l06-')) return undefined;
@@ -283,13 +291,12 @@ function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvir
     profile.polar_profile_id !== polarKinematicsEnvironmentV1.polar_profile_id ||
     profile.true_wind_from_rad !== polarKinematicsEnvironmentV1.true_wind_from_rad ||
     profile.true_wind_speed_mps !== polarKinematicsEnvironmentV1.true_wind_speed_mps ||
-    profile.current_to_rad !== polarKinematicsEnvironmentV1.current_to_rad ||
-    profile.current_speed_mps !== polarKinematicsEnvironmentV1.current_speed_mps ||
+    !Number.isSafeInteger(profile.current_epoch_ms) || profile.current_epoch_ms < 0 ||
     profile.full_helm_turn_rad_per_step !== polarKinematicsEnvironmentV1.full_helm_turn_rad_per_step ||
     profile.canonical_precision_version !== polarKinematicsEnvironmentV1.canonical_precision_version) {
     throw new CanonicalInputContractError('Polar kinematics replay profile is invalid.');
   }
-  return polarKinematicsEnvironmentV1;
+  return profile;
 }
 function l02Profile(identity: ReplayIdentity | ReplayV2): L02SyntheticTrimProfileV1 | undefined {
   if (!isV2(identity) || identity.lesson_binding.lesson_id !== 'L02') return undefined;

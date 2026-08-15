@@ -14,6 +14,7 @@ import { createSyntheticScenario, defaultScenarioConfiguration } from './content
 import { validateScenarioPackage, type ScenarioConfiguration } from './contracts/scenario.js';
 import { materializeVariation } from './sim/scenario-variation.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
+import { deriveSyntheticCurrent } from './sim/tidal-current.js';
 import { projectDebrief, projectL02RuntimeTrace, projectL02SyntheticTrimAcknowledgment, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence, type L05DecisionLedgerRecordEvidence } from './scoring/projection.js';
 
 // Install before any app-owned bootstrap work can initiate a browser transport.
@@ -313,6 +314,16 @@ function render(): void {
     } else description.textContent = observation.status;
     hud.append(term, description);
   }
+  if (currentLesson.id === 'L06') {
+    const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
+    if (polarEnvironment) {
+      const current = deriveSyntheticCurrent(polarEnvironment.current_epoch_ms);
+      const term = document.createElement('dt'); term.textContent = 'Current / 조류';
+      const description = document.createElement('dd');
+      description.textContent = `Synthetic declared current speed ${current.current_speed_mps.toFixed(6)} mps, to ${current.current_to_rad.toFixed(6)} rad — derived from the session start time by a simplified semidiurnal sinusoid; not real tide or navigational data.`;
+      hud.append(term, description);
+    }
+  }
   const l02Trace = hasTrustedL02Presentation() ? projectL02RuntimeTrace(session.raw, session.ledger) : undefined;
   l02RuntimeEvidenceSection.hidden = !l02Trace;
   l02StaticDeclarations.replaceChildren();
@@ -602,7 +613,10 @@ async function startFrozenSession(): Promise<void> {
   startInProgress = true; startStatus.textContent = 'Starting: validating and freezing synthetic scenario.'; render();
   try {
     const scenario = await createSyntheticScenario(scenarioConfiguration); const validated = await validateScenarioPackage(scenario); if (!validated.ok) throw new Error(validated.reason_code); seed = `${currentLesson.id.toLowerCase()}-prototype-seed`; const { scenario_version: _legacyScenario, l01_synthetic_environment, polar_kinematics_environment, ...bindings } = currentLesson.bindings; const lessonBinding = { lesson_id: currentLesson.id, ...bindings }; const trace = await materializeVariation(validated.scenario, seed);
-    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L06' ? { polar_kinematics_environment } : {}) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
+    // The clock is read exactly once, here in the UI layer, and stored in the
+    // replay identity; src/sim derives the current from it via a pure function.
+    const l06PolarEnvironment = polar_kinematics_environment ? Object.freeze({ ...polar_kinematics_environment, current_epoch_ms: Date.now() }) : polar_kinematics_environment;
+    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L06' ? { polar_kinematics_environment: l06PolarEnvironment } : {}) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
   } catch { startStatus.textContent = 'Start failed: SCENARIO_SCHEMA_INVALID. Draft controls remain editable.'; }
   startInProgress = false; render();
 }
