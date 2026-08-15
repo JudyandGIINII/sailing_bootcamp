@@ -299,7 +299,15 @@ function render(): void {
       else if (observation.key === 'stw') description.textContent = polarText('STW', 'mps', session.raw.stw);
       else if (observation.key === 'sog') description.textContent = polarText('SOG', 'mps', session.raw.sog);
       else if (observation.key === 'drift') description.textContent = polarText('drift', 'rad', session.raw.drift_angle);
-      else description.textContent = 'Synthetic computed observation unavailable.';
+      else if (observation.key === 'current') {
+        const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
+        if (polarEnvironment) {
+          const current = deriveSyntheticCurrent(polarEnvironment.current_epoch_ms);
+          description.textContent = `Synthetic declared current speed ${numeric(current.current_speed_mps)} mps, to ${numeric(current.current_to_rad)} rad — derived from the session start time by a simplified semidiurnal sinusoid; not real tide or navigational data.`;
+        } else {
+          description.textContent = 'Synthetic declared current unavailable.';
+        }
+      } else description.textContent = 'Synthetic computed observation unavailable.';
     } else if (currentLesson.id === 'L02' && observation.key === 'declared_trim_feedback') {
       const acknowledgment = projectL02SyntheticTrimAcknowledgment(session.raw);
       description.textContent = acknowledgment
@@ -313,16 +321,6 @@ function render(): void {
           : 'Declared synthetic checkpoint only.';
     } else description.textContent = observation.status;
     hud.append(term, description);
-  }
-  if (currentLesson.id === 'L06') {
-    const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
-    if (polarEnvironment) {
-      const current = deriveSyntheticCurrent(polarEnvironment.current_epoch_ms);
-      const term = document.createElement('dt'); term.textContent = 'Current / 조류';
-      const description = document.createElement('dd');
-      description.textContent = `Synthetic declared current speed ${current.current_speed_mps.toFixed(6)} mps, to ${current.current_to_rad.toFixed(6)} rad — derived from the session start time by a simplified semidiurnal sinusoid; not real tide or navigational data.`;
-      hud.append(term, description);
-    }
   }
   const l02Trace = hasTrustedL02Presentation() ? projectL02RuntimeTrace(session.raw, session.ledger) : undefined;
   l02RuntimeEvidenceSection.hidden = !l02Trace;
@@ -616,7 +614,15 @@ async function startFrozenSession(): Promise<void> {
     // The clock is read exactly once, here in the UI layer, and stored in the
     // replay identity; src/sim derives the current from it via a pure function.
     const l06PolarEnvironment = polar_kinematics_environment ? Object.freeze({ ...polar_kinematics_environment, current_epoch_ms: Date.now() }) : polar_kinematics_environment;
-    frozenReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L06' ? { polar_kinematics_environment: l06PolarEnvironment } : {}) }); inputLog = []; nextSequence = 1; session = createSession(frozenReplay); startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
+    // Build and validate the session from a local replay object first; only
+    // assign the module-level `frozenReplay` after `createSession` succeeds.
+    // Otherwise a throw here (e.g. `polarProfile` rejecting a negative
+    // `current_epoch_ms` from a pre-1970 system clock) would leave
+    // `frozenReplay` set while `session` was never created, permanently
+    // blocking retry via the `if (frozenReplay || startInProgress) return;` guard.
+    const newReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L06' ? { polar_kinematics_environment: l06PolarEnvironment } : {}) });
+    const newSession = createSession(newReplay);
+    frozenReplay = newReplay; inputLog = []; nextSequence = 1; session = newSession; startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
   } catch { startStatus.textContent = 'Start failed: SCENARIO_SCHEMA_INVALID. Draft controls remain editable.'; }
   startInProgress = false; render();
 }

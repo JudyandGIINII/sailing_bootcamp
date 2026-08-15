@@ -296,7 +296,11 @@ function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvir
     profile.canonical_precision_version !== polarKinematicsEnvironmentV1.canonical_precision_version) {
     throw new CanonicalInputContractError('Polar kinematics replay profile is invalid.');
   }
-  return profile;
+  // Return a frozen copy, not the caller's object: `freeze()` elsewhere in this
+  // module is shallow, and this profile is re-read every tick. Returning the
+  // candidate reference as-is would leave the derived current mutable
+  // in-process even though every shipped call site already treats it as frozen.
+  return Object.freeze({ ...profile, initial_position_m: Object.freeze({ ...profile.initial_position_m }) });
 }
 function l02Profile(identity: ReplayIdentity | ReplayV2): L02SyntheticTrimProfileV1 | undefined {
   if (!isV2(identity) || identity.lesson_binding.lesson_id !== 'L02') return undefined;

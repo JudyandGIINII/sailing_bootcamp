@@ -61,6 +61,7 @@ export const l06Manifest: L06Manifest = Object.freeze({
     { key: 'stw', accessible_label: 'Speed through water / 대수 속력', status: 'declared_synthetic' },
     { key: 'sog', accessible_label: 'Speed over ground / 대지 속력', status: 'declared_synthetic' },
     { key: 'drift', accessible_label: 'Drift / 표류', status: 'declared_synthetic' },
+    { key: 'current', accessible_label: 'Current / 조류', status: 'declared_synthetic' },
   ] as const,
   permitted_actions: L06_SEMANTIC_ACTIONS,
   checkpoints: ['observe_declared_polar_signals', 'record_helm_correction', 'reach_declared_course_state'],

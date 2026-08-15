@@ -13,7 +13,10 @@
  */
 import { canonicalizeL01Number } from '../contracts/l01-synthetic-environment.js';
 
-/** The standard simplified semidiurnal tidal period (~12 hours 25 minutes). */
+/**
+ * A simplified ~12h25m semidiurnal period chosen as an educational assumption
+ * for pedagogical variety, not a measured or approved tidal harmonic constant.
+ */
 export const SEMIDIURNAL_PERIOD_MS = 12.42 * 60 * 60 * 1000;
 
 /** A synthetic assumption, not a measured value. */
