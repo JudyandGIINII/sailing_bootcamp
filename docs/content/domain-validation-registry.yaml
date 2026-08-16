@@ -171,6 +171,7 @@ records:
     coverage:
       - polar target speed through water by apparent wind angle and true wind speed
       - declared synthetic sail-trim efficiency and reef correction factors applied to the polar base speed
+      - declared synthetic semidiurnal tide height, under-keel clearance (depth + tide - draft), and once-only clearance threshold events
       - one-tick apparent wind lag used as the polar input
       - synthetic current-to vector and ground-relative velocity composition
       - STW/SOG and heading/COG separation and drift angle

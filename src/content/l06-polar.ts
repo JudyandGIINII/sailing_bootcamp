@@ -33,7 +33,7 @@ export interface L06Manifest {
 
 /**
  * L06 is the first lesson to register the polar-and-current kinematics model
- * (`polar-kinematics-v3`), which was built and wired across earlier tasks but
+ * (`polar-kinematics-v4`), which was built and wired across earlier tasks but
  * had no lesson declaring it. L01 was deliberately left on its legacy model
  * instead of being migrated: its replay bindings are derived live from its
  * manifest and consumed at many call sites, so flipping its model_version
@@ -62,6 +62,7 @@ export const l06Manifest: L06Manifest = Object.freeze({
     { key: 'sog', accessible_label: 'Speed over ground / 대지 속력', status: 'declared_synthetic' },
     { key: 'drift', accessible_label: 'Drift / 표류', status: 'declared_synthetic' },
     { key: 'current', accessible_label: 'Current / 조류', status: 'declared_synthetic' },
+    { key: 'clearance', accessible_label: 'Under-keel clearance / 용골 아래 여유', status: 'declared_synthetic' },
   ] as const,
   permitted_actions: L06_SEMANTIC_ACTIONS,
   checkpoints: ['observe_declared_polar_signals', 'record_helm_correction', 'reach_declared_course_state'],

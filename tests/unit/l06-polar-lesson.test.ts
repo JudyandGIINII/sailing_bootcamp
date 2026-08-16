@@ -15,7 +15,7 @@ const MANIFEST_FIELDS = [
 
 describe('L06 polar-kinematics lesson', () => {
   it('declares the polar model version and every non-empty lesson-contract field', () => {
-    expect(l06Manifest.model_version).toBe('polar-kinematics-v3');
+    expect(l06Manifest.model_version).toBe('polar-kinematics-v4');
     expect(l06Manifest.model_version).toBe(POLAR_KINEMATICS_MODEL_VERSION);
     for (const field of MANIFEST_FIELDS) {
       const value = l06Manifest[field];

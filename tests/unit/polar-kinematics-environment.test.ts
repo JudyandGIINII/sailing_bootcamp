@@ -7,7 +7,7 @@ import {
 
 describe('polar kinematics environment contract', () => {
   it('declares a distinct model version from the retained L01 kinematics model', () => {
-    expect(POLAR_KINEMATICS_MODEL_VERSION).toBe('polar-kinematics-v3');
+    expect(POLAR_KINEMATICS_MODEL_VERSION).toBe('polar-kinematics-v4');
     expect(polarKinematicsEnvironmentV1.model_id).toBe('polar-kinematics');
     expect(polarKinematicsEnvironmentV1.polar_profile_id).toBe('training-sloop-synthetic-polar');
   });

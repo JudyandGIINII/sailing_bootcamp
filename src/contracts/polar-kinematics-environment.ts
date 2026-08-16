@@ -5,7 +5,7 @@ import { trainingSloopPolarV1 } from './polar-profile.js';
  * an explicit educational assumption, not a vessel, weather, route, or safety
  * value. The current vector is declared synthetic and non-navigational.
  */
-export const POLAR_KINEMATICS_MODEL_VERSION = 'polar-kinematics-v3' as const;
+export const POLAR_KINEMATICS_MODEL_VERSION = 'polar-kinematics-v4' as const;
 
 export interface PolarKinematicsEnvironmentV1 {
   readonly environment_id: 'polar-kinematics-training-ground';
@@ -26,6 +26,10 @@ export interface PolarKinematicsEnvironmentV1 {
    * the declared time.
    */
   readonly current_epoch_ms: number;
+  /** Declared synthetic seabed depth below the synthetic datum, in metres. */
+  readonly seabed_depth_m: number;
+  /** Declared synthetic draft of the training sloop, in metres. */
+  readonly draft_m: number;
   readonly full_helm_turn_rad_per_step: number;
   readonly canonical_precision_version: 'l01-precision-v1';
 }
@@ -44,6 +48,8 @@ export const polarKinematicsEnvironmentV1: Readonly<PolarKinematicsEnvironmentV1
   // sin(0) === 0, so the canonical default profile derives zero current — this
   // deliberately keeps the existing L06 zero-current unit tests meaningful.
   current_epoch_ms: 0,
+  seabed_depth_m: 3.5,
+  draft_m: 1.6,
   full_helm_turn_rad_per_step: Math.PI / 8,
   canonical_precision_version: 'l01-precision-v1',
 });
@@ -59,7 +65,7 @@ export function isPolarKinematicsEnvironmentV1(value: unknown): value is PolarKi
     'environment_id', 'environment_version', 'model_id', 'model_version',
     'logical_step_seconds', 'initial_position_m', 'initial_heading_rad',
     'polar_profile_id', 'true_wind_from_rad', 'true_wind_speed_mps',
-    'current_epoch_ms', 'full_helm_turn_rad_per_step',
+    'current_epoch_ms', 'seabed_depth_m', 'draft_m', 'full_helm_turn_rad_per_step',
     'canonical_precision_version',
   ];
   if (Object.keys(candidate).length !== keys.length || !keys.every((key) => Object.hasOwn(candidate, key))) return false;
@@ -78,6 +84,8 @@ export function isPolarKinematicsEnvironmentV1(value: unknown): value is PolarKi
     isFiniteNumber(candidate.true_wind_from_rad) &&
     isFiniteNumber(candidate.true_wind_speed_mps) && candidate.true_wind_speed_mps >= 0 &&
     Number.isSafeInteger(candidate.current_epoch_ms) && (candidate.current_epoch_ms as number) >= 0 &&
+    isFiniteNumber(candidate.seabed_depth_m) && candidate.seabed_depth_m >= 0 &&
+    isFiniteNumber(candidate.draft_m) && candidate.draft_m >= 0 &&
     isFiniteNumber(candidate.full_helm_turn_rad_per_step) && candidate.full_helm_turn_rad_per_step > 0;
 }
 

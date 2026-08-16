@@ -218,6 +218,8 @@ function samePolarEnvironment(value: unknown): boolean {
     value.true_wind_from_rad === polarKinematicsEnvironmentV1.true_wind_from_rad &&
     value.true_wind_speed_mps === polarKinematicsEnvironmentV1.true_wind_speed_mps &&
     Number.isSafeInteger(value.current_epoch_ms) && value.current_epoch_ms >= 0 &&
+    value.seabed_depth_m === polarKinematicsEnvironmentV1.seabed_depth_m &&
+    value.draft_m === polarKinematicsEnvironmentV1.draft_m &&
     value.full_helm_turn_rad_per_step === polarKinematicsEnvironmentV1.full_helm_turn_rad_per_step &&
     value.canonical_precision_version === polarKinematicsEnvironmentV1.canonical_precision_version;
 }

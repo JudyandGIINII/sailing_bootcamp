@@ -10,6 +10,7 @@ import { createInitialL02SyntheticTrimObservation, reduceL02SyntheticTrimObserva
 import { createInitialPolarKinematicState, transitionPolarKinematicState, type PolarKinematicState } from './polar-kinematics-model.js';
 import { projectPolarObservations, type PolarObservations } from './polar-observation.js';
 import { stepTrim } from './sail-trim.js';
+import { clearanceLevel, deriveSyntheticClearanceM, moreSevereClearance, shouldRecordClearanceCrossing, type ClearanceLevel } from './depth-clearance.js';
 
 export type HelmCommand = 'neutral' | 'port' | 'starboard';
 export type SessionAction = DeclaredLessonAction;
@@ -105,6 +106,11 @@ export interface RawSimulationState {
   drift_angle?: 'declared-unavailable' | number;
   polar_kinematic_state?: PolarKinematicState;
   polar_last_helm_sequence?: number;
+  /** Declared synthetic under-keel clearance; present only on polar sessions. */
+  clearance_m?: 'declared-unavailable' | number;
+  clearance_level?: ClearanceLevel;
+  /** The most severe clearance level already recorded, so FR-05 records each once. */
+  highest_clearance_alert?: ClearanceLevel;
 }
 
 export interface DeterministicSession {
@@ -190,6 +196,9 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
         drift_angle: observations.drift_angle_rad,
         polar_kinematic_state: initialState,
         polar_last_helm_sequence: 0,
+        clearance_m: clearanceAt(polarProfile, 0),
+        clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
+        highest_clearance_alert: clearanceLevel(clearanceAt(polarProfile, 0)),
       });
     }
     if (!l01Profile) throw new CanonicalInputContractError('L01 synthetic profile is missing.');
@@ -235,6 +244,9 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
       drift_angle: observations.drift_angle_rad,
       polar_kinematic_state: initialState,
       polar_last_helm_sequence: 0,
+      clearance_m: clearanceAt(polarProfile, 0),
+      clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
+      highest_clearance_alert: clearanceLevel(clearanceAt(polarProfile, 0)),
     });
   }
   if (scenario.startsWith('l05-')) return freeze({ ...base, lesson_id: 'L05', synthetic_environment: 'tide_depth_visibility_declared', decision_state: 'undecided' });
@@ -256,6 +268,9 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
       drift_angle: observations.drift_angle_rad,
       polar_kinematic_state: initialState,
       polar_last_helm_sequence: 0,
+      clearance_m: clearanceAt(polarProfile, 0),
+      clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
+      highest_clearance_alert: clearanceLevel(clearanceAt(polarProfile, 0)),
     });
   }
   return freeze(base);
@@ -315,6 +330,8 @@ function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvir
     profile.true_wind_from_rad !== polarKinematicsEnvironmentV1.true_wind_from_rad ||
     profile.true_wind_speed_mps !== polarKinematicsEnvironmentV1.true_wind_speed_mps ||
     !Number.isSafeInteger(profile.current_epoch_ms) || profile.current_epoch_ms < 0 ||
+    profile.seabed_depth_m !== polarKinematicsEnvironmentV1.seabed_depth_m ||
+    profile.draft_m !== polarKinematicsEnvironmentV1.draft_m ||
     profile.full_helm_turn_rad_per_step !== polarKinematicsEnvironmentV1.full_helm_turn_rad_per_step ||
     profile.canonical_precision_version !== polarKinematicsEnvironmentV1.canonical_precision_version) {
     throw new CanonicalInputContractError('Polar kinematics replay profile is invalid.');
@@ -364,6 +381,15 @@ function markStateFor(
 ): 'declared-approach' | 'mark_arrival_recorded' {
   if (previous === 'mark_arrival_recorded') return previous;
   return withinMarkArrivalRadius(position) ? 'mark_arrival_recorded' : 'declared-approach';
+}
+
+/** The tide advances with logical time, so a session that waits sees it change. */
+function clearanceAt(profile: PolarKinematicsEnvironmentV1, logicalTick: number): number {
+  return deriveSyntheticClearanceM(
+    profile.seabed_depth_m,
+    profile.current_epoch_ms + Math.round(logicalTick * profile.logical_step_seconds * 1000),
+    profile.draft_m,
+  );
 }
 
 function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L04' | 'L06' {
@@ -547,6 +573,23 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
         observations,
       }),
     };
+    // FR-05: recompute the declared clearance for the new tick and record a
+    // threshold crossing exactly once per severity level.
+    const nextClearance = clearanceAt(profile, transition.next_state.logical_tick);
+    const nextClearanceLevel = clearanceLevel(nextClearance);
+    const priorHighestAlert = session.raw.highest_clearance_alert ?? 'clear';
+    const clearanceEvent: LedgerEvent | undefined = shouldRecordClearanceCrossing(priorHighestAlert, nextClearanceLevel)
+      ? {
+          id: eventId(transition.next_state.logical_tick, 0, session.ledger.length + 3),
+          tick: transition.next_state.logical_tick,
+          sequence: 0,
+          type: 'ENVIRONMENT_EPISODE',
+          lesson_id: lessonTag,
+          synthetic: true,
+          cause: `synthetic under-keel clearance ${nextClearanceLevel} threshold crossed`,
+          transition_event_id: transitionId,
+        }
+      : undefined;
     const priorMarkState = session.raw.mark_state;
     const nextMarkState = lessonTag === 'L04' ? markStateFor(transition.next_state.position_m, priorMarkState) : priorMarkState;
     const arrivalEvent: LedgerEvent | undefined =
@@ -576,10 +619,13 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
         sog: observations.sog_mps,
         drift_angle: observations.drift_angle_rad,
         ...(lessonTag === 'L04' ? { mark_state: nextMarkState } : {}),
+        clearance_m: nextClearance,
+        clearance_level: nextClearanceLevel,
+        highest_clearance_alert: moreSevereClearance(priorHighestAlert, nextClearanceLevel),
         polar_kinematic_state: transition.next_state,
         polar_last_helm_sequence: causalControls.at(-1)?.sequence ?? session.raw.polar_last_helm_sequence,
       }),
-      ledger: immutableLedger(arrivalEvent ? [...session.ledger, event, arrivalEvent] : [...session.ledger, event]),
+      ledger: immutableLedger([...session.ledger, event, ...(arrivalEvent ? [arrivalEvent] : []), ...(clearanceEvent ? [clearanceEvent] : [])]),
     });
   }
   if (session.raw.lesson_id === 'L03' && session.raw.logical_tick === 0) {

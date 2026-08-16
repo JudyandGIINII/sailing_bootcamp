@@ -307,6 +307,10 @@ function render(): void {
         } else {
           description.textContent = 'Synthetic declared current unavailable.';
         }
+      } else if (observation.key === 'clearance') {
+        description.textContent = session.raw.clearance_m === undefined || session.raw.clearance_m === 'declared-unavailable'
+          ? 'Synthetic declared under-keel clearance not computed for this lesson.'
+          : `Synthetic declared under-keel clearance ${numeric(session.raw.clearance_m)} m (${session.raw.clearance_level ?? 'unknown'}) — declared seabed depth plus a simplified semidiurnal tide minus declared draft; not a charted depth, sounding, datum, or under-keel safety margin.`;
       } else description.textContent = 'Synthetic computed observation unavailable.';
     } else if (currentLesson.id === 'L02' && observation.key === 'declared_trim_feedback') {
       const acknowledgment = projectL02SyntheticTrimAcknowledgment(session.raw);
