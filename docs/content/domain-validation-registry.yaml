@@ -155,7 +155,7 @@ records:
       tide additionally drives an under-keel clearance of
       (seabed depth + tide - draft) and its threshold events. Both the current and
       the tide derive from the real date and time the player starts a session via a
-      simplified single-sinusoid shape: not real tide data, harmonic constants,
+      simplified single-sinusoid shape sharing one phase, with the stream taken as the tide's rate of change so slack water falls at high and low water: not real tide data, harmonic constants,
       charted depth, soundings, a datum, an under-keel safety margin, a trim guide,
       a reefing threshold, or any navigational prediction.
     source_or_evidence_gap_reason: >-
@@ -167,11 +167,11 @@ records:
       (1 - |apparent wind angle| / pi); minimum trim efficiency 0.55; reef speed
       factor 0.75; tide amplitude 1.8 m; clearance caution threshold 1.5 m and
       danger threshold 0.5 m; seabed depth 3.5 m; draft 1.6 m. This record is
-      boat-profile scoped and shared by every lesson bound to polar-kinematics-v4;
+      boat-profile scoped and shared by every lesson bound to polar-kinematics-v5;
       it asserts no real hull performance, weather, route, tidal, depth, or safety
       behaviour.
     scenario_version: not-scenario-scoped
-    model_version: polar-kinematics-v4
+    model_version: polar-kinematics-v5
     boat_profile_version: training-sloop-v1
     contract_version: lesson-model-contract-v0-draft
     coordinate_contract_version: coordinate-contract-v1-draft

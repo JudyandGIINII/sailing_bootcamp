@@ -22,6 +22,7 @@ import { validateHelmControls, type HelmCommand, type HelmControl } from './helm
 import { l01DirectionFromVector, l01DirectionVector, normalizeL01Heading } from './l01-synthetic-model.js';
 import { lookupTargetSpeedMps } from './polar.js';
 import { INITIAL_SAIL_TRIM, sailCorrectionFactor, type SailTrimState } from './sail-trim.js';
+import { effectiveEpochMs } from './tidal-current.js';
 import { deriveSyntheticCurrent } from './tidal-current.js';
 import { composeGroundRelativeVelocity } from './vector.js';
 
@@ -114,7 +115,11 @@ export function transitionPolarKinematicState(
   const stw = canonicalizeL01Number(baseStw * sailCorrection);
 
   const waterVelocity = stw === 0 ? frozenPoint(0, 0) : l01DirectionVector(heading, stw);
-  const current = deriveSyntheticCurrent(profile.current_epoch_ms);
+  // Advances with logical time on the same phase as the tide, indexed by the
+  // tick this transition produces.
+  const current = deriveSyntheticCurrent(
+    effectiveEpochMs(profile.current_epoch_ms, priorState.logical_tick + 1, profile.logical_step_seconds),
+  );
   const currentVelocity = current.current_speed_mps === 0
     ? frozenPoint(0, 0)
     : l01DirectionVector(normalizeL01Heading(current.current_to_rad), current.current_speed_mps);

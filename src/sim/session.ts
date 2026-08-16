@@ -11,6 +11,7 @@ import { createInitialPolarKinematicState, transitionPolarKinematicState, type P
 import { projectPolarObservations, type PolarObservations } from './polar-observation.js';
 import { stepTrim } from './sail-trim.js';
 import { clearanceLevel, deriveSyntheticClearanceM, moreSevereClearance, shouldRecordClearanceCrossing, type ClearanceLevel } from './depth-clearance.js';
+import { effectiveEpochMs } from './tidal-current.js';
 
 export type HelmCommand = 'neutral' | 'port' | 'starboard';
 export type SessionAction = DeclaredLessonAction;
@@ -198,7 +199,7 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
         polar_last_helm_sequence: 0,
         clearance_m: clearanceAt(polarProfile, 0),
         clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
-        highest_clearance_alert: clearanceLevel(clearanceAt(polarProfile, 0)),
+        highest_clearance_alert: 'clear',
       });
     }
     if (!l01Profile) throw new CanonicalInputContractError('L01 synthetic profile is missing.');
@@ -246,7 +247,7 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
       polar_last_helm_sequence: 0,
       clearance_m: clearanceAt(polarProfile, 0),
       clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
-      highest_clearance_alert: clearanceLevel(clearanceAt(polarProfile, 0)),
+      highest_clearance_alert: 'clear',
     });
   }
   if (scenario.startsWith('l05-')) return freeze({ ...base, lesson_id: 'L05', synthetic_environment: 'tide_depth_visibility_declared', decision_state: 'undecided' });
@@ -270,7 +271,7 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
       polar_last_helm_sequence: 0,
       clearance_m: clearanceAt(polarProfile, 0),
       clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
-      highest_clearance_alert: clearanceLevel(clearanceAt(polarProfile, 0)),
+      highest_clearance_alert: 'clear',
     });
   }
   return freeze(base);
@@ -394,7 +395,7 @@ function markStateFor(
 function clearanceAt(profile: PolarKinematicsEnvironmentV1, logicalTick: number): number {
   return deriveSyntheticClearanceM(
     profile.seabed_depth_m,
-    profile.current_epoch_ms + Math.round(logicalTick * profile.logical_step_seconds * 1000),
+    effectiveEpochMs(profile.current_epoch_ms, logicalTick, profile.logical_step_seconds),
     profile.draft_m,
   );
 }

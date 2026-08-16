@@ -4,23 +4,29 @@ import {
   EBB_TO_RAD,
   FLOOD_TO_RAD,
   MAX_CURRENT_MPS,
+  PEAK_EBB_EPOCH_MS,
+  PEAK_FLOOD_EPOCH_MS,
   SEMIDIURNAL_PERIOD_MS,
+  SLACK_WATER_EPOCH_MS,
 } from '../../src/sim/tidal-current.js';
+import { TIDE_AMPLITUDE_M, deriveSyntheticTideHeightM } from '../../src/sim/depth-clearance.js';
 
 describe('deriveSyntheticCurrent (synthetic semidiurnal tidal shape)', () => {
-  it('returns zero speed at epoch 0 (sin(0) === 0)', () => {
-    const current = deriveSyntheticCurrent(0);
-    expect(current.current_speed_mps).toBe(0);
-  });
-
-  it('returns speed at or near MAX_CURRENT_MPS and the flood direction a quarter period in', () => {
-    const current = deriveSyntheticCurrent(SEMIDIURNAL_PERIOD_MS / 4);
+  it('runs strongest at peak flood, where the tide height is crossing its datum', () => {
+    const current = deriveSyntheticCurrent(PEAK_FLOOD_EPOCH_MS);
     expect(current.current_speed_mps).toBeCloseTo(MAX_CURRENT_MPS, 6);
     expect(current.current_to_rad).toBe(FLOOD_TO_RAD);
   });
 
-  it('returns the ebb direction three quarters in, proving direction flips across the cycle', () => {
-    const current = deriveSyntheticCurrent((3 * SEMIDIURNAL_PERIOD_MS) / 4);
+  it('goes slack at high water, a quarter period in', () => {
+    // The stream is the tide's rate of change, so it is zero where the height peaks.
+    expect(deriveSyntheticCurrent(SLACK_WATER_EPOCH_MS).current_speed_mps).toBe(0);
+    expect(deriveSyntheticTideHeightM(SLACK_WATER_EPOCH_MS)).toBeCloseTo(TIDE_AMPLITUDE_M, 6);
+  });
+
+  it('runs strongest on the ebb half a period in, proving direction flips across the cycle', () => {
+    const current = deriveSyntheticCurrent(PEAK_EBB_EPOCH_MS);
+    expect(current.current_speed_mps).toBeCloseTo(MAX_CURRENT_MPS, 6);
     expect(current.current_to_rad).toBe(EBB_TO_RAD);
   });
 

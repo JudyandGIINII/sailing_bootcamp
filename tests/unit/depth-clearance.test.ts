@@ -9,7 +9,7 @@ import {
   moreSevereClearance,
   shouldRecordClearanceCrossing,
 } from '../../src/sim/depth-clearance.js';
-import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
+import { MAX_CURRENT_MPS, PEAK_FLOOD_EPOCH_MS, SEMIDIURNAL_PERIOD_MS, SLACK_WATER_EPOCH_MS, deriveSyntheticCurrent } from '../../src/sim/tidal-current.js';
 import { polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 import { advanceLogicalTick, createSession, type DeterministicSession } from '../../src/sim/session.js';
 import { l06ReplayBindings } from '../../src/content/l06-polar.js';
@@ -71,6 +71,24 @@ describe('synthetic tide height and under-keel clearance', () => {
     expect(() => deriveSyntheticTideHeightM(1.5)).toThrow(TypeError);
     expect(() => deriveSyntheticClearanceM(-1, 0, draft_m)).toThrow(TypeError);
     expect(() => clearanceLevel(Number.NaN)).toThrow(TypeError);
+  });
+
+  it('warns a session that starts already below a threshold, on its first tick', () => {
+    // Regression: the highest-recorded level was seeded from the tick-0 level,
+    // which suppressed every event for a session that began in caution or danger.
+    const belowCaution = epochJustAboveThreshold(CLEARANCE_CAUTION_M) + 60_000;
+    let session = polarSessionAt(belowCaution);
+    expect(clearanceLevel(session.raw.clearance_m as number)).not.toBe('clear');
+    session = advanceLogicalTick(session);
+    expect(session.ledger.filter((event) => event.type === 'ENVIRONMENT_EPISODE')).toHaveLength(1);
+  });
+
+  it('puts slack water at the tide peak and the strongest stream at mid-tide', () => {
+    // The stream is the tide's rate of change, so the two share one phase.
+    expect(deriveSyntheticCurrent(SLACK_WATER_EPOCH_MS).current_speed_mps).toBe(0);
+    expect(deriveSyntheticTideHeightM(SLACK_WATER_EPOCH_MS)).toBeCloseTo(TIDE_AMPLITUDE_M, 6);
+    expect(deriveSyntheticCurrent(PEAK_FLOOD_EPOCH_MS).current_speed_mps).toBeCloseTo(MAX_CURRENT_MPS, 6);
+    expect(deriveSyntheticTideHeightM(PEAK_FLOOD_EPOCH_MS)).toBe(0);
   });
 
   it('records a caution crossing exactly once as the session tide falls (FR-05)', () => {

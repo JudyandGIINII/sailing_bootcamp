@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { SLACK_WATER_EPOCH_MS } from '../../src/sim/tidal-current.js';
 import { describe, expect, it, vi } from 'vitest';
 import { l01ReplayBindings } from '../../src/content/l01.js';
 import { l02ReplayBindings } from '../../src/content/l02-l05.js';
@@ -312,9 +313,15 @@ describe('deterministic raw polar kinematics session', () => {
   });
 
   it('reports sog === stw and cog === heading once the declared current is zero (FR-04, end to end)', () => {
-    // sin(0) === 0, so the canonical current_epoch_ms of 0 derives zero current.
-    expect(polarKinematicsEnvironmentV1.current_epoch_ms).toBe(0);
-    const identity = { ...polarReplayBindings, seed: 'polar-fr04', ordered_input_log: [] };
+    // The stream advances with logical time, so zero current is a momentary
+    // condition at slack water. Start one tick before it so the first
+    // transition observes cos(phase) === 0 exactly.
+    const identity = {
+      ...polarReplayBindings,
+      polar_kinematics_environment: { ...polarKinematicsEnvironmentV1, current_epoch_ms: SLACK_WATER_EPOCH_MS - 1000 },
+      seed: 'polar-fr04',
+      ordered_input_log: [],
+    };
     const advanced = advanceLogicalTick(createSession(identity));
     expect(typeof advanced.raw.sog).toBe('number');
     expect(advanced.raw.sog).toBe(advanced.raw.stw);

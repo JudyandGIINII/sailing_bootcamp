@@ -6,13 +6,19 @@ import { normalizeL01Heading } from '../../src/sim/l01-synthetic-model.js';
 import { createInitialPolarKinematicState, transitionPolarKinematicState } from '../../src/sim/polar-kinematics-model.js';
 import { lookupTargetSpeedMps } from '../../src/sim/polar.js';
 import { INITIAL_SAIL_TRIM, sailCorrectionFactor } from '../../src/sim/sail-trim.js';
-import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
+import { PEAK_FLOOD_EPOCH_MS, SEMIDIURNAL_PERIOD_MS, SLACK_WATER_EPOCH_MS } from '../../src/sim/tidal-current.js';
 
-const noCurrent = polarKinematicsEnvironmentV1;
-// A quarter period gives sin(phase) === 1 exactly: current_speed_mps === MAX_CURRENT_MPS
-// (1.5) and current_to_rad === FLOOD_TO_RAD (PI/2), matching this suite's prior
-// hardcoded current fixture without changing any downstream expected value below.
-const withCurrent = Object.freeze({ ...polarKinematicsEnvironmentV1, current_epoch_ms: SEMIDIURNAL_PERIOD_MS / 4 });
+/**
+ * The stream advances with logical time, so an epoch is chosen per test such
+ * that the FIRST transition (which observes logical tick 1) lands exactly on
+ * the wanted phase point.
+ */
+const startForTick = (targetEpochMs: number, tick: number) =>
+  (((targetEpochMs - tick * 1000) % SEMIDIURNAL_PERIOD_MS) + SEMIDIURNAL_PERIOD_MS) % SEMIDIURNAL_PERIOD_MS;
+/** Slack water at tick 1: cos(phase) === 0, so the derived stream is exactly zero. */
+const noCurrent = Object.freeze({ ...polarKinematicsEnvironmentV1, current_epoch_ms: startForTick(SLACK_WATER_EPOCH_MS, 1) });
+/** Peak flood at tick 1: cos(phase) === 1, so speed is MAX_CURRENT_MPS toward FLOOD_TO_RAD. */
+const withCurrent = Object.freeze({ ...polarKinematicsEnvironmentV1, current_epoch_ms: startForTick(PEAK_FLOOD_EPOCH_MS, 1) });
 
 /**
  * Independently reconstructs the signed apparent-wind-angle formula (not imported

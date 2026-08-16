@@ -1,7 +1,7 @@
 {
   "identity": {
     "scenario_version": "l04-scenario-v0-draft",
-    "model_version": "polar-kinematics-v4",
+    "model_version": "polar-kinematics-v5",
     "boat_profile_version": "training-sloop-v1",
     "contract_version": "lesson-model-contract-v0-draft",
     "coordinate_contract_version": "coordinate-contract-v1-draft",
@@ -11,7 +11,7 @@
       "environment_id": "polar-kinematics-training-ground",
       "environment_version": 1,
       "model_id": "polar-kinematics",
-      "model_version": "polar-kinematics-v4",
+      "model_version": "polar-kinematics-v5",
       "logical_step_seconds": 1,
       "initial_position_m": {
         "x": 12,
@@ -21,7 +21,7 @@
       "polar_profile_id": "training-sloop-synthetic-polar",
       "true_wind_from_rad": 1.5707963267948966,
       "true_wind_speed_mps": 6,
-      "current_epoch_ms": 11178000,
+      "current_epoch_ms": 0,
       "seabed_depth_m": 3.5,
       "draft_m": 1.6,
       "full_helm_turn_rad_per_step": 0.39269908169872414,
@@ -86,7 +86,7 @@
         }
       },
       "polar_last_helm_sequence": 2,
-      "clearance_m": 3.7,
+      "clearance_m": 1.900253,
       "clearance_level": "clear",
       "highest_clearance_alert": "clear"
     },
@@ -143,7 +143,7 @@
           "environment_id": "polar-kinematics-training-ground",
           "environment_version": 1,
           "model_id": "polar-kinematics",
-          "model_version": "polar-kinematics-v4",
+          "model_version": "polar-kinematics-v5",
           "canonical_precision_version": "l01-precision-v1",
           "accepted_helm_command": "starboard",
           "causal_controls": [

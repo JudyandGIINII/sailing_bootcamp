@@ -33,7 +33,7 @@ export interface L06Manifest {
 
 /**
  * L06 is the first lesson to register the polar-and-current kinematics model
- * (`polar-kinematics-v4`), which was built and wired across earlier tasks but
+ * (`polar-kinematics-v5`), which was built and wired across earlier tasks but
  * had no lesson declaring it. L01 was deliberately left on its legacy model
  * instead of being migrated: its replay bindings are derived live from its
  * manifest and consumed at many call sites, so flipping its model_version

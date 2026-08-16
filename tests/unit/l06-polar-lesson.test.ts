@@ -3,7 +3,7 @@ import { l06Manifest, l06ReplayBindings } from '../../src/content/l06-polar.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 import { advanceLogicalTick, applyCanonicalInput, createSession, type CanonicalInput } from '../../src/sim/session.js';
 import { projectDebrief } from '../../src/scoring/projection.js';
-import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
+import { PEAK_FLOOD_EPOCH_MS, SEMIDIURNAL_PERIOD_MS, SLACK_WATER_EPOCH_MS } from '../../src/sim/tidal-current.js';
 
 const MANIFEST_FIELDS = [
   'lesson_id', 'scenario_version', 'model_version', 'boat_profile_version', 'contract_version',
@@ -15,7 +15,7 @@ const MANIFEST_FIELDS = [
 
 describe('L06 polar-kinematics lesson', () => {
   it('declares the polar model version and every non-empty lesson-contract field', () => {
-    expect(l06Manifest.model_version).toBe('polar-kinematics-v4');
+    expect(l06Manifest.model_version).toBe('polar-kinematics-v5');
     expect(l06Manifest.model_version).toBe(POLAR_KINEMATICS_MODEL_VERSION);
     for (const field of MANIFEST_FIELDS) {
       const value = l06Manifest[field];
@@ -80,9 +80,19 @@ describe('L06 polar-kinematics lesson', () => {
   });
 
   it('reports sog === stw and cog === heading once the declared current is zero (FR-04, end to end)', () => {
-    // sin(0) === 0, so the canonical current_epoch_ms of 0 derives zero current.
-    expect(polarKinematicsEnvironmentV1.current_epoch_ms).toBe(0);
-    const identity = { ...l06ReplayBindings, seed: 'l06-fr04', ordered_input_log: [] };
+    // The stream advances with logical time, so zero current is a momentary
+    // condition. Start one tick before slack water so the FIRST transition
+    // observes cos(phase) === 0 exactly.
+    const slackAtFirstTick = Object.freeze({
+      ...polarKinematicsEnvironmentV1,
+      current_epoch_ms: SLACK_WATER_EPOCH_MS - 1000,
+    });
+    const identity = {
+      ...l06ReplayBindings,
+      polar_kinematics_environment: slackAtFirstTick,
+      seed: 'l06-fr04',
+      ordered_input_log: [],
+    };
     const advanced = advanceLogicalTick(createSession(identity));
     expect(typeof advanced.raw.sog).toBe('number');
     expect(advanced.raw.sog).toBe(advanced.raw.stw);
@@ -92,7 +102,7 @@ describe('L06 polar-kinematics lesson', () => {
   it('reports sog !== stw and cog !== heading for a session started at a real-world timestamp that derives a nonzero current (end to end, drift now observable)', () => {
     const nonzeroCurrentEnvironment = Object.freeze({
       ...polarKinematicsEnvironmentV1,
-      current_epoch_ms: SEMIDIURNAL_PERIOD_MS / 4,
+      current_epoch_ms: ((PEAK_FLOOD_EPOCH_MS - 1000) % SEMIDIURNAL_PERIOD_MS + SEMIDIURNAL_PERIOD_MS) % SEMIDIURNAL_PERIOD_MS,
     });
     const identity = {
       ...l06ReplayBindings,

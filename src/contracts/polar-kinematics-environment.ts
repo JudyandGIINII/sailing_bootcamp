@@ -5,7 +5,7 @@ import { trainingSloopPolarV1 } from './polar-profile.js';
  * an explicit educational assumption, not a vessel, weather, route, or safety
  * value. The current vector is declared synthetic and non-navigational.
  */
-export const POLAR_KINEMATICS_MODEL_VERSION = 'polar-kinematics-v4' as const;
+export const POLAR_KINEMATICS_MODEL_VERSION = 'polar-kinematics-v5' as const;
 
 export interface PolarKinematicsEnvironmentV1 {
   readonly environment_id: 'polar-kinematics-training-ground';
@@ -47,7 +47,9 @@ export const polarKinematicsEnvironmentV1: Readonly<PolarKinematicsEnvironmentV1
   true_wind_speed_mps: 6,
   // sin(0) === 0, so the canonical default profile derives zero current — this
   // deliberately keeps the existing L06 zero-current unit tests meaningful.
-  current_epoch_ms: 0,
+  // Slack water: the canonical profile derives exactly zero stream, which keeps
+  // the zero-current baseline meaningful.
+  current_epoch_ms: 11178000,
   seabed_depth_m: 3.5,
   draft_m: 1.6,
   full_helm_turn_rad_per_step: Math.PI / 8,

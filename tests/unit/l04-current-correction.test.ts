@@ -11,14 +11,15 @@ import {
   l05Manifest,
 } from '../../src/content/l02-l05.js';
 import { POLAR_KINEMATICS_MODEL_VERSION } from '../../src/contracts/polar-kinematics-environment.js';
-import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
+import { PEAK_FLOOD_EPOCH_MS, SEMIDIURNAL_PERIOD_MS, SLACK_WATER_EPOCH_MS } from '../../src/sim/tidal-current.js';
 import { CLEARANCE_CAUTION_M, TIDE_AMPLITUDE_M } from '../../src/sim/depth-clearance.js';
 import { polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 
-/** A quarter period is the tidal peak, so the cross-current is at its strongest. */
-const CROSS_CURRENT_EPOCH_MS = SEMIDIURNAL_PERIOD_MS / 4;
-/** sin(0) is 0, so this epoch declares a slack current and the boat holds its heading. */
-const SLACK_CURRENT_EPOCH_MS = 0;
+/** Peak flood: the stream is at its strongest, so drift is maximal. A few hundred
+ * ticks span well under 1% of the cycle, so it stays near peak for the whole run. */
+const CROSS_CURRENT_EPOCH_MS = PEAK_FLOOD_EPOCH_MS;
+/** Slack water: the derived stream is ~0, so the boat holds its heading. */
+const SLACK_CURRENT_EPOCH_MS = SLACK_WATER_EPOCH_MS;
 
 function l04Session(currentEpochMs: number, seed = 'l04-current-correction'): DeterministicSession {
   return createSession({

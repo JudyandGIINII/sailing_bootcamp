@@ -1024,7 +1024,7 @@ describe('polar kinematics replay identity carrier', () => {
     expect((await resolveReplayV2(tampered)).outcome).toBe('rejected');
   });
 
-  it('accepts a Replay V2 identity for L06 declaring polar-kinematics-v4 with a valid polar environment, end to end', async () => {
+  it('accepts a Replay V2 identity for L06 declaring polar-kinematics-v5 with a valid polar environment, end to end', async () => {
     const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
     const { scenario_version: ignoredScenarioVersion, polar_kinematics_environment, ...lessonBindingValues } = l06ReplayBindings;
     void ignoredScenarioVersion;
