@@ -1,6 +1,6 @@
 # Sailing Bootcamp — Project Status
 
-> 갱신: 2026-08-16 KST
+> 갱신: 2026-08-17 KST
 > 상태: **A polar-based boat model, sail-trim and reef correction factors, water-current composition and a tide-driven under-keel clearance are implemented. They are reachable through the mandatory lesson **L04** (current correction to a mark) and the non-mandatory demonstration lesson **L06**. Current and tide both derive from the real date/time a session starts and both advance with logical time on one shared phase, the stream being the tide's rate of change — a simplified synthetic sinusoid, not real tide data. L01, L02, L03 and L05 still run the legacy fixed-speed model.**
 
 ## 1. Current position
@@ -30,14 +30,17 @@ A polar-based boat model plus water-current vector composition is reachable thro
 | Check | Result |
 |---|---|
 | TypeScript | PASS (`npm run typecheck`) |
-| Full Vitest | **28 files / 293 tests** PASS (`npm test`) |
+| Full Vitest | **32 files / 321 tests** PASS (`npm test`) |
 | Vite production build | PASS (`npm run build`) |
-| Playwright smoke | **22 / 22 passed** (`npm run test:smoke`) |
+| Playwright smoke | **23 / 23 passed** (`npm run test:smoke`) |
+| Simulation purity boundary | PASS (`tests/contracts/sim-boundary.test.ts`, 2 / 2) |
+| Golden fixtures | Only `l04-*` regenerated across this cycle; `l01-*`, `l02-*`, `l03-*`, `l05-*` byte-identical |
 
 ## 3. Local-only boundaries
 
-- L06's UI explicitly carries the same shared non-navigation boundary text as every other lesson (`Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.`); it is not safety, certification, or real-world sailing guidance.
-- L06 uses the same local, browser-only replay/session/reset mechanism as L01–L05. No backend, network, deployment, or access-policy behavior was added or changed.
+- L04 and L06 carry the same shared non-navigation boundary text as every other lesson (`Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.`); neither is safety, certification, or real-world sailing guidance.
+- L04 and L06 use the same local, browser-only replay/session/reset mechanism as L01–L05. No backend, network, deployment, or access-policy behavior was added or changed.
+- The wall clock is read in exactly one place (`src/main.ts`) and stored on the replay identity as `current_epoch_ms`. Nothing under `src/sim` or `src/contracts` reads the clock, randomness, DOM, storage, or network, so replaying a stored identity reproduces exactly.
 - L01–L05, their manifests, and their golden fixtures are unchanged by this work.
 
 ## 4. Product and technical boundaries
@@ -57,9 +60,28 @@ L03 was deliberately NOT migrated to make reef meaningful there: `advanceLogical
 - PRD §7.3 five-component scoring — `total_points` remains 0.
 - **Domain validation** — `VR-POLAR-v0` is `disposition: assumption`. The 48 polar numbers, the trim and reef coefficients, and the tide, clearance, depth and draft constants are all invented educational assumptions asserting no real hull performance, tide, depth, or safety behaviour.
 
-Two known limitations, tracked as debt rather than closed:
+Known limitations, tracked as debt rather than closed:
 1. **State-contract inconsistency** — `heading`/`cog`/`true_wind`/`apparent_wind` use the `'declared-unavailable'` string sentinel when absent, while `stw`/`sog`/`drift_angle` are optional fields that are `undefined` on non-polar lessons; a consumer must handle three states, not two. Fully resolving it would require regenerating the L02–L05 fixtures.
-2. **Defensive-branch coverage** — the HUD's handling of the `'declared-unavailable'` and `undefined` cases for STW/SOG/drift is not exercised by tests, because a live L06 session always produces numeric values; TypeScript `strict` mode, not a test, is what prevents a naive two-state rewrite.
+2. **Defensive-branch coverage** — the HUD's handling of the `'declared-unavailable'` and `undefined` cases for STW/SOG/drift is not exercised by tests, because a live polar session always produces numeric values; TypeScript `strict` mode, not a test, is what prevents a naive two-state rewrite.
+3. **`Math.sin`/`Math.cos` are not IEEE-specified across JS engines.** The 6-decimal canonicalization mitigates but does not eliminate cross-engine divergence at rounding boundaries. Pre-existing via `Math.hypot`/`atan2`; the tide and stream now sit on that path too.
+4. **`src/contracts` is not purity-scanned.** `tests/contracts/sim-boundary.test.ts` recurses `src/sim` only. `src/contracts` is clean by inspection today but unguarded going forward.
+5. **`replayInputs` applies no inputs at `terminalTicks: 0` for L04/L06.** Unlike L01/L02/L03 those lessons carry no V2 terminal-authority fields, so a saved attempt at tick 0 needs at least one advance to restore faithfully. Pre-existing for L06; inherited by L04 on migration.
+
+## 4a. Review findings closed in this cycle
+
+An independent two-track review (determinism/replay contract, and model correctness/boundary posture) of the polar work found eight issues. All eight are closed:
+
+| # | Finding | Resolution |
+|---|---|---|
+| 1 | L04 Replay V2 payloads rejected as schema-invalid — the migrated lesson's replays were unloadable | `isReplayV2Shape`, `identityFieldsFor` and `resolveReplayV2` now recognise L04; save→resolve→replay regression test added, verified against the pre-fix code |
+| 2 | Advance-time event ids collided with ids minted on later ticks | Mark-arrival and clearance events use namespaced ids like the transition event; ledger-wide uniqueness test added, verified to fail against the old scheme |
+| 3 | `VR-POLAR-v0` named an older model version and declared none of the ten new constants | Record rebound to the shipped version with every constant declared; a test now pins the registry to the code |
+| 4 | L04's computed observations never reached the HUD (gated on L01/L06) | L04 shares the polar HUD branch; the smoke assertion that had been deleted rather than inverted is restored as a positive check |
+| 5 | `PROJECT_STATUS` asserted three claims the merged code contradicted | Corrected here and in the completion matrix |
+| 6 | Reef factor unreachable — no polar lesson permitted `reef` | `reef` added to L04. L03 migration was investigated and rejected: L03 terminates at reef selection, so a speed factor would apply for zero further ticks |
+| 7 | A session starting below a clearance threshold was never warned | `highest_clearance_alert` seeded `'clear'`, so the first tick records |
+| 8 | Tide advanced with logical time while the stream stayed frozen at session start | Both now advance on one shared phase, with the stream as the tide's rate of change (slack at high/low water) |
+
 
 The L06 binding and polar model are local synthetic calibration only. They do not promote registry dispositions or create domain factual validation.
 
