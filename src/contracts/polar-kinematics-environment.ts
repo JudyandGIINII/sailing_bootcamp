@@ -5,7 +5,7 @@ import { trainingSloopPolarV1 } from './polar-profile.js';
  * an explicit educational assumption, not a vessel, weather, route, or safety
  * value. The current vector is declared synthetic and non-navigational.
  */
-export const POLAR_KINEMATICS_MODEL_VERSION = 'polar-kinematics-v2' as const;
+export const POLAR_KINEMATICS_MODEL_VERSION = 'polar-kinematics-v3' as const;
 
 export interface PolarKinematicsEnvironmentV1 {
   readonly environment_id: 'polar-kinematics-training-ground';

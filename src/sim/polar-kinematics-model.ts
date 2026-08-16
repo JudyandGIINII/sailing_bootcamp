@@ -21,6 +21,7 @@ import { trainingSloopPolarV1 } from '../contracts/polar-profile.js';
 import { validateHelmControls, type HelmCommand, type HelmControl } from './helm-controls.js';
 import { l01DirectionFromVector, l01DirectionVector, normalizeL01Heading } from './l01-synthetic-model.js';
 import { lookupTargetSpeedMps } from './polar.js';
+import { INITIAL_SAIL_TRIM, sailCorrectionFactor, type SailTrimState } from './sail-trim.js';
 import { deriveSyntheticCurrent } from './tidal-current.js';
 import { composeGroundRelativeVelocity } from './vector.js';
 
@@ -32,6 +33,8 @@ export interface PolarKinematicState {
   /** Carries the previous tick's apparent wind so the polar input stays acyclic. */
   readonly apparent_wind_from_rad: number;
   readonly apparent_wind_speed_mps: number;
+  /** Declared sheet and reef state; the session advances it from accepted actions. */
+  readonly sail_trim: Readonly<SailTrimState>;
 }
 
 export interface PolarKinematicTransition {
@@ -57,6 +60,9 @@ function assertFiniteState(state: PolarKinematicState): void {
     !Number.isFinite(state.heading_rad) ||
     !Number.isFinite(state.apparent_wind_from_rad) ||
     !Number.isFinite(state.apparent_wind_speed_mps) ||
+    typeof state.sail_trim !== 'object' || state.sail_trim === null ||
+    !Number.isFinite(state.sail_trim.main_trim) || !Number.isFinite(state.sail_trim.jib_trim) ||
+    typeof state.sail_trim.reefed !== 'boolean' ||
     !['neutral', 'port', 'starboard'].includes(state.helm_command)) {
     throw new TypeError('Polar kinematic state must contain finite canonical values.');
   }
@@ -80,6 +86,7 @@ export function createInitialPolarKinematicState(profile: PolarKinematicsEnviron
     // polar lookup is always 6-decimal canonical (never a raw, full-precision literal).
     apparent_wind_from_rad: normalizeL01Heading(profile.true_wind_from_rad),
     apparent_wind_speed_mps: canonicalizeL01Number(profile.true_wind_speed_mps),
+    sail_trim: INITIAL_SAIL_TRIM,
   });
 }
 
@@ -101,7 +108,10 @@ export function transitionPolarKinematicState(
   const heading = normalizeL01Heading(priorState.heading_rad + turn);
 
   const awa = apparentWindAngle(priorState.apparent_wind_from_rad, heading);
-  const stw = lookupTargetSpeedMps(trainingSloopPolarV1, awa, profile.true_wind_speed_mps);
+  const baseStw = lookupTargetSpeedMps(trainingSloopPolarV1, awa, profile.true_wind_speed_mps);
+  // PRD 8.2: trim and reef adjust the polar's base speed through explicit factors.
+  const sailCorrection = sailCorrectionFactor(priorState.sail_trim, awa);
+  const stw = canonicalizeL01Number(baseStw * sailCorrection);
 
   const waterVelocity = stw === 0 ? frozenPoint(0, 0) : l01DirectionVector(heading, stw);
   const current = deriveSyntheticCurrent(profile.current_epoch_ms);
@@ -130,6 +140,8 @@ export function transitionPolarKinematicState(
     helm_command: acceptedHelm,
     apparent_wind_from_rad: apparentFrom,
     apparent_wind_speed_mps: apparentSpeed,
+    // Carried forward unchanged: the session advances trim from accepted actions.
+    sail_trim: priorState.sail_trim,
   });
 
   return Object.freeze({

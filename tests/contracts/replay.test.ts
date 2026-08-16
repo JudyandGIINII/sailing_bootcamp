@@ -991,7 +991,7 @@ describe('polar kinematics replay identity carrier', () => {
    * `isRegisteredLessonBindingV2` gates on the manifest registry before the
    * environment check ever runs. Registering L06 makes it resolve end to end.
    */
-  it('accepts a Replay V2 identity for L06 declaring polar-kinematics-v2 with a valid polar environment, end to end', async () => {
+  it('accepts a Replay V2 identity for L06 declaring polar-kinematics-v3 with a valid polar environment, end to end', async () => {
     const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
     const { scenario_version: ignoredScenarioVersion, polar_kinematics_environment, ...lessonBindingValues } = l06ReplayBindings;
     void ignoredScenarioVersion;

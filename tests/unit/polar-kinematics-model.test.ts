@@ -5,6 +5,7 @@ import { trainingSloopPolarV1 } from '../../src/contracts/polar-profile.js';
 import { normalizeL01Heading } from '../../src/sim/l01-synthetic-model.js';
 import { createInitialPolarKinematicState, transitionPolarKinematicState } from '../../src/sim/polar-kinematics-model.js';
 import { lookupTargetSpeedMps } from '../../src/sim/polar.js';
+import { INITIAL_SAIL_TRIM, sailCorrectionFactor } from '../../src/sim/sail-trim.js';
 import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
 
 const noCurrent = polarKinematicsEnvironmentV1;
@@ -83,7 +84,12 @@ describe('polar kinematics model', () => {
     // helm step to starboard (PI/8) and the AWA is measured against the tick-0 seed
     // apparent wind (still PI/2, since this is still the first transition), landing
     // between the 60deg and 90deg grid rows at TWS 6.
-    expect(turned.stw_mps).toBeCloseTo(3.275, 6);
+    // 3.275 is the raw polar value at AWA 67.5deg / TWS 6; the declared trim
+    // correction for the initial half-hauled sheets scales it down from there.
+    expect(turned.stw_mps).toBeCloseTo(3.275 * sailCorrectionFactor(INITIAL_SAIL_TRIM, signedApparentWindAngle(
+      initial.apparent_wind_from_rad,
+      turned.next_state.heading_rad,
+    )), 6);
   });
 
   it('indexes the polar by the PREVIOUS tick\'s stored apparent wind vector, not a freshly recomputed one', () => {
@@ -115,7 +121,7 @@ describe('polar kinematics model', () => {
       trainingSloopPolarV1,
       expectedAwaFromLaggedVector,
       noCurrent.true_wind_speed_mps,
-    );
+    ) * sailCorrectionFactor(tick1.next_state.sail_trim, expectedAwaFromLaggedVector);
     expect(tick2.stw_mps).toBeCloseTo(expectedStwFromLaggedVector, 6);
 
     // Contrast case: if the polar were instead indexed by tick 2's OWN freshly
@@ -130,7 +136,7 @@ describe('polar kinematics model', () => {
       trainingSloopPolarV1,
       awaFromFreshVector,
       noCurrent.true_wind_speed_mps,
-    );
+    ) * sailCorrectionFactor(tick2.next_state.sail_trim, awaFromFreshVector);
     expect(stwFromFreshVector).not.toBeCloseTo(tick2.stw_mps, 6);
   });
 

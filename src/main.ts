@@ -30,7 +30,7 @@ const lessons: readonly LessonRuntime[] = [
   { id: 'L01', bindings: l01ReplayBindings, actions: getLessonManifest('L01')!.permitted_actions, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
   { id: 'L02', bindings: l02ReplayBindings, actions: getLessonManifest('L02')!.permitted_actions, controls: 'M adjusts declared main trim; J adjusts declared jib trim; Left/Right helm; Space pause/resume.' },
   { id: 'L03', bindings: l03ReplayBindings, actions: getLessonManifest('L03')!.permitted_actions, controls: 'F records the declared synthetic acknowledgment; Space pause/resume.' },
-  { id: 'L04', bindings: l04ReplayBindings, actions: getLessonManifest('L04')!.permitted_actions, controls: 'Left/Right helm to steer toward the declared mark against the synthetic current; Space pause/resume.' },
+  { id: 'L04', bindings: l04ReplayBindings, actions: getLessonManifest('L04')!.permitted_actions, controls: 'Left/Right helm to steer toward the declared mark against the synthetic current; M/J cycle the declared main and jib trim; Space pause/resume.' },
   { id: 'L05', bindings: l05ReplayBindings, actions: getLessonManifest('L05')!.permitted_actions, controls: 'P/W/B record synthetic pass/wait/return decisions; Space pause/resume.' },
   { id: 'L06', bindings: l06ReplayBindings, actions: getLessonManifest('L06')!.permitted_actions, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
 ];

@@ -9,6 +9,7 @@ import { createInitialL01SyntheticState, transitionL01SyntheticState, type L01Sy
 import { createInitialL02SyntheticTrimObservation, reduceL02SyntheticTrimObservation, type L02SyntheticTrimObservation } from './l02-synthetic-model.js';
 import { createInitialPolarKinematicState, transitionPolarKinematicState, type PolarKinematicState } from './polar-kinematics-model.js';
 import { projectPolarObservations, type PolarObservations } from './polar-observation.js';
+import { stepTrim } from './sail-trim.js';
 
 export type HelmCommand = 'neutral' | 'port' | 'starboard';
 export type SessionAction = DeclaredLessonAction;
@@ -623,6 +624,15 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
   let extra: LedgerEvent | undefined;
   if ((isL01Raw(session.raw) || isPolarRaw(session.raw)) && (action === 'helm_port' || action === 'helm_starboard')) {
     extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: polarLessonTag(session.identity), cause: HELM_CORRECTION_CAUSE, action_event_id: event.id };
+  }
+  if (isPolarRaw(raw) && (action === 'main_trim' || action === 'jib_trim' || action === 'reef')) {
+    const priorTrim = raw.polar_kinematic_state.sail_trim;
+    const nextTrim = action === 'reef'
+      ? { ...priorTrim, reefed: !priorTrim.reefed }
+      : action === 'main_trim'
+        ? { ...priorTrim, main_trim: stepTrim(priorTrim.main_trim) }
+        : { ...priorTrim, jib_trim: stepTrim(priorTrim.jib_trim) };
+    raw = freeze({ ...raw, polar_kinematic_state: freeze({ ...raw.polar_kinematic_state, sail_trim: freeze(nextTrim) }) });
   }
   if (raw.lesson_id === 'L02' && (action === 'main_trim' || action === 'jib_trim')) {
     const previousAcknowledgment = raw.l02_trim_acknowledgment;

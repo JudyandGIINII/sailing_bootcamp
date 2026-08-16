@@ -1,7 +1,7 @@
 {
   "identity": {
     "scenario_version": "l04-scenario-v0-draft",
-    "model_version": "polar-kinematics-v2",
+    "model_version": "polar-kinematics-v3",
     "boat_profile_version": "training-sloop-v1",
     "contract_version": "lesson-model-contract-v0-draft",
     "coordinate_contract_version": "coordinate-contract-v1-draft",
@@ -11,7 +11,7 @@
       "environment_id": "polar-kinematics-training-ground",
       "environment_version": 1,
       "model_id": "polar-kinematics",
-      "model_version": "polar-kinematics-v2",
+      "model_version": "polar-kinematics-v3",
       "logical_step_seconds": 1,
       "initial_position_m": {
         "x": 12,
@@ -51,32 +51,37 @@
       "rng_state": 583718435,
       "helm_command": "starboard",
       "heading": 0.392699,
-      "cog": 0.738294,
+      "cog": 0.754222,
       "true_wind": {
         "from_rad": 1.570796,
         "speed_mps": 6
       },
       "apparent_wind": {
-        "from_rad": 1.237989,
-        "speed_mps": 9.261477
+        "from_rad": 1.253068,
+        "speed_mps": 9.140283
       },
       "contract_status": "UNVALIDATED_DOMAIN_MODEL",
       "lesson_id": "L04",
       "declared_navigation_concepts": "heading_cog_stw_sog_drift_mark",
       "mark_state": "declared-approach",
-      "stw": 3.275,
-      "sog": 4.090904,
-      "drift_angle": 0.345595,
+      "stw": 3.090781,
+      "sog": 3.918073,
+      "drift_angle": 0.361523,
       "polar_kinematic_state": {
         "logical_tick": 1,
         "position_m": {
-          "x": 14.753288,
-          "y": -4.974294
+          "x": 14.68279,
+          "y": -5.144491
         },
         "heading_rad": 0.392699,
         "helm_command": "starboard",
-        "apparent_wind_from_rad": 1.237989,
-        "apparent_wind_speed_mps": 9.261477
+        "apparent_wind_from_rad": 1.253068,
+        "apparent_wind_speed_mps": 9.140283,
+        "sail_trim": {
+          "main_trim": 0.5,
+          "jib_trim": 0.5,
+          "reefed": false
+        }
       },
       "polar_last_helm_sequence": 2
     },
@@ -133,7 +138,7 @@
           "environment_id": "polar-kinematics-training-ground",
           "environment_version": 1,
           "model_id": "polar-kinematics",
-          "model_version": "polar-kinematics-v2",
+          "model_version": "polar-kinematics-v3",
           "canonical_precision_version": "l01-precision-v1",
           "accepted_helm_command": "starboard",
           "causal_controls": [
@@ -161,29 +166,39 @@
             "heading_rad": 0,
             "helm_command": "neutral",
             "apparent_wind_from_rad": 1.570796,
-            "apparent_wind_speed_mps": 6
+            "apparent_wind_speed_mps": 6,
+            "sail_trim": {
+              "main_trim": 0.5,
+              "jib_trim": 0.5,
+              "reefed": false
+            }
           },
           "next_state": {
             "logical_tick": 1,
             "position_m": {
-              "x": 14.753288,
-              "y": -4.974294
+              "x": 14.68279,
+              "y": -5.144491
             },
             "heading_rad": 0.392699,
             "helm_command": "starboard",
-            "apparent_wind_from_rad": 1.237989,
-            "apparent_wind_speed_mps": 9.261477
+            "apparent_wind_from_rad": 1.253068,
+            "apparent_wind_speed_mps": 9.140283,
+            "sail_trim": {
+              "main_trim": 0.5,
+              "jib_trim": 0.5,
+              "reefed": false
+            }
           },
           "observations": {
             "heading_rad": 0.392699,
-            "stw_mps": 3.275,
-            "sog_mps": 4.090904,
-            "cog_rad": 0.738294,
-            "drift_angle_rad": 0.345595,
+            "stw_mps": 3.090781,
+            "sog_mps": 3.918073,
+            "cog_rad": 0.754222,
+            "drift_angle_rad": 0.361523,
             "true_wind_from_rad": 1.570796,
             "true_wind_speed_mps": 6,
-            "apparent_wind_from_rad": 1.237989,
-            "apparent_wind_speed_mps": 9.261477
+            "apparent_wind_from_rad": 1.253068,
+            "apparent_wind_speed_mps": 9.140283
           }
         }
       }
