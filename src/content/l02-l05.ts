@@ -10,7 +10,7 @@ export const L04_TARGET_MARK = COURSE_TEMPLATES['windward-return-v1'].ordered_ma
 
 export const L02_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] as const;
 export const L03_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'reef', 'pause', 'resume', 'reset'] as const;
-export const L04_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] as const;
+export const L04_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'reef', 'pause', 'resume', 'reset'] as const;
 export const L05_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'decision_pass', 'decision_wait', 'decision_return', 'pause', 'resume', 'reset'] as const;
 
 /**
@@ -134,7 +134,7 @@ export const l04Manifest: DraftLessonManifest = Object.freeze({
   permitted_actions: L04_SEMANTIC_ACTIONS, checkpoints: ['identify_declared_vector_difference', 'record_correction', 'reach_declared_mark_acceptance'],
   pass_semantics: 'Draft-only declared synthetic mark arrival within the declared arrival radius; a slower corrected approach remains valid.', fail_semantics: 'Draft-only uncorrected synthetic drift or declared terminal boundary without a recorded arrival.',
   safe_recovery_semantics: 'Draft-only: a drifted approach stays recorded and may be corrected before the declared terminal boundary.',
-  hint_and_debrief: 'Compare declared heading against polar-derived COG and drift, and connect the recorded helm correction to the declared mark arrival. No real bearing is prescribed.',
+  hint_and_debrief: 'Compare declared heading against polar-derived COG and drift, and connect the recorded helm correction to the declared mark arrival. Reefing reduces the declared speed through water, so it trades arrival time for a smaller declared sail. No real bearing, reefing threshold, or safety guidance is prescribed.',
   retry_comparison: ['heading_cog_stw_sog', 'correction_input', 'drift', 'mark_result', 'score_cause'],
   failure_or_boundary_acceptance: 'VR-L04-v0 assumption; values are declared synthetic and non-navigational.',
 });

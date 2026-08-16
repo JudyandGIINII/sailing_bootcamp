@@ -13,6 +13,7 @@ import {
 import { POLAR_KINEMATICS_MODEL_VERSION } from '../../src/contracts/polar-kinematics-environment.js';
 import { PEAK_FLOOD_EPOCH_MS, SEMIDIURNAL_PERIOD_MS, SLACK_WATER_EPOCH_MS } from '../../src/sim/tidal-current.js';
 import { CLEARANCE_CAUTION_M, TIDE_AMPLITUDE_M } from '../../src/sim/depth-clearance.js';
+import { REEF_SPEED_FACTOR } from '../../src/sim/sail-trim.js';
 import { polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 
 /** Peak flood: the stream is at its strongest, so drift is maximal. A few hundred
@@ -75,6 +76,34 @@ describe('L04 current-correction lesson', () => {
     expect(overshot.raw.mark_state).toBe('mark_arrival_recorded');
     expect(overshot.ledger.filter((event) => event.cause === L04_MARK_ARRIVAL_CAUSE)).toHaveLength(1);
     expect(distanceToMark(overshot)).toBeGreaterThan(L04_MARK_ARRIVAL_RADIUS_M);
+  });
+
+  it('makes reefing slow the boat and delay the declared mark arrival', () => {
+    // Regression: the reef factor existed but no polar lesson permitted `reef`,
+    // so it could never execute in the shipped app.
+    const plain = advance(l04Session(SLACK_CURRENT_EPOCH_MS), 1);
+    const reefed = advance(
+      applyCanonicalInput(l04Session(SLACK_CURRENT_EPOCH_MS), { logical_tick: 0, sequence: 1, input: { action: 'reef' } }),
+      1,
+    );
+    expect(reefed.raw.polar_kinematic_state!.sail_trim.reefed).toBe(true);
+    expect(reefed.raw.stw as number).toBeCloseTo((plain.raw.stw as number) * REEF_SPEED_FACTOR, 6);
+
+    // A reefed boat reaches the declared mark strictly later.
+    const arrivalTick = (session: DeterministicSession) => {
+      let next = session;
+      for (let tick = 1; tick <= 600; tick += 1) {
+        next = advanceLogicalTick(next);
+        if (next.raw.mark_state === 'mark_arrival_recorded') return tick;
+      }
+      return Number.POSITIVE_INFINITY;
+    };
+    const plainArrival = arrivalTick(l04Session(SLACK_CURRENT_EPOCH_MS));
+    const reefedArrival = arrivalTick(
+      applyCanonicalInput(l04Session(SLACK_CURRENT_EPOCH_MS), { logical_tick: 0, sequence: 1, input: { action: 'reef' } }),
+    );
+    expect(Number.isFinite(plainArrival)).toBe(true);
+    expect(reefedArrival).toBeGreaterThan(plainArrival);
   });
 
   it('is deterministic across identical sessions', () => {

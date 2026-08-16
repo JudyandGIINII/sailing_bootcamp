@@ -50,7 +50,9 @@ What this work closes (for L06 only):
 What this work does **not** close:
 - Any of the above for **L01–L05** — they still declare these observations unavailable.
 - PRD §8.1 wave and visibility — no model supplied. (Tide is now modelled; see above.)
-- PRD §8.2 **wave and safety** correction coefficients — not modelled. Trim and reef coefficients now exist and trimming does change speed, but **L02 (trim) and L03 (reef) still gain nothing**, because both remain on the legacy model. The reef factor is currently unreachable in the shipped app: no lesson bound to the polar model permits the `reef` action.
+- PRD §8.2 **wave and safety** correction coefficients — not modelled. Trim and reef coefficients now exist; trimming changes speed and reefing reduces it by the declared factor, so a reefed boat reaches the L04 mark strictly later. **L02 (trim) and L03 (reef) still gain nothing**, because both remain on the legacy model.
+
+L03 was deliberately NOT migrated to make reef meaningful there: `advanceLogicalTick` and `applyCanonicalInput` both return the session unchanged once L03's episode is complete and reef is selected, so L03 terminates at reef selection and a speed factor would apply for zero further ticks. `reef` was added to L04's permitted actions instead, where a 200-plus-tick run to a mark makes the reduction observable.
 - PRD §8.2 safety thresholds and hull/rig configuration. (Draft is now declared and drives under-keel clearance.)
 - PRD §7.3 five-component scoring — `total_points` remains 0.
 - **Domain validation** — `VR-POLAR-v0` is `disposition: assumption`. The 48 polar numbers, the trim and reef coefficients, and the tide, clearance, depth and draft constants are all invented educational assumptions asserting no real hull performance, tide, depth, or safety behaviour.
