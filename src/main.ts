@@ -30,7 +30,7 @@ const lessons: readonly LessonRuntime[] = [
   { id: 'L01', bindings: l01ReplayBindings, actions: getLessonManifest('L01')!.permitted_actions, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
   { id: 'L02', bindings: l02ReplayBindings, actions: getLessonManifest('L02')!.permitted_actions, controls: 'M adjusts declared main trim; J adjusts declared jib trim; Left/Right helm; Space pause/resume.' },
   { id: 'L03', bindings: l03ReplayBindings, actions: getLessonManifest('L03')!.permitted_actions, controls: 'F records the declared synthetic acknowledgment; Space pause/resume.' },
-  { id: 'L04', bindings: l04ReplayBindings, actions: getLessonManifest('L04')!.permitted_actions, controls: 'Left records a recoverable synthetic miss; Right records a slower valid correction; Space pause/resume.' },
+  { id: 'L04', bindings: l04ReplayBindings, actions: getLessonManifest('L04')!.permitted_actions, controls: 'Left/Right helm to steer toward the declared mark against the synthetic current; Space pause/resume.' },
   { id: 'L05', bindings: l05ReplayBindings, actions: getLessonManifest('L05')!.permitted_actions, controls: 'P/W/B record synthetic pass/wait/return decisions; Space pause/resume.' },
   { id: 'L06', bindings: l06ReplayBindings, actions: getLessonManifest('L06')!.permitted_actions, controls: 'Left/Right helm; Space pause/resume; R saves then resets.' },
 ];
@@ -357,8 +357,8 @@ function render(): void {
   if (l04Trace) {
     appendTraceEntry(l04StaticDeclarations, l04Trace.static_declaration.mark_relation_label, 'Declared synthetic in the trusted L04 lesson manifest; this is a static declaration, not runtime evidence.');
     appendTraceEntry(l04StaticDeclarations, l04Trace.static_declaration.helm_action_label, 'Registered in the trusted L04 lesson manifest; this is a static declaration, not runtime evidence.');
-    appendTraceEntry(l04RuntimeEvidence, l04Trace.runtime_evidence.miss.label, l04TraceEvidenceText(l04Trace.runtime_evidence.miss));
     appendTraceEntry(l04RuntimeEvidence, l04Trace.runtime_evidence.correction.label, l04TraceEvidenceText(l04Trace.runtime_evidence.correction));
+    appendTraceEntry(l04RuntimeEvidence, l04Trace.runtime_evidence.arrival.label, l04TraceEvidenceText(l04Trace.runtime_evidence.arrival));
     l04RuntimeEvidenceBoundary.textContent = l04Trace.boundary_copy;
   } else {
     l04RuntimeEvidenceBoundary.textContent = '';
@@ -613,14 +613,16 @@ async function startFrozenSession(): Promise<void> {
     const scenario = await createSyntheticScenario(scenarioConfiguration); const validated = await validateScenarioPackage(scenario); if (!validated.ok) throw new Error(validated.reason_code); seed = `${currentLesson.id.toLowerCase()}-prototype-seed`; const { scenario_version: _legacyScenario, l01_synthetic_environment, polar_kinematics_environment, ...bindings } = currentLesson.bindings; const lessonBinding = { lesson_id: currentLesson.id, ...bindings }; const trace = await materializeVariation(validated.scenario, seed);
     // The clock is read exactly once, here in the UI layer, and stored in the
     // replay identity; src/sim derives the current from it via a pure function.
-    const l06PolarEnvironment = polar_kinematics_environment ? Object.freeze({ ...polar_kinematics_environment, current_epoch_ms: Date.now() }) : polar_kinematics_environment;
+    // The clock is read exactly once, here, and stored in the identity so the
+    // simulation stays pure and a replay of this identity reproduces exactly.
+    const polarEnvironmentAtStart = polar_kinematics_environment ? Object.freeze({ ...polar_kinematics_environment, current_epoch_ms: Date.now() }) : polar_kinematics_environment;
     // Build and validate the session from a local replay object first; only
     // assign the module-level `frozenReplay` after `createSession` succeeds.
     // Otherwise a throw here (e.g. `polarProfile` rejecting a negative
     // `current_epoch_ms` from a pre-1970 system clock) would leave
     // `frozenReplay` set while `session` was never created, permanently
     // blocking retry via the `if (frozenReplay || startInProgress) return;` guard.
-    const newReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L06' ? { polar_kinematics_environment: l06PolarEnvironment } : {}) });
+    const newReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L04' || currentLesson.id === 'L06' ? { polar_kinematics_environment: polarEnvironmentAtStart } : {}) });
     const newSession = createSession(newReplay);
     frozenReplay = newReplay; inputLog = []; nextSequence = 1; session = newSession; startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
   } catch { startStatus.textContent = 'Start failed: SCENARIO_SCHEMA_INVALID. Draft controls remain editable.'; }

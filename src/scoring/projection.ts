@@ -1,5 +1,6 @@
 import type { LedgerEvent, RawSimulationState } from '../sim/session.js';
 import { getLessonManifest } from '../content/lesson-manifest.js';
+import { L04_MARK_ARRIVAL_CAUSE } from '../content/l02-l05.js';
 import { projectL02SyntheticTrimObservation } from '../sim/l02-observation.js';
 import type { L02SyntheticTrimObservation } from '../sim/l02-synthetic-model.js';
 
@@ -42,7 +43,7 @@ export interface L03RuntimeTraceProjection {
 }
 
 export interface L04TraceEvidence {
-  readonly label: 'Recoverable synthetic mark miss runtime evidence' | 'Slower valid synthetic correction runtime evidence';
+  readonly label: 'Recorded synthetic helm correction runtime evidence' | 'Declared synthetic mark arrival runtime evidence';
   readonly status: 'recorded' | 'unavailable_no_runtime_record';
   readonly event_id?: string;
   readonly recorded_cause?: string;
@@ -57,8 +58,8 @@ export interface L04RuntimeTraceProjection {
   };
   readonly runtime_evidence: {
     readonly heading: 'L04 runtime evidence';
-    readonly miss: L04TraceEvidence;
     readonly correction: L04TraceEvidence;
+    readonly arrival: L04TraceEvidence;
   };
   readonly boundary_copy: 'Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.';
 }
@@ -287,13 +288,13 @@ export function projectL04RuntimeTrace(
     }),
     runtime_evidence: Object.freeze({
       heading: 'L04 runtime evidence',
-      miss: l04TraceEvidence(
-        'Recoverable synthetic mark miss runtime evidence',
-        ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L04' && event.cause === 'recoverable synthetic mark miss recorded'),
-      ),
       correction: l04TraceEvidence(
-        'Slower valid synthetic correction runtime evidence',
-        ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L04' && event.cause === 'slower valid synthetic correction recorded'),
+        'Recorded synthetic helm correction runtime evidence',
+        ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L04' && event.cause === 'declared helm correction recorded'),
+      ),
+      arrival: l04TraceEvidence(
+        'Declared synthetic mark arrival runtime evidence',
+        ledger.find((event) => event.type === 'LESSON_CHECKPOINT' && event.lesson_id === 'L04' && event.cause === L04_MARK_ARRIVAL_CAUSE),
       ),
     }),
     boundary_copy: 'Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.',

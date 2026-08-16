@@ -1,4 +1,12 @@
+import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../contracts/polar-kinematics-environment.js';
+import { COURSE_TEMPLATES } from '../contracts/scenario.js';
 import { TRAINING_SLOOP_PROFILE_ID, type L01Manifest, type SyntheticSafetyEventDeclaration } from './l01.js';
+
+/**
+ * L04's target mark is the declared course-template geometry, not an invented
+ * coordinate: `scenario.ts` pins these templates by exact canonical JSON.
+ */
+export const L04_TARGET_MARK = COURSE_TEMPLATES['windward-return-v1'].ordered_marks[0]!;
 
 export const L02_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'pause', 'resume', 'reset'] as const;
 export const L03_SEMANTIC_ACTIONS = ['helm_port', 'helm_starboard', 'main_trim', 'jib_trim', 'reef', 'pause', 'resume', 'reset'] as const;
@@ -95,21 +103,38 @@ export const l03Manifest: DraftLessonManifest = Object.freeze({
   retry_comparison: ['synthetic_cue_record', 'acknowledgment_record', 'checkpoint_record'],
   failure_or_boundary_acceptance: 'VR-L03-v0 assumption; all cue and acknowledgment meanings remain synthetic.',
 });
+/**
+ * The declared synthetic arrival tolerance around the course template's mark.
+ * It is an unvalidated educational assumption chosen so the lesson is playable;
+ * it is not a real navigational tolerance, safety margin, or rounding rule.
+ */
+export const L04_MARK_ARRIVAL_RADIUS_M = 25 as const;
+
+/** Shared by the session emitter and the debrief matcher so the string is declared once. */
+export const L04_MARK_ARRIVAL_CAUSE = 'synthetic declared mark arrival recorded' as const;
+
+/**
+ * L04 runs the polar-and-current kinematics model so its declared objective —
+ * reading the COG/heading difference and correcting for drift to reach a mark —
+ * is actually simulated rather than declared. Only this manifest overrides the
+ * shared `common` model_version; L02, L03 and L05 stay on the legacy draft model.
+ */
 export const l04Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L04', scenario_version: 'l04-scenario-v0-draft', validation_record_id: 'VR-L04-v0',
-  initial_state: 'training-sloop-v1 synthetic declared current-to vector and declared virtual mark',
+  model_version: POLAR_KINEMATICS_MODEL_VERSION,
+  initial_state: 'training-sloop-v1 synthetic polar-and-current fixture with a declared virtual mark',
   required_observations: [
-    { key: 'heading', accessible_label: 'Heading / 선수 방향', status: 'declared_unavailable' },
-    { key: 'cog', accessible_label: 'Course over ground / 지상 항로', status: 'declared_unavailable' },
-    { key: 'stw', accessible_label: 'Speed through water / 대수 속력', status: 'declared_unavailable' },
-    { key: 'sog', accessible_label: 'Speed over ground / 대지 속력', status: 'declared_unavailable' },
-    { key: 'drift', accessible_label: 'Drift / 표류', status: 'declared_unavailable' },
+    { key: 'heading', accessible_label: 'Heading / 선수 방향', status: 'declared_synthetic' },
+    { key: 'cog', accessible_label: 'Course over ground / 지상 항로', status: 'declared_synthetic' },
+    { key: 'stw', accessible_label: 'Speed through water / 대수 속력', status: 'declared_synthetic' },
+    { key: 'sog', accessible_label: 'Speed over ground / 대지 속력', status: 'declared_synthetic' },
+    { key: 'drift', accessible_label: 'Drift / 표류', status: 'declared_synthetic' },
     { key: 'declared_mark_relation', accessible_label: 'Declared virtual mark relation / 선언된 가상 마크 관계', status: 'declared_synthetic' },
   ] as const,
   permitted_actions: L04_SEMANTIC_ACTIONS, checkpoints: ['identify_declared_vector_difference', 'record_correction', 'reach_declared_mark_acceptance'],
-  pass_semantics: 'Draft-only declared synthetic mark acceptance; a slower valid correction remains valid.', fail_semantics: 'Draft-only ignored synthetic current or declared terminal boundary.',
-  safe_recovery_semantics: 'Draft-only recoverable miss stays recorded before a later valid correction.',
-  hint_and_debrief: 'Show declared heading/COG/STW/SOG/drift concepts without prescribing a real bearing.',
+  pass_semantics: 'Draft-only declared synthetic mark arrival within the declared arrival radius; a slower corrected approach remains valid.', fail_semantics: 'Draft-only uncorrected synthetic drift or declared terminal boundary without a recorded arrival.',
+  safe_recovery_semantics: 'Draft-only: a drifted approach stays recorded and may be corrected before the declared terminal boundary.',
+  hint_and_debrief: 'Compare declared heading against polar-derived COG and drift, and connect the recorded helm correction to the declared mark arrival. No real bearing is prescribed.',
   retry_comparison: ['heading_cog_stw_sog', 'correction_input', 'drift', 'mark_result', 'score_cause'],
   failure_or_boundary_acceptance: 'VR-L04-v0 assumption; values are declared synthetic and non-navigational.',
 });
@@ -134,7 +159,8 @@ export const l05Manifest: DraftLessonManifest = Object.freeze({
 
 export const l02ReplayBindings = Object.freeze(bindings(l02Manifest));
 export const l03ReplayBindings = Object.freeze(bindings(l03Manifest));
-export const l04ReplayBindings = Object.freeze(bindings(l04Manifest));
+/** L04 carries the polar environment directly so its replay is self-describing. */
+export const l04ReplayBindings = Object.freeze({ ...bindings(l04Manifest), polar_kinematics_environment: polarKinematicsEnvironmentV1 });
 export const l05ReplayBindings = Object.freeze(bindings(l05Manifest));
 
 function bindings(manifest: DraftLessonManifest) {

@@ -256,13 +256,12 @@ test('renders uniquely named L04 runtime evidence from keyboard actions without 
   await expect(staticDeclarations).toContainText('static declaration, not runtime evidence');
   await expect(runtimeEvidence).toContainText('Unavailable: no matching L04 runtime record.');
   await page.keyboard.press('ArrowLeft');
-  await expect(runtimeEvidence).toContainText('Recoverable synthetic mark miss runtime evidence');
+  await expect(runtimeEvidence).toContainText('Recorded synthetic helm correction runtime evidence');
   await expect(runtimeEvidence).toContainText('Recorded L04 runtime evidence. Event ID:');
-  await expect(runtimeEvidence).toContainText('Explicit cause: recoverable synthetic mark miss recorded.');
+  await expect(runtimeEvidence).toContainText('Explicit cause: declared helm correction recorded.');
+  // The mark is hundreds of metres away, so arrival has no runtime record yet.
+  await expect(runtimeEvidence).toContainText('Declared synthetic mark arrival runtime evidence');
   await expect(runtimeEvidence).toContainText('Unavailable: no matching L04 runtime record.');
-  await page.keyboard.press('ArrowRight');
-  await expect(runtimeEvidence).toContainText('Slower valid synthetic correction runtime evidence');
-  await expect(runtimeEvidence).toContainText('Explicit cause: slower valid synthetic correction recorded.');
   await expect(page.getByText('Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.', { exact: true })).toHaveCount(1);
   expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
 });
@@ -414,15 +413,15 @@ test('shows numeric STW and SOG for the L06 polar lesson after advancing, never 
 });
 
 test('does not render numeric STW/SOG for non-polar lessons, showing unavailable/absent text instead', async ({ page }) => {
-  for (const id of ['L02', 'L04'] as const) {
+  for (const id of ['L02', 'L05'] as const) {
     await page.goto('/');
     await startSession(page, id);
     const hud = page.locator('#hud');
     await expect(hud).not.toContainText('Synthetic computed STW');
     await expect(hud).not.toContainText('Synthetic computed SOG');
   }
-  // L04 is the non-polar lesson that declares stw/sog/drift observations directly (as
-  // declared_unavailable); this confirms the absent/unavailable status text renders in
-  // their place rather than a numeric value or an empty node.
+  // L02 and L05 are non-polar and declare unavailable observations, so the status text
+  // renders in place of any numeric value rather than leaving an empty node. L04 is no
+  // longer usable here: it now runs the polar model and computes STW/SOG for real.
   await expect(page.locator('#hud')).toContainText('declared_unavailable');
 });

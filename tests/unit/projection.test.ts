@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { advanceLogicalTick, createSession, replayInputs, type CanonicalInput, type LedgerEvent } from '../../src/sim/session.js';
 import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore } from '../../src/scoring/projection.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
+import { L04_MARK_ARRIVAL_CAUSE } from '../../src/content/l02-l05.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 
 const rawFixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: []; terminal_ticks: number };
@@ -181,22 +182,22 @@ describe('score/debrief pure causality projections', () => {
       static_declaration: expect.objectContaining({ heading: 'L04 static lesson-manifest declarations', status: 'declared_synthetic' }),
       runtime_evidence: expect.objectContaining({ heading: 'L04 runtime evidence' }),
     }));
-    expect(trace?.runtime_evidence.miss).toEqual({ label: 'Recoverable synthetic mark miss runtime evidence', status: 'unavailable_no_runtime_record' });
-    expect(trace?.runtime_evidence.correction).toEqual({ label: 'Slower valid synthetic correction runtime evidence', status: 'unavailable_no_runtime_record' });
+    expect(trace?.runtime_evidence.correction).toEqual({ label: 'Recorded synthetic helm correction runtime evidence', status: 'unavailable_no_runtime_record' });
+    expect(trace?.runtime_evidence.arrival).toEqual({ label: 'Declared synthetic mark arrival runtime evidence', status: 'unavailable_no_runtime_record' });
   });
 
-  it('recognizes L04 miss and correction evidence independently from their explicit checkpoint causes', () => {
-    const missOnly = replayInputs(l04RawFixture.identity, [l04RawFixture.inputs[0]!], 1);
-    const missOnlyTrace = projectL04RuntimeTrace(missOnly.raw, missOnly.ledger);
-    const correctionOnly: LedgerEvent = {
-      id: 'explicit-correction-only', tick: 0, sequence: 9, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: 'slower valid synthetic correction recorded',
+  it('recognizes L04 correction and arrival evidence independently from their explicit checkpoint causes', () => {
+    const correctionOnly = replayInputs(l04RawFixture.identity, [l04RawFixture.inputs[0]!], 1);
+    const correctionOnlyTrace = projectL04RuntimeTrace(correctionOnly.raw, correctionOnly.ledger);
+    const arrivalOnly: LedgerEvent = {
+      id: 'explicit-arrival-only', tick: 0, sequence: 9, type: 'LESSON_CHECKPOINT', lesson_id: 'L04', cause: L04_MARK_ARRIVAL_CAUSE,
     };
-    const correctionOnlyTrace = projectL04RuntimeTrace(createSession(l04RawFixture.identity).raw, [correctionOnly]);
+    const arrivalOnlyTrace = projectL04RuntimeTrace(createSession(l04RawFixture.identity).raw, [arrivalOnly]);
 
-    expect(missOnlyTrace?.runtime_evidence.miss).toEqual(expect.objectContaining({ event_id: '0:1:2', recorded_cause: 'recoverable synthetic mark miss recorded' }));
-    expect(missOnlyTrace?.runtime_evidence.correction.status).toBe('unavailable_no_runtime_record');
-    expect(correctionOnlyTrace?.runtime_evidence.miss.status).toBe('unavailable_no_runtime_record');
-    expect(correctionOnlyTrace?.runtime_evidence.correction).toEqual(expect.objectContaining({ event_id: 'explicit-correction-only', recorded_cause: 'slower valid synthetic correction recorded' }));
+    expect(correctionOnlyTrace?.runtime_evidence.correction).toEqual(expect.objectContaining({ recorded_cause: 'declared helm correction recorded' }));
+    expect(correctionOnlyTrace?.runtime_evidence.arrival.status).toBe('unavailable_no_runtime_record');
+    expect(arrivalOnlyTrace?.runtime_evidence.correction.status).toBe('unavailable_no_runtime_record');
+    expect(arrivalOnlyTrace?.runtime_evidence.arrival).toEqual(expect.objectContaining({ event_id: 'explicit-arrival-only', recorded_cause: L04_MARK_ARRIVAL_CAUSE }));
   });
 
   it('projects both L04 checkpoint records repeatedly without mutating canonical state, ledger, score, or replay payload', () => {
@@ -208,8 +209,11 @@ describe('score/debrief pure causality projections', () => {
 
     expect(projectScore(session.raw, session.ledger)).toEqual(l04ScoreFixture.score);
     expect(firstTrace).toEqual(secondTrace);
-    expect(firstTrace?.runtime_evidence.miss).toEqual(expect.objectContaining({ event_id: '0:1:2', recorded_cause: 'recoverable synthetic mark miss recorded' }));
-    expect(firstTrace?.runtime_evidence.correction).toEqual(expect.objectContaining({ event_id: '0:2:4', recorded_cause: 'slower valid synthetic correction recorded' }));
+    expect(firstTrace?.runtime_evidence.correction).toEqual(expect.objectContaining({ recorded_cause: 'declared helm correction recorded' }));
+    // Arrival is recorded at most once, so the ledger never carries a duplicate.
+    expect(session.ledger.filter((event) => event.cause === L04_MARK_ARRIVAL_CAUSE)).toHaveLength(
+      session.raw.mark_state === 'mark_arrival_recorded' ? 1 : 0,
+    );
     expect({ raw: session.raw, ledger: session.ledger, identity: session.identity, replayPayload }).toEqual(before);
   });
 
