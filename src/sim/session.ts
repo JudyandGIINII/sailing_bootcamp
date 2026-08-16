@@ -358,6 +358,13 @@ function l03Profile(identity: ReplayIdentity | ReplayV2): L03SyntheticAcknowledg
 }
 function l01TransitionEventId(tick: number): string { return `l01-transition:${tick}`; }
 function polarTransitionEventId(tick: number): string { return `polar-transition:${tick}`; }
+/**
+ * Advance-time events use a namespaced id like the transition event above.
+ * A `tick:sequence:offset` id would collide with ones `applyCanonicalInput`
+ * mints on a later tick, because those offsets are derived from ledger length.
+ */
+function markArrivalEventId(tick: number): string { return `l04-mark-arrival:${tick}`; }
+function clearanceCrossingEventId(tick: number, level: ClearanceLevel): string { return `clearance-${level}:${tick}`; }
 function isL01Raw(raw: RawSimulationState): raw is RawSimulationState & { l01_synthetic_state: L01SyntheticState; l01_last_helm_sequence: number } {
   return raw.l01_synthetic_state !== undefined && raw.l01_last_helm_sequence !== undefined;
 }
@@ -580,7 +587,7 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
     const priorHighestAlert = session.raw.highest_clearance_alert ?? 'clear';
     const clearanceEvent: LedgerEvent | undefined = shouldRecordClearanceCrossing(priorHighestAlert, nextClearanceLevel)
       ? {
-          id: eventId(transition.next_state.logical_tick, 0, session.ledger.length + 3),
+          id: clearanceCrossingEventId(transition.next_state.logical_tick, nextClearanceLevel),
           tick: transition.next_state.logical_tick,
           sequence: 0,
           type: 'ENVIRONMENT_EPISODE',
@@ -595,7 +602,7 @@ export function advanceLogicalTick(session: DeterministicSession): Deterministic
     const arrivalEvent: LedgerEvent | undefined =
       lessonTag === 'L04' && priorMarkState !== 'mark_arrival_recorded' && nextMarkState === 'mark_arrival_recorded'
         ? {
-            id: eventId(transition.next_state.logical_tick, causalControls.at(-1)?.sequence ?? session.raw.polar_last_helm_sequence ?? 0, session.ledger.length + 2),
+            id: markArrivalEventId(transition.next_state.logical_tick),
             tick: transition.next_state.logical_tick,
             sequence: causalControls.at(-1)?.sequence ?? session.raw.polar_last_helm_sequence ?? 0,
             type: 'LESSON_CHECKPOINT',

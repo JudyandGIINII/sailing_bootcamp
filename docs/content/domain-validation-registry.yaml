@@ -145,24 +145,33 @@ records:
     disposition: assumption
   - validation_record_id: VR-POLAR-v0
     lesson_id:
+      - L04
       - L06
     claim_or_assumption: >-
       Synthetic 8x6 polar table mapping (apparent wind angle, true wind speed) to a
-      target speed through water for training-sloop-v1, together with a synthetic
-      current-to vector composed into ground-relative velocity. The current vector
-      is derived from the real date and time the player starts a session via a
-      simplified single-sinusoid semidiurnal tidal shape (deriveSyntheticCurrent):
-      not real tide data, harmonic constants, or a navigational current prediction.
+      target speed through water for training-sloop-v1, adjusted by declared
+      sail-trim and reef correction factors, and composed with a synthetic
+      current-to vector to give ground-relative velocity. A synthetic semidiurnal
+      tide additionally drives an under-keel clearance of
+      (seabed depth + tide - draft) and its threshold events. Both the current and
+      the tide derive from the real date and time the player starts a session via a
+      simplified single-sinusoid shape: not real tide data, harmonic constants,
+      charted depth, soundings, a datum, an under-keel safety margin, a trim guide,
+      a reefing threshold, or any navigational prediction.
     source_or_evidence_gap_reason: >-
-      No approved sailing-domain evidence is attached. Polar values are invented
-      educational assumptions chosen for monotonicity in wind speed and a mid-angle
-      maximum. The tidal shape's period (12.42 h) and maximum current (1.5 m/s) are
-      likewise invented educational assumptions, not measured or approved tidal
-      constants. This record is boat-profile scoped and shared by every lesson bound
-      to polar-kinematics-v2; it asserts no real hull performance, weather, route,
-      tidal, or safety behaviour.
+      No approved sailing-domain evidence is attached. Every value below is an
+      invented educational assumption, not a measured or approved constant. Polar
+      values are chosen for monotonicity in wind speed and a mid-angle maximum.
+      The declared constants are: semidiurnal period 12.42 h; maximum current
+      1.5 m/s; trim range 0-1 with step 0.125 and a declared optimal trim of
+      (1 - |apparent wind angle| / pi); minimum trim efficiency 0.55; reef speed
+      factor 0.75; tide amplitude 1.8 m; clearance caution threshold 1.5 m and
+      danger threshold 0.5 m; seabed depth 3.5 m; draft 1.6 m. This record is
+      boat-profile scoped and shared by every lesson bound to polar-kinematics-v4;
+      it asserts no real hull performance, weather, route, tidal, depth, or safety
+      behaviour.
     scenario_version: not-scenario-scoped
-    model_version: polar-kinematics-v2
+    model_version: polar-kinematics-v4
     boat_profile_version: training-sloop-v1
     contract_version: lesson-model-contract-v0-draft
     coordinate_contract_version: coordinate-contract-v1-draft

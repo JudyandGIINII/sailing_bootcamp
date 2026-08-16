@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceLogicalTick, createSession, type DeterministicSession } from '../../src/sim/session.js';
+import { advanceLogicalTick, applyCanonicalInput, createSession, type DeterministicSession } from '../../src/sim/session.js';
 import {
   L04_MARK_ARRIVAL_CAUSE,
   L04_MARK_ARRIVAL_RADIUS_M,
@@ -12,6 +12,8 @@ import {
 } from '../../src/content/l02-l05.js';
 import { POLAR_KINEMATICS_MODEL_VERSION } from '../../src/contracts/polar-kinematics-environment.js';
 import { SEMIDIURNAL_PERIOD_MS } from '../../src/sim/tidal-current.js';
+import { CLEARANCE_CAUTION_M, TIDE_AMPLITUDE_M } from '../../src/sim/depth-clearance.js';
+import { polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 
 /** A quarter period is the tidal peak, so the cross-current is at its strongest. */
 const CROSS_CURRENT_EPOCH_MS = SEMIDIURNAL_PERIOD_MS / 4;
@@ -79,6 +81,23 @@ describe('L04 current-correction lesson', () => {
     const two = advance(l04Session(CROSS_CURRENT_EPOCH_MS), 40);
     expect(two.raw).toEqual(one.raw);
     expect(two.ledger).toEqual(one.ledger);
+  });
+
+  it('never mints a duplicate ledger event id across ticks that mix inputs and advance-time events', () => {
+    // Regression: arrival and clearance events derived their ids from ledger
+    // length, which collided with ids applyCanonicalInput mints on later ticks.
+    // Start just above the caution threshold so a clearance crossing fires part
+    // way through, on a tick that also carries a helm input.
+    const targetTide = CLEARANCE_CAUTION_M - (polarKinematicsEnvironmentV1.seabed_depth_m - polarKinematicsEnvironmentV1.draft_m);
+    const epoch = Math.round(((Math.PI - Math.asin(targetTide / TIDE_AMPLITUDE_M)) / (2 * Math.PI)) * SEMIDIURNAL_PERIOD_MS);
+    let session = l04Session(epoch);
+    for (let tick = 0; tick < 500; tick += 1) {
+      session = applyCanonicalInput(session, { logical_tick: session.raw.logical_tick, sequence: 0, input: { action: 'helm_port' } });
+      session = advanceLogicalTick(session);
+    }
+    const ids = session.ledger.map((event) => event.id);
+    expect(session.ledger.some((event) => event.type === 'ENVIRONMENT_EPISODE')).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('leaves L02, L03 and L05 on the legacy draft model', () => {

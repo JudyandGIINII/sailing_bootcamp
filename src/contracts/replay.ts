@@ -175,10 +175,11 @@ function isReplayableLegacyLessonActionInput(identity: ReplayIdentity, value: un
  * declare. A legacy identity therefore resolves to exactly the fields it does today.
  */
 function identityFieldsFor(candidate: Record<string, unknown>): readonly string[] {
+  // Any lesson that declares the polar model carries the polar environment
+  // field, not just L01: L04 was migrated onto it and has its own scenario.
+  if (candidate.model_version === POLAR_KINEMATICS_MODEL_VERSION) return POLAR_L01_REPLAY_IDENTITY_FIELDS;
   if (candidate.scenario_version !== 'l01-scenario-v0-draft') return REPLAY_IDENTITY_FIELDS;
-  return candidate.model_version === POLAR_KINEMATICS_MODEL_VERSION
-    ? POLAR_L01_REPLAY_IDENTITY_FIELDS
-    : L01_REPLAY_IDENTITY_FIELDS;
+  return L01_REPLAY_IDENTITY_FIELDS;
 }
 
 function sameL01Environment(value: unknown): boolean {
@@ -340,7 +341,8 @@ const polarL01V2Keys = [...v2Keys, POLAR_REPLAY_IDENTITY_FIELD, L01_REPLAY_V2_TE
 const l02V2Keys = [...v2Keys, L02_REPLAY_V2_PROFILE_FIELD, L02_REPLAY_V2_TERMINAL_TICK_FIELD, L02_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 const l03V2Keys = [...v2Keys, L03_REPLAY_V2_PROFILE_FIELD, L03_REPLAY_V2_TERMINAL_TICK_FIELD, L03_REPLAY_V2_TERMINAL_PAUSED_FIELD] as const;
 /** L06 is not a strict terminal-authority variant; it carries only the polar environment. */
-const l06V2Keys = [...v2Keys, POLAR_REPLAY_IDENTITY_FIELD] as const;
+/** Shared by every lesson bound to the polar model that carries its environment. */
+const polarLessonV2Keys = [...v2Keys, POLAR_REPLAY_IDENTITY_FIELD] as const;
 const lessonBindingKeys = ['lesson_id', 'model_version', 'boat_profile_version', 'contract_version', 'coordinate_contract_version', 'determinism_contract_version', 'comparison_policy_version'] as const;
 const orderedInputKeys = ['logical_tick', 'sequence', 'input'] as const;
 function exactKeys(value: unknown, keys: readonly string[]): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key)); }
@@ -361,9 +363,10 @@ export function isReplayV2Shape(value: unknown): value is Omit<ReplayV2, 'scenar
   const isL01 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L01';
   const isL02 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L02';
   const isL03 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L03';
+  const isL04 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L04';
   const isL06 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L06';
   const isPolarL01 = isL01 && (candidate.lesson_binding as { model_version?: unknown } | undefined)?.model_version === POLAR_KINEMATICS_MODEL_VERSION;
-  if (!exactKeys(candidate, isL01 ? (isPolarL01 ? polarL01V2Keys : l01V2Keys) : isL02 ? l02V2Keys : isL03 ? l03V2Keys : isL06 ? l06V2Keys : v2Keys)) return false;
+  if (!exactKeys(candidate, isL01 ? (isPolarL01 ? polarL01V2Keys : l01V2Keys) : isL02 ? l02V2Keys : isL03 ? l03V2Keys : isL04 || isL06 ? polarLessonV2Keys : v2Keys)) return false;
   const terminalTick = isL01 ? candidate.l01_terminal_logical_tick : isL02 ? candidate.l02_terminal_logical_tick : candidate.l03_terminal_logical_tick;
   const hasValidStrictTerminalBoundary = typeof terminalTick === 'number' &&
     Number.isSafeInteger(terminalTick) &&
@@ -571,7 +574,7 @@ export async function resolveReplayV2(storedPayload: unknown): Promise<ReplayV2R
   if (!isReplayV2Shape(storedPayload)) return { outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: storedPayload };
   const replay = storedPayload as unknown as ReplayV2;
   if (!isRegisteredLessonBindingV2(replay.lesson_binding)) return { outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: storedPayload };
-  if ((replay.lesson_binding.lesson_id === 'L01' || replay.lesson_binding.lesson_id === 'L06') && !hasCanonicalL01Environment({
+  if ((replay.lesson_binding.lesson_id === 'L01' || replay.lesson_binding.lesson_id === 'L04' || replay.lesson_binding.lesson_id === 'L06') && !hasCanonicalL01Environment({
     model_version: replay.lesson_binding.model_version,
     l01_synthetic_environment: replay.l01_synthetic_environment,
     polar_kinematics_environment: replay.polar_kinematics_environment,

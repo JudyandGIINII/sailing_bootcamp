@@ -159,7 +159,7 @@ test('uses visible focus and reduced-motion-safe styles', async ({ page }) => {
   await expect(button).toHaveCSS('outline-style', 'solid');
 });
 
-test('projects L02 through L05 as keyboard-operable, manifest-only observation HUDs', async ({ page }) => {
+test('projects L02 through L05 as keyboard-operable observation HUDs', async ({ page }) => {
   for (const [id, key, observation] of [
     ['L02', 'KeyM', 'Declared trim feedback / 선언된 트림 피드백'], ['L03', 'KeyF', 'Synthetic gust/wave cue / 합성 돌풍·파도 신호'], ['L04', 'ArrowLeft', 'Declared virtual mark relation / 선언된 가상 마크 관계'], ['L05', 'KeyW', 'Synthetic tide state / 합성 조류 상태'],
   ] as const) {
@@ -169,6 +169,9 @@ test('projects L02 through L05 as keyboard-operable, manifest-only observation H
     await expect(page.getByText(/Every lesson is an assumption/)).toBeVisible();
     await expect(page.locator('#hud')).toContainText(observation);
     if (id === 'L03') await expect(page.locator('#hud')).toContainText('Synthetic acknowledgment');
+    // L04 runs the polar model, so it renders computed values rather than the
+    // raw manifest status token the other declaration-only lessons show.
+    else if (id === 'L04') await expect(page.locator('#hud')).toContainText('Synthetic computed');
     else await expect(page.locator('#hud')).toContainText(/declared_(synthetic|unavailable)/);
     if (id === 'L03') await expect(page.locator('#hud')).toContainText('Declared synthetic cue recorded.');
     await page.keyboard.press(key);
@@ -264,6 +267,20 @@ test('renders uniquely named L04 runtime evidence from keyboard actions without 
   await expect(runtimeEvidence).toContainText('Unavailable: no matching L04 runtime record.');
   await expect(page.getByText('Simulation-only runtime evidence. Unvalidated content. Not navigation or safety guidance.', { exact: true })).toHaveCount(1);
   expect(requests.map((request) => classifyLocalOnlyRequest(request)).every((classification) => classification.startsWith('allowed_'))).toBe(true);
+});
+
+test('shows computed STW, SOG, COG and drift for the L04 polar lesson, never the raw status token', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L04');
+  const hud = page.locator('#hud');
+  await page.keyboard.press('ArrowRight');
+  await expect(hud).toContainText('Synthetic computed STW');
+  await expect(hud).toContainText('Synthetic computed SOG');
+  await expect(hud).toContainText('Synthetic computed COG');
+  await expect(hud).toContainText('Synthetic computed drift');
+  // Regression: L04's numeric HUD branch was gated on L01/L06 only, so the
+  // migrated lesson rendered the literal token instead of any value.
+  await expect(hud).not.toContainText('declared_synthetic');
 });
 
 test('renders L05 decision-ledger record visibility from exact keyboard records without outcome or recommendation language', async ({ page }) => {
@@ -421,7 +438,6 @@ test('does not render numeric STW/SOG for non-polar lessons, showing unavailable
     await expect(hud).not.toContainText('Synthetic computed SOG');
   }
   // L02 and L05 are non-polar and declare unavailable observations, so the status text
-  // renders in place of any numeric value rather than leaving an empty node. L04 is no
-  // longer usable here: it now runs the polar model and computes STW/SOG for real.
+  // renders in place of any numeric value rather than leaving an empty node.
   await expect(page.locator('#hud')).toContainText('declared_unavailable');
 });

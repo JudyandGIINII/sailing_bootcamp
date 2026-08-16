@@ -286,7 +286,7 @@ function render(): void {
       else if (observation.key === 'heading' && session.raw.heading !== 'declared-unavailable') description.textContent = `Synthetic computed heading ${numeric(session.raw.heading)} rad.`;
       else if (observation.key === 'cog' && session.raw.cog !== 'declared-unavailable') description.textContent = `Synthetic computed COG ${numeric(session.raw.cog)} rad.`;
       else description.textContent = 'Synthetic computed observation unavailable.';
-    } else if (currentLesson.id === 'L06' && observation.status === 'declared_synthetic') {
+    } else if ((currentLesson.id === 'L04' || currentLesson.id === 'L06') && observation.status === 'declared_synthetic') {
       const numeric = (value: number) => value.toFixed(6);
       const polarText = (label: string, unit: string, value: number | 'declared-unavailable' | undefined) =>
         typeof value === 'number' ? `Synthetic computed ${label} ${numeric(value)} ${unit}.`

@@ -3,7 +3,7 @@ import { prototypeVersionBindings } from '../../src/contracts/versions.js';
 import { L01_REPLAY_IDENTITY_FIELDS, REPLAY_IDENTITY_FIELDS, isReplayIdentity, isReplayV2Shape, replayIdentitySchemaV1Draft, resolveExactReplayIdentity, resolveReplayV2, resolveStoredReplay, serializeReplayV2Attempt, type ReplayIdentity, type ReplayV2 } from '../../src/contracts/replay.js';
 import { createSyntheticScenario, defaultScenarioConfiguration } from '../../src/content/scenario-catalog.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
-import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2 } from '../../src/content/l02-l05.js';
+import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2, l04ReplayBindings } from '../../src/content/l02-l05.js';
 import { l06ReplayBindings } from '../../src/content/l06-polar.js';
 import { l01SyntheticEnvironmentV1 } from '../../src/contracts/l01-synthetic-environment.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
@@ -991,6 +991,39 @@ describe('polar kinematics replay identity carrier', () => {
    * `isRegisteredLessonBindingV2` gates on the manifest registry before the
    * environment check ever runs. Registering L06 makes it resolve end to end.
    */
+  it('saves, resolves and replays an L04 attempt with its polar environment intact (regression: L04 was rejected as schema-invalid)', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredL04Scenario, polar_kinematics_environment, ...lessonBindingValues } = l04ReplayBindings;
+    void ignoredL04Scenario;
+    const seed = 'l04-v2-round-trip';
+    const attempt = {
+      schema_version: 'replay-v2' as const,
+      lesson_binding: { lesson_id: 'L04' as const, ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      polar_kinematics_environment,
+    } as unknown as ReplayV2;
+    const input = { logical_tick: 0, sequence: 1, input: { action: 'helm_port' as const } };
+    const live = advanceLogicalTick(applyCanonicalInput(createSession(attempt), input));
+    const persisted = serializeReplayV2Attempt(attempt, [input], live.raw.logical_tick, live.paused);
+
+    expect(isReplayV2Shape(persisted)).toBe(true);
+    const resolution = await resolveReplayV2(persisted);
+    expect(resolution.outcome).toBe('accepted');
+    if (resolution.outcome !== 'accepted') return;
+    expect((resolution.replay as unknown as { polar_kinematics_environment: unknown }).polar_kinematics_environment).toEqual(polar_kinematics_environment);
+
+    expect(persisted.ordered_input_log).toEqual([input]);
+    const restored = replayInputs(resolution.replay, [input] as readonly CanonicalInput[], live.raw.logical_tick);
+    expect({ raw: restored.raw, ledger: restored.ledger }).toEqual({ raw: live.raw, ledger: live.ledger });
+
+    // A tampered polar environment must still fail closed for L04, as it does for L01/L06.
+    const tampered = { ...persisted, polar_kinematics_environment: { ...polar_kinematics_environment, draft_m: 9 } };
+    expect((await resolveReplayV2(tampered)).outcome).toBe('rejected');
+  });
+
   it('accepts a Replay V2 identity for L06 declaring polar-kinematics-v4 with a valid polar environment, end to end', async () => {
     const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
     const { scenario_version: ignoredScenarioVersion, polar_kinematics_environment, ...lessonBindingValues } = l06ReplayBindings;
