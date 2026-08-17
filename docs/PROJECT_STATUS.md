@@ -30,9 +30,9 @@ A polar-based boat model plus water-current vector composition is reachable thro
 | Check | Result |
 |---|---|
 | TypeScript | PASS (`npm run typecheck`) |
-| Full Vitest | **32 files / 321 tests** PASS (`npm test`) |
+| Full Vitest | **34 files / 336 tests** PASS (`npm test`) |
 | Vite production build | PASS (`npm run build`) |
-| Playwright smoke | **23 / 23 passed** (`npm run test:smoke`) |
+| Playwright smoke | **25 / 25 passed** (`npm run test:smoke`) |
 | Simulation purity boundary | PASS (`tests/contracts/sim-boundary.test.ts`, 2 / 2) |
 | Golden fixtures | Only `l04-*` regenerated across this cycle; `l01-*`, `l02-*`, `l03-*`, `l05-*` byte-identical |
 
@@ -59,6 +59,7 @@ L03 was deliberately NOT migrated to make reef meaningful there: `advanceLogical
 - PRD §8.2 safety thresholds and hull/rig configuration. (Draft is now declared and drives under-keel clearance.)
 - PRD §7.3 five-component scoring — `total_points` remains 0.
 - **Domain validation** — `VR-POLAR-v0` is `disposition: assumption`. The 48 polar numbers, the trim and reef coefficients, and the tide, clearance, depth and draft constants are all invented educational assumptions asserting no real hull performance, tide, depth, or safety behaviour.
+- Renderer scope — waves, wind, current arrows, depth terrain, coastline, hazard zones, and camera zoom or pan are not drawn. The canvas remains `aria-hidden`; a synthetic/unvalidated text alternative carries its track, virtual-mark, and clearance information. The boat glyph is a symbol, not a scale drawing.
 
 Known limitations, tracked as debt rather than closed:
 1. **State-contract inconsistency** — `heading`/`cog`/`true_wind`/`apparent_wind` use the `'declared-unavailable'` string sentinel when absent, while `stw`/`sog`/`drift_angle` are optional fields that are `undefined` on non-polar lessons; a consumer must handle three states, not two. Fully resolving it would require regenerating the L02–L05 fixtures.
