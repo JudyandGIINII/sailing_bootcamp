@@ -3,6 +3,7 @@ import { normalizeKeyboardAction } from './app/input.js';
 import { installLocalOnlyTransportGuard } from './app/local-network-policy.js';
 import { BROWSER_CADENCE_PRESETS, createLogicalScheduler, type BrowserCadenceMs } from './app/scheduler.js';
 import { createWorldProjection } from './render/world-projection.js';
+import { projectSessionWorldView } from './render/session-view.js';
 import { deleteLocalReplay, listLocalReplays, saveLocalReplay, type LocalReplayRecord } from './storage/replays.js';
 import { l01ReplayBindings } from './content/l01.js';
 import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2, l04ReplayBindings, l05ReplayBindings } from './content/l02-l05.js';
@@ -54,7 +55,7 @@ mount.innerHTML = `
     <section aria-labelledby="scenario-details-heading"><h2 id="scenario-details-heading">Synthetic scenario package details</h2><p id="scenario-details" aria-live="polite"></p></section>
     <p><button id="start-session" type="button">Start</button> <button id="new-session" type="button" disabled>New Session</button></p><p id="start-status" aria-live="polite">Draft: select a lesson and synthetic scenario, then Start.</p>
     <p id="eligibility" role="status"></p>
-    <section aria-labelledby="world-heading"><h2 id="world-heading">Synthetic training water</h2><div id="world"></div></section>
+    <section aria-labelledby="world-heading"><h2 id="world-heading">Synthetic training water</h2><div id="world"></div><p id="world-text" role="note"></p></section>
     <section aria-labelledby="hud-heading"><h2 id="hud-heading">Accessible status HUD</h2>
       <dl id="hud"></dl>
       <label for="cadence-select">Browser update cadence</label><select id="cadence-select" aria-describedby="cadence-note"><option value="125">125 ms</option><option value="250" selected>250 ms</option><option value="500">500 ms</option></select><p id="cadence-note">Browser rendering cadence only; logical tick order is unchanged.</p>
@@ -97,6 +98,7 @@ function requiredElement<T extends Element>(selector: string): T {
 }
 
 const world = requiredElement<HTMLElement>('#world');
+const worldText = requiredElement<HTMLElement>('#world-text');
 const hud = requiredElement<HTMLElement>('#hud');
 const pause = requiredElement<HTMLElement>('#pause');
 const debrief = requiredElement<HTMLUListElement>('#debrief');
@@ -275,6 +277,15 @@ function render(): void {
   renderScenarioDetails();
   controls.textContent = frozenReplay ? `Keyboard: ${currentLesson.controls} R saves this local attempt then resets.` : 'Start a frozen synthetic session to enable keyboard controls.';
   projection.render(session);
+  const worldView = projectSessionWorldView(session);
+  worldText.textContent = worldView === undefined
+    ? 'This lesson declares no synthetic world position, so no track is drawn.'
+    : `Synthetic track: ${worldView.trail.length} recorded positions. ` +
+      (worldView.mark
+        ? `Declared mark ${worldView.mark.label} is ${Math.hypot(worldView.mark.position.x - worldView.position.x, worldView.mark.position.y - worldView.position.y).toFixed(0)} m away, arrival radius ${worldView.mark.arrival_radius_m} m. `
+        : 'This lesson declares no virtual mark. ') +
+      `Declared under-keel clearance state: ${worldView.clearance_level ?? 'not computed for this lesson'}. ` +
+      'Synthetic and unvalidated — not a chart, sounding, bearing, or navigational display.';
   hud.replaceChildren();
   for (const observation of projectLessonObservations(currentLesson.id) ?? []) {
     const term = document.createElement('dt'); term.textContent = observation.accessible_label;

@@ -7,6 +7,26 @@ async function startSession(page: Page, lessonId?: 'L01' | 'L02' | 'L03' | 'L04'
   await expect(page.getByText('Started: lesson, synthetic scenario, and variation trace are frozen.')).toBeVisible();
 }
 
+test('renders a moving synthetic track and a declared mark distance for L04', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L04');
+  const worldText = page.locator('#world-text');
+  await expect(worldText).toContainText('Synthetic track:');
+  await expect(worldText).toContainText('Declared mark W1');
+  await expect(worldText).toContainText('not a chart, sounding, bearing, or navigational display');
+  const before = await worldText.textContent();
+  for (let index = 0; index < 12; index += 1) await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(800);
+  // The recorded-position count and the mark distance both move as the boat sails.
+  await expect(worldText).not.toHaveText(before ?? '');
+});
+
+test('says plainly when a lesson declares no world position', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L02');
+  await expect(page.locator('#world-text')).toContainText('declares no synthetic world position');
+});
+
 test('keeps a labelled synthetic draft editable, then freezes and resets its V2 session', async ({ page }) => {
   const requests: { url: string; resourceType: string; method: string }[] = [];
   page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
