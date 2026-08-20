@@ -30,11 +30,11 @@ A polar-based boat model plus water-current vector composition is reachable thro
 | Check | Result |
 |---|---|
 | TypeScript | PASS (`npm run typecheck`) |
-| Full Vitest | **34 files / 336 tests** PASS (`npm test`) |
+| Full Vitest | **37 files / 364 tests** PASS (`npm test`) |
 | Vite production build | PASS (`npm run build`) |
-| Playwright smoke | **25 / 25 passed** (`npm run test:smoke`) |
+| Playwright smoke | **26 / 26 passed** (`npm run test:smoke`) |
 | Simulation purity boundary | PASS (`tests/contracts/sim-boundary.test.ts`, 2 / 2) |
-| Golden fixtures | Only `l04-*` regenerated across this cycle; `l01-*`, `l02-*`, `l03-*`, `l05-*` byte-identical |
+| Golden fixtures | `l04-score-debrief-golden.json` regenerated this cycle; the other four score fixtures and every `*-raw-golden.json` are byte-identical |
 
 ## 3. Local-only boundaries
 
@@ -57,7 +57,7 @@ What this work does **not** close:
 
 L03 was deliberately NOT migrated to make reef meaningful there: `advanceLogicalTick` and `applyCanonicalInput` both return the session unchanged once L03's episode is complete and reef is selected, so L03 terminates at reef selection and a speed factor would apply for zero further ticks. `reef` was added to L04's permitted actions instead, where a 200-plus-tick run to a mark makes the reduction observable.
 - PRD §8.2 safety thresholds and hull/rig configuration. (Draft is now declared and drives under-keel clearance.)
-- PRD §7.3 five-component scoring — `total_points` remains 0.
+- PRD §7.3 five-component scoring — L04 derives four scored components (judgment, control stability, safety, and goal) from immutable ledger evidence under `score-contract-v0-draft`, with a 100-point denominator; observation is declared unavailable because this lesson records no observation evidence. L01, L02, L03, L05, and L06 remain unscored at 0. The L04 score is `declared_synthetic_unvalidated`: calculating it does not validate its constants or assess real sailing competence, qualification, or safety.
 - **Domain validation** — `VR-POLAR-v0` is `disposition: assumption`. The 48 polar numbers, the trim and reef coefficients, and the tide, clearance, depth and draft constants are all invented educational assumptions asserting no real hull performance, tide, depth, or safety behaviour.
 - Renderer scope — waves, wind, current arrows, depth terrain, coastline, hazard zones, and camera zoom or pan are not drawn. The canvas remains `aria-hidden`; a synthetic/unvalidated text alternative carries its track, virtual-mark, and clearance information. The boat glyph is a symbol, not a scale drawing.
 
