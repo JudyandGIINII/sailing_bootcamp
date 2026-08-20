@@ -236,13 +236,14 @@ import { describe, expect, it } from 'vitest';
 import type { LedgerEvent, RawSimulationState } from '../../src/sim/session.js';
 import { HELM_CORRECTION_CAUSE } from '../../src/sim/session.js';
 import { L04_MARK_ARRIVAL_CAUSE } from '../../src/content/l02-l05.js';
-import { computeL04Components, countHelmReversals } from '../../src/scoring/components.js';
+import { computeL04Components, countHelmReversals, type ScoreComponent } from '../../src/scoring/components.js';
+import type { ScoreComponentKey } from '../../src/scoring/score-contract.js';
 
 function event(partial: Partial<LedgerEvent> & { id: string; type: LedgerEvent['type'] }): LedgerEvent {
   return { tick: 0, sequence: 0, ...partial } as LedgerEvent;
 }
 
-function componentBy(components: readonly { key: string; points: number; status: string; causal_event_ids: readonly string[] }[], key: string) {
+function componentBy(components: readonly ScoreComponent[], key: ScoreComponentKey): ScoreComponent {
   const found = components.find((component) => component.key === key);
   if (!found) throw new Error(`missing component ${key}`);
   return found;
