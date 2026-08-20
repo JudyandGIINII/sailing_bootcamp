@@ -17,6 +17,7 @@ import { materializeVariation } from './sim/scenario-variation.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
 import { deriveSyntheticCurrent } from './sim/tidal-current.js';
 import { projectDebrief, projectL02RuntimeTrace, projectL02SyntheticTrimAcknowledgment, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence, type L05DecisionLedgerRecordEvidence } from './scoring/projection.js';
+import { SCORE_BOUNDARY_TEXT } from './scoring/score-contract.js';
 
 // Install before any app-owned bootstrap work can initiate a browser transport.
 installLocalOnlyTransportGuard();
@@ -417,8 +418,21 @@ function render(): void {
   }
   if (session.raw.lesson_id !== 'L03') {
     const scoreItem = document.createElement('li');
-    scoreItem.textContent = `Score status: ${score.status}; no validated numeric score is claimed.`;
+    scoreItem.id = 'score-line';
+    scoreItem.textContent = score.points_possible === undefined
+      ? `Score status: ${score.status}; this lesson declares no scored components.`
+      : `Synthetic score ${score.total_points} of ${score.points_possible}` +
+        (score.safety_cap ? ` — capped at ${Math.round(score.safety_cap.ratio * 100)}% by a recorded ${score.safety_cap.level} under-keel clearance crossing, which no other component can offset` : '') +
+        `. ${SCORE_BOUNDARY_TEXT}`;
     debrief.append(scoreItem);
+
+    for (const component of score.components ?? []) {
+      const componentItem = document.createElement('li');
+      componentItem.textContent = component.status === 'declared-unavailable'
+        ? `${component.key}: declared unavailable — this lesson records no evidence for it, so it is not scored.`
+        : `${component.key}: ${component.points} of ${component.points_possible}, from ${component.causal_event_ids.length} recorded event(s).`;
+      debrief.append(componentItem);
+    }
   }
   if (l03Trace) {
     const staticItem = document.createElement('li');

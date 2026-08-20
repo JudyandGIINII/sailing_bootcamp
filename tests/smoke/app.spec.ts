@@ -27,6 +27,18 @@ test('says plainly when a lesson declares no world position', async ({ page }) =
   await expect(page.locator('#world-text')).toContainText('declares no synthetic world position');
 });
 
+test('shows a synthetic L04 score with its unvalidated boundary and component breakdown', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L04');
+  for (let index = 0; index < 6; index += 1) await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(600);
+  const scoreLine = page.locator('#score-line');
+  await expect(scoreLine).toContainText('Synthetic score');
+  await expect(scoreLine).toContainText('of 100');
+  await expect(scoreLine).toContainText('not an assessment of real sailing competence');
+  await expect(page.getByText(/observation: declared unavailable/)).toBeVisible();
+});
+
 test('keeps a labelled synthetic draft editable, then freezes and resets its V2 session', async ({ page }) => {
   const requests: { url: string; resourceType: string; method: string }[] = [];
   page.on('request', (request) => requests.push({ url: request.url(), resourceType: request.resourceType(), method: request.method() }));
