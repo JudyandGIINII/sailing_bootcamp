@@ -412,7 +412,7 @@ function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L04' | 'L
  * may append other checkpoint kinds (L04's mark arrival), which carry no action
  * link and must not be scanned as causal controls.
  */
-const HELM_CORRECTION_CAUSE = 'declared helm correction recorded';
+export const HELM_CORRECTION_CAUSE = 'declared helm correction recorded';
 
 function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number, lessonId: 'L01' | 'L04' | 'L06'): readonly Readonly<{
   logical_tick: number;
