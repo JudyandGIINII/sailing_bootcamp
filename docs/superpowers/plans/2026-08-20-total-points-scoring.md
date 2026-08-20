@@ -568,11 +568,11 @@ function l04Session(seed: string): DeterministicSession {
 }
 
 describe('L04 total points', () => {
-  it('reports a non-zero total with a 75 point denominator', () => {
+  it('reports a non-zero total with a 100 point denominator', () => {
     const session = l04Session('total-basic');
     const score = projectScore(session.raw, session.ledger);
     expect(score.status).toBe('declared_synthetic_unvalidated');
-    expect(score.points_possible).toBe(75);
+    expect(score.points_possible).toBe(100);
     expect(score.total_points).toBeGreaterThan(0);
     expect(Number.isInteger(score.total_points)).toBe(true);
   });
@@ -599,8 +599,8 @@ describe('L04 total points', () => {
     const dangerRaw = { ...session.raw, highest_clearance_alert: 'danger' as const };
     const score = projectScore(dangerRaw, session.ledger);
     expect(score.safety_cap?.level).toBe('danger');
-    // 0.4 * 75 = 30, floored.
-    expect(score.total_points).toBeLessThanOrEqual(30);
+    // 0.4 * 100 = 40.
+    expect(score.total_points).toBeLessThanOrEqual(40);
   });
 
   it('declares the contract version it scored under', () => {
@@ -715,12 +715,12 @@ as `["0:1:2", "0:2:4"]` — both on tick 0. Working the contract through by hand
 | safety | `highest_clearance_alert` is `clear` | 25 of 25 |
 | goal | the mark is 600 m away; 1 tick cannot reach it | 0 of 25 |
 
-So the expected result is **`total_points: 55`, `points_possible: 75`**, `status:
+So the expected result is **`total_points: 55`, `points_possible: 100`**, `status:
 'declared_synthetic_unvalidated'`, no `safety_cap` key.
 
 Update the `score` block of `tests/fixtures/l04-score-debrief-golden.json` to that value.
 
-**If the test prints anything other than 55 of 75, stop and report — do not paste the
+**If the test prints anything other than 55 of 100, stop and report — do not paste the
 observed number.** A golden fixture that records a bug is worse than a failing test, and
 this is exactly the situation where a worker is tempted to make the test green by
 enshrining whatever the code happened to produce. The `debrief_fact_kinds` array in that
@@ -804,7 +804,7 @@ test('shows a synthetic L04 score with its unvalidated boundary and component br
   await page.waitForTimeout(600);
   const scoreLine = page.locator('#score-line');
   await expect(scoreLine).toContainText('Synthetic score');
-  await expect(scoreLine).toContainText('of 75');
+  await expect(scoreLine).toContainText('of 100');
   await expect(scoreLine).toContainText('not an assessment of real sailing competence');
   await expect(page.getByText(/observation: declared unavailable/)).toBeVisible();
 });
@@ -848,7 +848,7 @@ Write down the observed counts. Use those, not the counts this plan predicts.
 - [ ] **Step 2: Update `docs/PROJECT_STATUS.md`**
 
 - Refresh the verification table with the observed counts.
-- Remove the line claiming `total_points` remains 0, and replace it with what is now true: L04 scores four of five components against a 75-point denominator under `score-contract-v0-draft`; observation is declared unavailable because nothing records it; L01, L02, L03, L05 and L06 remain unscored at 0.
+- Remove the line claiming `total_points` remains 0, and replace it with what is now true: L04 scores four of five components against a 100-point denominator under `score-contract-v0-draft`; observation is declared unavailable because nothing records it; L01, L02, L03, L05 and L06 remain unscored at 0.
 - Update the golden-fixtures row: `l04-score-debrief-golden.json` was regenerated this cycle; the other four score fixtures and all `*-raw-golden.json` are byte-identical.
 - Note that the score is `declared_synthetic_unvalidated` and that computing a number does not validate the constants behind it.
 
@@ -872,8 +872,8 @@ git commit -m "docs: record the five-component scoring"
 - [ ] `npm run typecheck`, `npm test`, `npm run build`, `npm run test:smoke` all pass
 - [ ] `git diff --name-only tests/fixtures/` prints only `l04-score-debrief-golden.json` across the whole branch
 - [ ] The three pre-existing `total_points: 0` assertions still pass and were never edited
-- [ ] An L04 session reports a non-zero integer `total_points` out of 75
+- [ ] An L04 session reports a non-zero integer `total_points` out of 100
 - [ ] Every scored component carries the ids of the events that produced it
-- [ ] A `danger` clearance crossing caps the total at 30 even when every other component is full
+- [ ] A `danger` clearance crossing caps the total at 40 even when every other component is full
 - [ ] L01, L02, L03, L05 and L06 return `total_points: 0` with no `components` field at all
 - [ ] The rendered score line always carries the declared-synthetic, unvalidated boundary text
