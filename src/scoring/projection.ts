@@ -3,12 +3,20 @@ import { getLessonManifest } from '../content/lesson-manifest.js';
 import { L04_MARK_ARRIVAL_CAUSE } from '../content/l02-l05.js';
 import { projectL02SyntheticTrimObservation } from '../sim/l02-observation.js';
 import type { L02SyntheticTrimObservation } from '../sim/l02-synthetic-model.js';
+import { computeL04Components, type ScoreComponent } from './components.js';
+import { SAFETY_CAP_RATIO, SCORE_CONTRACT_VERSION } from './score-contract.js';
 
 export interface ScoreProjection {
-  status: 'unavailable_pending_validation' | 'blocked_by_safety_contract' | 'draft_causal_checkpoint_recorded';
+  status: 'unavailable_pending_validation' | 'blocked_by_safety_contract'
+        | 'draft_causal_checkpoint_recorded' | 'declared_synthetic_unvalidated';
   safety: 'clear' | 'blocked';
-  total_points: 0;
+  total_points: number;
   causal_event_ids: readonly string[];
+  /** Present only on the L04 scored path; absent everywhere else so no other golden fixture moves. */
+  components?: readonly ScoreComponent[];
+  points_possible?: number;
+  score_contract_version?: typeof SCORE_CONTRACT_VERSION;
+  safety_cap?: Readonly<{ level: 'caution' | 'danger'; ratio: number; causal_event_ids: readonly string[] }>;
 }
 
 export interface DebriefFact {
@@ -120,9 +128,10 @@ export interface L05DecisionLedgerProjection {
 }
 
 /** Pure projections: no values are written back to the canonical state or ledger. */
-export function projectScore(_raw: RawSimulationState, ledger: readonly LedgerEvent[]): ScoreProjection {
+export function projectScore(raw: RawSimulationState, ledger: readonly LedgerEvent[]): ScoreProjection {
   const safetyEvent = ledger.find((event) => event.type === 'SAFETY_BLOCKED');
   if (safetyEvent) {
+    // Unchanged shape: a blocked contract is not scored at all.
     return Object.freeze({
       status: 'blocked_by_safety_contract',
       safety: 'blocked',
@@ -130,13 +139,51 @@ export function projectScore(_raw: RawSimulationState, ledger: readonly LedgerEv
       causal_event_ids: Object.freeze([safetyEvent.id]),
     });
   }
+
+  if (raw.lesson_id === 'L04') return scoreL04(raw, ledger);
+
   const checkpoints = ledger.filter((event) => event.type === 'LESSON_CHECKPOINT');
   if (checkpoints.length > 0) return Object.freeze({ status: 'draft_causal_checkpoint_recorded', safety: 'clear', total_points: 0, causal_event_ids: Object.freeze(checkpoints.map((event) => event.id)) });
   return Object.freeze({
     status: 'unavailable_pending_validation',
     safety: 'clear',
     total_points: 0,
-      causal_event_ids: Object.freeze(ledger.filter((event) => event.type === 'ACTION_ACCEPTED').map((event) => event.id)),
+    causal_event_ids: Object.freeze(ledger.filter((event) => event.type === 'ACTION_ACCEPTED').map((event) => event.id)),
+  });
+}
+
+/**
+ * The safety cap is a ceiling rather than a deduction on purpose: a deduction
+ * can be paid off by scoring well elsewhere, and PRD 7.3 forbids speed or
+ * progress from offsetting a safety violation.
+ */
+function scoreL04(raw: RawSimulationState, ledger: readonly LedgerEvent[]): ScoreProjection {
+  const components = computeL04Components(raw, ledger);
+  const pointsPossible = components.reduce((sum, component) => sum + component.points_possible, 0);
+  const earned = components.reduce((sum, component) => sum + component.points, 0);
+
+  const severity = raw.highest_clearance_alert ?? 'clear';
+  const capLevel = severity === 'danger' ? 'danger' : severity === 'caution' ? 'caution' : undefined;
+  const capped = capLevel === undefined
+    ? earned
+    : Math.min(earned, Math.floor(SAFETY_CAP_RATIO[capLevel] * pointsPossible));
+
+  const safetyComponent = components.find((component) => component.key === 'safety');
+  return Object.freeze({
+    status: 'declared_synthetic_unvalidated',
+    safety: 'clear',
+    total_points: capped,
+    points_possible: pointsPossible,
+    score_contract_version: SCORE_CONTRACT_VERSION,
+    components,
+    ...(capLevel === undefined ? {} : {
+      safety_cap: Object.freeze({
+        level: capLevel,
+        ratio: SAFETY_CAP_RATIO[capLevel],
+        causal_event_ids: safetyComponent?.causal_event_ids ?? Object.freeze([]),
+      }),
+    }),
+    causal_event_ids: Object.freeze(components.flatMap((component) => [...component.causal_event_ids])),
   });
 }
 

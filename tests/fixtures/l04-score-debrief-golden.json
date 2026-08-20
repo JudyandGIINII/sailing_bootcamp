@@ -1,11 +1,58 @@
 {
   "score": {
-    "status": "draft_causal_checkpoint_recorded",
+    "status": "declared_synthetic_unvalidated",
     "safety": "clear",
-    "total_points": 0,
+    "total_points": 55,
+    "points_possible": 100,
+    "score_contract_version": "score-contract-v0-draft",
+    "components": [
+      {
+        "key": "observation",
+        "status": "declared-unavailable",
+        "points": 0,
+        "points_possible": 0,
+        "causal_event_ids": []
+      },
+      {
+        "key": "judgment",
+        "status": "scored",
+        "points": 10,
+        "points_possible": 25,
+        "causal_event_ids": [
+          "0:1:2",
+          "0:2:4"
+        ]
+      },
+      {
+        "key": "control_stability",
+        "status": "scored",
+        "points": 20,
+        "points_possible": 25,
+        "causal_event_ids": [
+          "0:1:1",
+          "0:2:3"
+        ]
+      },
+      {
+        "key": "safety",
+        "status": "scored",
+        "points": 25,
+        "points_possible": 25,
+        "causal_event_ids": []
+      },
+      {
+        "key": "goal",
+        "status": "scored",
+        "points": 0,
+        "points_possible": 25,
+        "causal_event_ids": []
+      }
+    ],
     "causal_event_ids": [
       "0:1:2",
-      "0:2:4"
+      "0:2:4",
+      "0:1:1",
+      "0:2:3"
     ]
   },
   "debrief_fact_kinds": [
