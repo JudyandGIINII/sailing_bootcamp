@@ -55,7 +55,7 @@ L05 매니페스트의 `pass_semantics`는 "declared conservative pass, wait, or
 accepted; **transit is not mastery**"라고 말한다. 즉 통과 자체가 목표가 아니다. 단일
 "목표 달성" 이벤트가 존재하지 않으므로 지어내지 않는다. L06과 같은 이유(마크 없음)다.
 
-## 6. 이행 대상 (5곳 + 바인딩)
+## 6. 이행 대상 (8곳 + 바인딩)
 
 | 위치 | 변경 |
 |---|---|
@@ -65,13 +65,25 @@ accepted; **transit is not mastery**"라고 말한다. 즉 통과 자체가 목�
 | `polarLessonTag()` `src/sim/session.ts:405` | `l05-` → `'L05'`, 반환 타입 확장 |
 | `createSession` L05 분기 `src/sim/session.ts:253` | L04 분기처럼 폴라 상태 초기화. **`decision_state: 'undecided'`와 `synthetic_environment`는 유지** |
 
-### replay identity는 자동으로 따라온다
+### replay identity — 일부만 자동이다 (2026-08-21 정정)
 
-`identityFieldsFor`는 레슨 목록이 아니라 `model_version === POLAR_KINEMATICS_MODEL_VERSION`
-으로 분기한다(`src/contracts/replay.ts:180`). 따라서 매니페스트가 폴라 모델을 선언하는
-순간 identity 필드 집합이 자동으로 폴라 집합이 된다. **L04 이행 때 replay를 통째로
-망가뜨렸던 흩어진 키 집합 문제가 이번에는 해당되지 않는다.** 다만 `resolveReplayV2`와
-`isReplayV2Shape` 경로는 테스트로 확인한다.
+**최초 설계에서 이 절은 "자동으로 따라온다"고 단언했고, 그 단언은 틀렸다.** 정정한다.
+
+`identityFieldsFor`(`src/contracts/replay.ts:180`)는 확실히 레슨 목록이 아니라
+`model_version === POLAR_KINEMATICS_MODEL_VERSION`으로 분기하므로 자동으로 따라온다.
+**그러나 같은 파일의 다른 두 함수는 레슨 id로 분기한다:**
+
+| 위치 | 문제 |
+|---|---|
+| `isReplayV2Shape:369` | `isL04 \|\| isL06`만 `polarLessonV2Keys`를 쓴다. L05는 `v2Keys`로 떨어지고 `exactKeys`가 정확 일치를 요구하므로, 환경을 실은 L05 payload가 **잘못된 형태로 거부**된다 |
+| `resolveReplayV2:577` | L01·L04·L06만 폴라 환경을 검증한다. L05를 넣지 않으면 복원된 L05 replay의 환경이 **한 번도 검증되지 않는다** — fail-closed 계약에서의 fail-open |
+
+또한 `src/main.ts:670`이 시작된 replay에 환경을 붙이는 대상도 L04·L06뿐이다. 이것을
+빠뜨리면 L05는 브라우저에서 **시작 자체가 실패한다**.
+
+즉 이번 이행에서 손봐야 할 레슨 분기는 `src/sim/session.ts` 세 곳이 아니라 **여섯 곳**이다.
+프로젝트 핸드오프가 경고한 "키 집합이 여러 곳에 흩어져 있다"는 문제는 이번에도 그대로
+적용되었으며, 그것을 적용되지 않는다고 단언한 것이 이 사이클 최대의 설계 오류다.
 
 ## 7. 관측 상태 변화
 
