@@ -270,6 +270,35 @@ move in this task, not the next one.
 **Interfaces:**
 - Produces: `LESSON_SCORE_PROFILES`, `l05DecisionCause`, `computeComponents(raw, ledger): readonly ScoreComponent[] | undefined`
 
+- [ ] **Step 0: Carry over the debrief fact the migration already caused**
+
+**This is a correction.** Task 1's migration makes L05 emit `POLAR_KINEMATIC_TRANSITION`,
+which `projectDebrief` turns into a `synthetic_transition` fact. That makes
+`tests/fixtures/l05-score-debrief-golden.json` stale **from the end of Task 1** — the plan
+originally filed this edit under Task 3, next to the score regeneration, but its cause is the
+migration, not the scoring. `tests/unit/l02-l05.test.ts` has been failing since Task 1
+because of it.
+
+In `tests/fixtures/l05-score-debrief-golden.json`, change `debrief_fact_kinds` to:
+
+```json
+  "debrief_fact_kinds": [
+    "contract_status",
+    "action_recorded",
+    "lesson_checkpoint",
+    "synthetic_transition"
+  ]
+```
+
+The new entry is **appended last**; the existing three keep their order.
+
+**Leave the `score` block exactly as it is** — still `total_points: 0`, still no
+`points_possible`. L05 is not in the profile table yet, so its score genuinely has not
+changed. Task 3 updates that block and nothing else in this file.
+
+After this edit `npm test` must be fully green again. If any test other than the L05
+debrief comparison is still failing, **stop and report**.
+
 - [ ] **Step 1: Give the decision cause a single source of truth**
 
 `src/sim/session.ts:711` builds the decision cause inline as
@@ -436,7 +465,7 @@ Expected: PASS
 npm run typecheck
 npm test
 git diff --name-only tests/fixtures/   # must print ONLY l05-raw-golden.json (unchanged from Task 1)
-git add src/sim/session.ts src/scoring/score-contract.ts src/scoring/components.ts src/scoring/projection.ts tests/unit/score-contract.test.ts tests/unit/score-components.test.ts
+git add src/sim/session.ts src/scoring/score-contract.ts src/scoring/components.ts src/scoring/projection.ts tests/unit/score-contract.test.ts tests/unit/score-components.test.ts tests/fixtures/l05-score-debrief-golden.json
 git commit -m "refactor(scoring): drive components from a lesson profile table"
 ```
 
@@ -572,12 +601,12 @@ Expected: PASS
 So the expected result is **`total_points: 60`, `points_possible: 75`**, `status:
 'declared_synthetic_unvalidated'`, no `safety_cap` key.
 
-`debrief_fact_kinds` also changes: L05 now emits a `POLAR_KINEMATIC_TRANSITION`, so the array
-gains exactly one `"synthetic_transition"` entry while its existing three entries
-(`contract_status`, `action_recorded`, `lesson_checkpoint`) stay in their current order.
+`debrief_fact_kinds` was already corrected in Task 2 Step 0 and **must not change again in
+this task** — it stays `["contract_status", "action_recorded", "lesson_checkpoint",
+"synthetic_transition"]`. This task edits the `score` block only.
 
-**If the test prints any total other than 60 of 75, or `debrief_fact_kinds` changes in any
-other way, stop and report — do not paste the observed value.**
+**If the test prints any total other than 60 of 75, or `debrief_fact_kinds` moves at all,
+stop and report — do not paste the observed value.**
 
 - [ ] **Step 6: Verify and commit**
 
