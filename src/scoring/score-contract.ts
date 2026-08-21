@@ -69,6 +69,12 @@ export const LESSON_SCORE_PROFILES: Readonly<Record<string, LessonScoreProfile>>
     unavailable: Object.freeze(['observation'] as const),
     judgment_evidence: 'helm_correction' as const,
   }),
+  L05: Object.freeze({
+    // L05 has no mark; its own pass_semantics say transit is not mastery, so
+    // there is no single goal event to detect.
+    unavailable: Object.freeze(['observation', 'goal'] as const),
+    judgment_evidence: 'decision_record' as const,
+  }),
 });
 
 /**

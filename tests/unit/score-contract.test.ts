@@ -38,6 +38,7 @@ describe('declared scoring contract', () => {
 
   it('declares a scoring profile per scored lesson', () => {
     expect(LESSON_SCORE_PROFILES.L04).toEqual({ unavailable: ['observation'], judgment_evidence: 'helm_correction' });
+    expect(LESSON_SCORE_PROFILES.L05).toEqual({ unavailable: ['observation', 'goal'], judgment_evidence: 'decision_record' });
   });
 
   it('declares safety recovery unrepresented rather than inventing it', () => {

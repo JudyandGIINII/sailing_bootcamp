@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LedgerEvent, RawSimulationState } from '../../src/sim/session.js';
-import { HELM_CORRECTION_CAUSE } from '../../src/sim/session.js';
+import { HELM_CORRECTION_CAUSE, l05DecisionCause } from '../../src/sim/session.js';
 import { L04_MARK_ARRIVAL_CAUSE } from '../../src/content/l02-l05.js';
 import { computeComponents, countHelmReversals, type ScoreComponent } from '../../src/scoring/components.js';
 import type { ScoreComponentKey } from '../../src/scoring/score-contract.js';
@@ -123,5 +123,40 @@ describe('L04 component derivation', () => {
     const before = structuredClone(ledger);
     computeComponents(cleanRaw, ledger);
     expect(ledger).toEqual(before);
+  });
+});
+
+describe('L05 component derivation', () => {
+  const l05Raw = { lesson_id: 'L05', highest_clearance_alert: 'clear' } as unknown as RawSimulationState;
+
+  it('scores judgment from recorded decisions, not helm corrections', () => {
+    const components = computeComponents(l05Raw, [
+      event({ id: 'd1', type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: l05DecisionCause('decision_wait'), tick: 0 }),
+    ])!;
+    const judgment = componentBy(components, 'judgment');
+    expect(judgment.points).toBe(10);
+    expect(judgment.causal_event_ids).toEqual(['d1']);
+  });
+
+  it('ignores a helm correction for L05 judgment', () => {
+    const components = computeComponents(l05Raw, [
+      event({ id: 'h1', type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: HELM_CORRECTION_CAUSE, tick: 0 }),
+    ])!;
+    expect(componentBy(components, 'judgment').points).toBe(0);
+  });
+
+  it('declares both observation and goal unavailable for L05', () => {
+    const components = computeComponents(l05Raw, [])!;
+    expect(componentBy(components, 'observation').status).toBe('declared-unavailable');
+    expect(componentBy(components, 'goal').status).toBe('declared-unavailable');
+  });
+
+  it('leaves L05 a 75 point denominator', () => {
+    const total = computeComponents(l05Raw, [])!.reduce((sum, component) => sum + component.points_possible, 0);
+    expect(total).toBe(75);
+  });
+
+  it('returns undefined for a lesson with no scoring profile', () => {
+    expect(computeComponents({ lesson_id: 'L02' } as unknown as RawSimulationState, [])).toBeUndefined();
   });
 });
