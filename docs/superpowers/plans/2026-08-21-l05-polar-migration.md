@@ -28,6 +28,7 @@
 **Files:**
 - Modify: `src/content/l02-l05.ts` (`l05Manifest`, `l05ReplayBindings`)
 - Modify: `src/sim/session.ts` (three lesson branches)
+- Modify: `tests/unit/l04-current-correction.test.ts:133` (an existing assertion this cycle deliberately reverses — see Step 4b)
 - Modify: `tests/fixtures/l05-raw-golden.json` (regenerate)
 - Test: `tests/unit/l05-polar-migration.test.ts`
 
@@ -185,6 +186,41 @@ Replace with a polar initialization that keeps both L05-specific fields. Note it
     });
   }
 ```
+
+- [ ] **Step 4b: Update the assertion that pins L05 to the legacy model**
+
+`tests/unit/l04-current-correction.test.ts:133` currently asserts the opposite of what this
+cycle does:
+
+```ts
+  it('leaves L02, L03 and L05 on the legacy draft model', () => {
+    for (const manifest of [l02Manifest, l03Manifest, l05Manifest]) {
+      expect(manifest.model_version).toBe('training-sloop-model-v0-draft');
+    }
+  });
+```
+
+Replace it with:
+
+```ts
+  it('leaves L02 and L03 on the legacy draft model', () => {
+    for (const manifest of [l02Manifest, l03Manifest]) {
+      expect(manifest.model_version).toBe('training-sloop-model-v0-draft');
+    }
+  });
+
+  it('has migrated L05 onto the polar model', () => {
+    expect(l05Manifest.model_version).toBe(POLAR_KINEMATICS_MODEL_VERSION);
+  });
+```
+
+Both `l05Manifest` and `POLAR_KINEMATICS_MODEL_VERSION` are already imported in that file, so
+no import changes are needed.
+
+**This is the one existing assertion this cycle is allowed to change**, because it records a
+fact the migration deliberately reverses — and it is replaced by a positive assertion rather
+than deleted, so the fact stays covered. It is not licence to edit any other failing test:
+everything else that fails must be fixed in the code or the fixtures.
 
 - [ ] **Step 5: Run the new test**
 
