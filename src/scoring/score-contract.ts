@@ -49,12 +49,27 @@ export const SAFETY_CAP_RATIO: Readonly<Record<'caution' | 'danger', number>> = 
   danger: 0.4,
 });
 
+/** Which recorded artefact a lesson's judgment component reads. */
+export type JudgmentEvidence = 'helm_correction' | 'decision_record';
+
+export interface LessonScoreProfile {
+  readonly unavailable: readonly ScoreComponentKey[];
+  readonly judgment_evidence: JudgmentEvidence;
+}
+
 /**
- * L04 records no observation action, so the observation component has no evidence
- * to read. It is declared unavailable rather than scored zero, because zero would
- * read as "did badly" instead of "not scored".
+ * Scored lessons and what each one can actually evidence. A component is listed
+ * as unavailable when the lesson records nothing that could support it, never to
+ * express a poor result. L04 approximates judgment from helm corrections because
+ * that is all it records; L05 records an explicit pass/wait/return decision,
+ * which is a truer judgment artefact, so it reads that instead.
  */
-export const L04_UNAVAILABLE_COMPONENTS: readonly ScoreComponentKey[] = Object.freeze(['observation'] as const);
+export const LESSON_SCORE_PROFILES: Readonly<Record<string, LessonScoreProfile>> = Object.freeze({
+  L04: Object.freeze({
+    unavailable: Object.freeze(['observation'] as const),
+    judgment_evidence: 'helm_correction' as const,
+  }),
+});
 
 /**
  * PRD §7.3 requires the contract to declare how safety recovery is handled. The

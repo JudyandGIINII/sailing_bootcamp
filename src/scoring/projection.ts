@@ -3,7 +3,7 @@ import { getLessonManifest } from '../content/lesson-manifest.js';
 import { L04_MARK_ARRIVAL_CAUSE } from '../content/l02-l05.js';
 import { projectL02SyntheticTrimObservation } from '../sim/l02-observation.js';
 import type { L02SyntheticTrimObservation } from '../sim/l02-synthetic-model.js';
-import { computeL04Components, type ScoreComponent } from './components.js';
+import { computeComponents, type ScoreComponent } from './components.js';
 import { SAFETY_CAP_RATIO, SCORE_CONTRACT_VERSION } from './score-contract.js';
 
 export interface ScoreProjection {
@@ -140,7 +140,8 @@ export function projectScore(raw: RawSimulationState, ledger: readonly LedgerEve
     });
   }
 
-  if (raw.lesson_id === 'L04') return scoreL04(raw, ledger);
+  const components = computeComponents(raw, ledger);
+  if (components) return scoreFromComponents(raw, components);
 
   const checkpoints = ledger.filter((event) => event.type === 'LESSON_CHECKPOINT');
   if (checkpoints.length > 0) return Object.freeze({ status: 'draft_causal_checkpoint_recorded', safety: 'clear', total_points: 0, causal_event_ids: Object.freeze(checkpoints.map((event) => event.id)) });
@@ -157,8 +158,7 @@ export function projectScore(raw: RawSimulationState, ledger: readonly LedgerEve
  * can be paid off by scoring well elsewhere, and PRD 7.3 forbids speed or
  * progress from offsetting a safety violation.
  */
-function scoreL04(raw: RawSimulationState, ledger: readonly LedgerEvent[]): ScoreProjection {
-  const components = computeL04Components(raw, ledger);
+function scoreFromComponents(raw: RawSimulationState, components: readonly ScoreComponent[]): ScoreProjection {
   const pointsPossible = components.reduce((sum, component) => sum + component.points_possible, 0);
   const earned = components.reduce((sum, component) => sum + component.points, 0);
 

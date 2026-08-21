@@ -3,7 +3,7 @@ import {
   COMPONENT_MAX_POINTS,
   CONTROL_PENALTY_PER_REVERSAL,
   JUDGMENT_POINTS_PER_CORRECTION,
-  L04_UNAVAILABLE_COMPONENTS,
+  LESSON_SCORE_PROFILES,
   SAFETY_CAP_RATIO,
   SAFETY_COMPONENT_POINTS,
   SAFETY_RECOVERY_REPRESENTATION,
@@ -36,8 +36,8 @@ describe('declared scoring contract', () => {
     expect(SAFETY_CAP_RATIO.danger).toBeGreaterThan(0);
   });
 
-  it('declares observation unavailable for L04 because nothing records it', () => {
-    expect(L04_UNAVAILABLE_COMPONENTS).toEqual(['observation']);
+  it('declares a scoring profile per scored lesson', () => {
+    expect(LESSON_SCORE_PROFILES.L04).toEqual({ unavailable: ['observation'], judgment_evidence: 'helm_correction' });
   });
 
   it('declares safety recovery unrepresented rather than inventing it', () => {

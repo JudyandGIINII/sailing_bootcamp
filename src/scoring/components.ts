@@ -8,14 +8,15 @@
  * a poor performance instead of an absent measurement.
  */
 import { L04_MARK_ARRIVAL_CAUSE } from '../content/l02-l05.js';
-import { HELM_CORRECTION_CAUSE, type LedgerEvent, type RawSimulationState } from '../sim/session.js';
+import { HELM_CORRECTION_CAUSE, l05DecisionCause, type LedgerEvent, type RawSimulationState } from '../sim/session.js';
 import {
   COMPONENT_MAX_POINTS,
   CONTROL_PENALTY_PER_REVERSAL,
   JUDGMENT_POINTS_PER_CORRECTION,
-  L04_UNAVAILABLE_COMPONENTS,
+  LESSON_SCORE_PROFILES,
   SAFETY_COMPONENT_POINTS,
   type SafetySeverity,
+  type JudgmentEvidence,
   type ScoreComponentKey,
 } from './score-contract.js';
 
@@ -64,18 +65,23 @@ export function countHelmReversals(ledger: readonly LedgerEvent[]): number {
   return reversals;
 }
 
-function judgmentComponent(ledger: readonly LedgerEvent[]): ScoreComponent {
-  const corrections = ledger.filter(
-    (event) => event.type === 'LESSON_CHECKPOINT' && event.cause === HELM_CORRECTION_CAUSE,
-  );
+function judgmentComponent(ledger: readonly LedgerEvent[], evidence: JudgmentEvidence): ScoreComponent {
+  const matches = ledger.filter((event) => {
+    if (event.type !== 'LESSON_CHECKPOINT') return false;
+    return evidence === 'helm_correction'
+      ? event.cause === HELM_CORRECTION_CAUSE
+      : event.cause === l05DecisionCause('decision_pass')
+        || event.cause === l05DecisionCause('decision_wait')
+        || event.cause === l05DecisionCause('decision_return');
+  });
   // PRD 7.3 forbids evaluating the same cause twice before it resolves; one tick
   // contributes at most one correction however many events it recorded.
-  const distinctTicks = new Set(corrections.map((event) => event.tick));
+  const distinctTicks = new Set(matches.map((event) => event.tick));
   const points = Math.min(
     COMPONENT_MAX_POINTS.judgment,
     distinctTicks.size * JUDGMENT_POINTS_PER_CORRECTION,
   );
-  return scored('judgment', points, corrections.map((event) => event.id));
+  return scored('judgment', points, matches.map((event) => event.id));
 }
 
 function controlStabilityComponent(ledger: readonly LedgerEvent[]): ScoreComponent {
@@ -102,20 +108,20 @@ function goalComponent(ledger: readonly LedgerEvent[]): ScoreComponent {
   return scored('goal', arrivals.length > 0 ? COMPONENT_MAX_POINTS.goal : 0, arrivals.map((event) => event.id));
 }
 
-export function computeL04Components(
+export function computeComponents(
   raw: RawSimulationState,
   ledger: readonly LedgerEvent[],
-): readonly ScoreComponent[] {
+): readonly ScoreComponent[] | undefined {
+  const profile = raw.lesson_id === undefined ? undefined : LESSON_SCORE_PROFILES[raw.lesson_id];
+  if (!profile) return undefined;
   const byKey: Readonly<Record<ScoreComponentKey, ScoreComponent>> = {
     observation: unavailable('observation'),
-    judgment: judgmentComponent(ledger),
+    judgment: judgmentComponent(ledger, profile.judgment_evidence),
     control_stability: controlStabilityComponent(ledger),
     safety: safetyComponent(raw, ledger),
     goal: goalComponent(ledger),
   };
   return Object.freeze(
-    COMPONENT_ORDER.map((key) =>
-      L04_UNAVAILABLE_COMPONENTS.includes(key) ? unavailable(key) : byKey[key],
-    ),
+    COMPONENT_ORDER.map((key) => (profile.unavailable.includes(key) ? unavailable(key) : byKey[key])),
   );
 }

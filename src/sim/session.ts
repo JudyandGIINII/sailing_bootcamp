@@ -439,6 +439,11 @@ function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L04' | 'L
  */
 export const HELM_CORRECTION_CAUSE = 'declared helm correction recorded';
 
+/** The cause recorded for an L05 pass/wait/return decision, and the string the scorer matches. */
+export function l05DecisionCause(action: 'decision_pass' | 'decision_wait' | 'decision_return'): string {
+  return `synthetic ${action.replace('decision_', '')} decision recorded`;
+}
+
 function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number, lessonId: 'L01' | 'L04' | 'L05' | 'L06'): readonly Readonly<{
   logical_tick: number;
   sequence: number;
@@ -733,7 +738,7 @@ export function applyCanonicalInput(session: DeterministicSession, input: Canoni
       cause: isL03V2Acknowledgment ? 'synthetic acknowledgment checkpoint recorded' : 'conservative synthetic reef mitigation recorded',
     };
   }
-  if (raw.lesson_id === 'L05' && (action === 'decision_pass' || action === 'decision_wait' || action === 'decision_return')) { raw = freeze({ ...raw, decision_state: action === 'decision_pass' ? 'pass_recorded' : action === 'decision_wait' ? 'wait_recorded' : 'return_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: `synthetic ${action.replace('decision_', '')} decision recorded` }; }
+  if (raw.lesson_id === 'L05' && (action === 'decision_pass' || action === 'decision_wait' || action === 'decision_return')) { raw = freeze({ ...raw, decision_state: action === 'decision_pass' ? 'pass_recorded' : action === 'decision_wait' ? 'wait_recorded' : 'return_recorded' }); extra = { id: eventId(input.logical_tick, input.sequence, session.ledger.length + 1), tick: input.logical_tick, sequence: input.sequence, type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: l05DecisionCause(action) }; }
   const safetyEvent = policy?.synthetic_safety_event?.action === action
     ? { id: eventId(input.logical_tick, input.sequence, session.ledger.length + (extra ? 2 : 1)), tick: input.logical_tick, sequence: input.sequence, type: 'SAFETY_BLOCKED' as const, contract_status: 'UNVALIDATED_DOMAIN_MODEL' as const, synthetic: true as const, cause: 'manifest-declared synthetic event' }
     : undefined;
