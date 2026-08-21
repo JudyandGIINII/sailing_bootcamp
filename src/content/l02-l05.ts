@@ -140,6 +140,7 @@ export const l04Manifest: DraftLessonManifest = Object.freeze({
 });
 export const l05Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L05', scenario_version: 'l05-scenario-v0-draft', validation_record_id: 'VR-L05-v0',
+  model_version: POLAR_KINEMATICS_MODEL_VERSION,
   initial_state: 'training-sloop-v1 synthetic tide/depth/visibility timeline and decision gate',
   required_observations: [
     { key: 'synthetic_tide_state', accessible_label: 'Synthetic tide state / 합성 조류 상태', status: 'declared_synthetic' },
@@ -161,7 +162,7 @@ export const l02ReplayBindings = Object.freeze(bindings(l02Manifest));
 export const l03ReplayBindings = Object.freeze(bindings(l03Manifest));
 /** L04 carries the polar environment directly so its replay is self-describing. */
 export const l04ReplayBindings = Object.freeze({ ...bindings(l04Manifest), polar_kinematics_environment: polarKinematicsEnvironmentV1 });
-export const l05ReplayBindings = Object.freeze(bindings(l05Manifest));
+export const l05ReplayBindings = Object.freeze({ ...bindings(l05Manifest), polar_kinematics_environment: polarKinematicsEnvironmentV1 });
 
 function bindings(manifest: DraftLessonManifest) {
   const { scenario_version, model_version, boat_profile_version, contract_version, coordinate_contract_version, determinism_contract_version, comparison_policy_version } = manifest;

@@ -250,7 +250,31 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
       highest_clearance_alert: 'clear',
     });
   }
-  if (scenario.startsWith('l05-')) return freeze({ ...base, lesson_id: 'L05', synthetic_environment: 'tide_depth_visibility_declared', decision_state: 'undecided' });
+  if (scenario.startsWith('l05-')) {
+    if (!polarProfile) throw new CanonicalInputContractError('Polar kinematics profile is missing.');
+    const initialState = createInitialPolarKinematicState(polarProfile);
+    const initialTransition = transitionPolarKinematicState(polarProfile, initialState, []);
+    const observations = projectPolarObservations(polarProfile, initialTransition);
+    return freeze({
+      ...base,
+      lesson_id: 'L05',
+      synthetic_environment: 'tide_depth_visibility_declared',
+      decision_state: 'undecided',
+      helm_command: initialState.helm_command,
+      heading: observations.heading_rad,
+      cog: observations.cog_rad,
+      true_wind: freeze({ from_rad: observations.true_wind_from_rad, speed_mps: observations.true_wind_speed_mps }),
+      apparent_wind: freeze({ from_rad: observations.apparent_wind_from_rad, speed_mps: observations.apparent_wind_speed_mps }),
+      stw: observations.stw_mps,
+      sog: observations.sog_mps,
+      drift_angle: observations.drift_angle_rad,
+      polar_kinematic_state: initialState,
+      polar_last_helm_sequence: 0,
+      clearance_m: clearanceAt(polarProfile, 0),
+      clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
+      highest_clearance_alert: 'clear',
+    });
+  }
   if (scenario.startsWith('l06-')) {
     if (!polarProfile) throw new CanonicalInputContractError('Polar kinematics profile is missing.');
     const initialState = createInitialPolarKinematicState(polarProfile);
@@ -315,7 +339,7 @@ function l01Profile(identity: ReplayIdentity | ReplayV2): L01SyntheticEnvironmen
  */
 function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvironmentV1 | undefined {
   const lesson = sessionLesson(identity);
-  if (!lesson.startsWith('l01-') && !lesson.startsWith('l04-') && !lesson.startsWith('l06-')) return undefined;
+  if (!lesson.startsWith('l01-') && !lesson.startsWith('l04-') && !lesson.startsWith('l05-') && !lesson.startsWith('l06-')) return undefined;
   if (declaredModelVersion(identity) !== POLAR_KINEMATICS_MODEL_VERSION) return undefined;
   const profile = identity.polar_kinematics_environment;
   if (!isPolarKinematicsEnvironmentV1(profile) ||
@@ -400,9 +424,10 @@ function clearanceAt(profile: PolarKinematicsEnvironmentV1, logicalTick: number)
   );
 }
 
-function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L04' | 'L06' {
+function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L04' | 'L05' | 'L06' {
   const lesson = sessionLesson(identity);
   if (lesson.startsWith('l06-')) return 'L06';
+  if (lesson.startsWith('l05-')) return 'L05';
   if (lesson.startsWith('l04-')) return 'L04';
   return 'L01';
 }
@@ -414,7 +439,7 @@ function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L04' | 'L
  */
 export const HELM_CORRECTION_CAUSE = 'declared helm correction recorded';
 
-function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number, lessonId: 'L01' | 'L04' | 'L06'): readonly Readonly<{
+function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number, lessonId: 'L01' | 'L04' | 'L05' | 'L06'): readonly Readonly<{
   logical_tick: number;
   sequence: number;
   helm_command: HelmCommand;

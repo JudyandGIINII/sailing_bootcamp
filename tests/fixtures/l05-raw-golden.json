@@ -1,5 +1,172 @@
 {
-  "identity": { "scenario_version": "l05-scenario-v0-draft", "seed": "l05-golden-seed", "ordered_input_log": [], "model_version": "training-sloop-model-v0-draft", "boat_profile_version": "training-sloop-v1", "contract_version": "lesson-model-contract-v0-draft", "coordinate_contract_version": "coordinate-contract-v1-draft", "determinism_contract_version": "determinism-replay-contract-v1-draft", "comparison_policy_version": "comparison-policy-v1-draft" },
-  "inputs": [{ "logical_tick": 0, "sequence": 1, "input": { "action": "decision_wait" } }], "terminal_ticks": 1,
-  "expected": { "raw": { "logical_tick": 1, "rng_state": 1004618182, "helm_command": "neutral", "heading": "declared-unavailable", "cog": "declared-unavailable", "true_wind": "declared-unavailable", "apparent_wind": "declared-unavailable", "contract_status": "UNVALIDATED_DOMAIN_MODEL", "lesson_id": "L05", "synthetic_environment": "tide_depth_visibility_declared", "decision_state": "wait_recorded" }, "ledger": [{ "id": "0:0:0", "tick": 0, "sequence": 0, "type": "SESSION_STARTED", "contract_status": "UNVALIDATED_DOMAIN_MODEL" }, { "id": "0:1:1", "tick": 0, "sequence": 1, "type": "ACTION_ACCEPTED", "action": "decision_wait", "contract_status": "UNVALIDATED_DOMAIN_MODEL" }, { "id": "0:1:2", "tick": 0, "sequence": 1, "type": "LESSON_CHECKPOINT", "lesson_id": "L05", "cause": "synthetic wait decision recorded" }] }
+  "identity": {
+    "scenario_version": "l05-scenario-v0-draft",
+    "seed": "l05-golden-seed",
+    "ordered_input_log": [],
+    "model_version": "polar-kinematics-v5",
+    "boat_profile_version": "training-sloop-v1",
+    "contract_version": "lesson-model-contract-v0-draft",
+    "coordinate_contract_version": "coordinate-contract-v1-draft",
+    "determinism_contract_version": "determinism-replay-contract-v1-draft",
+    "comparison_policy_version": "comparison-policy-v1-draft",
+    "polar_kinematics_environment": {
+      "environment_id": "polar-kinematics-training-ground",
+      "environment_version": 1,
+      "model_id": "polar-kinematics",
+      "model_version": "polar-kinematics-v5",
+      "logical_step_seconds": 1,
+      "initial_position_m": {
+        "x": 12,
+        "y": -8
+      },
+      "initial_heading_rad": 0,
+      "polar_profile_id": "training-sloop-synthetic-polar",
+      "true_wind_from_rad": 1.5707963267948966,
+      "true_wind_speed_mps": 6,
+      "current_epoch_ms": 0,
+      "seabed_depth_m": 3.5,
+      "draft_m": 1.6,
+      "full_helm_turn_rad_per_step": 0.39269908169872414,
+      "canonical_precision_version": "l01-precision-v1"
+    }
+  },
+  "inputs": [
+    {
+      "logical_tick": 0,
+      "sequence": 1,
+      "input": {
+        "action": "decision_wait"
+      }
+    }
+  ],
+  "terminal_ticks": 1,
+  "expected": {
+    "raw": {
+      "logical_tick": 1,
+      "rng_state": 1004618182,
+      "helm_command": "neutral",
+      "heading": 0,
+      "cog": 0.404892,
+      "true_wind": {
+        "from_rad": 1.570796,
+        "speed_mps": 6
+      },
+      "apparent_wind": {
+        "from_rad": 1.134169,
+        "speed_mps": 8.276473
+      },
+      "contract_status": "UNVALIDATED_DOMAIN_MODEL",
+      "lesson_id": "L05",
+      "synthetic_environment": "tide_depth_visibility_declared",
+      "decision_state": "wait_recorded",
+      "stw": 3.5,
+      "sog": 3.807887,
+      "drift_angle": 0.404892,
+      "polar_kinematic_state": {
+        "logical_tick": 1,
+        "position_m": {
+          "x": 13.5,
+          "y": -4.5
+        },
+        "heading_rad": 0,
+        "helm_command": "neutral",
+        "apparent_wind_from_rad": 1.134169,
+        "apparent_wind_speed_mps": 8.276473,
+        "sail_trim": {
+          "main_trim": 0.5,
+          "jib_trim": 0.5,
+          "reefed": false
+        }
+      },
+      "polar_last_helm_sequence": 0,
+      "clearance_m": 1.900253,
+      "clearance_level": "clear",
+      "highest_clearance_alert": "clear"
+    },
+    "ledger": [
+      {
+        "id": "0:0:0",
+        "tick": 0,
+        "sequence": 0,
+        "type": "SESSION_STARTED",
+        "contract_status": "UNVALIDATED_DOMAIN_MODEL"
+      },
+      {
+        "id": "0:1:1",
+        "tick": 0,
+        "sequence": 1,
+        "type": "ACTION_ACCEPTED",
+        "action": "decision_wait",
+        "contract_status": "UNVALIDATED_DOMAIN_MODEL"
+      },
+      {
+        "id": "0:1:2",
+        "tick": 0,
+        "sequence": 1,
+        "type": "LESSON_CHECKPOINT",
+        "lesson_id": "L05",
+        "cause": "synthetic wait decision recorded"
+      },
+      {
+        "id": "polar-transition:0",
+        "tick": 0,
+        "sequence": 0,
+        "type": "POLAR_KINEMATIC_TRANSITION",
+        "lesson_id": "L05",
+        "synthetic": true,
+        "polar_transition": {
+          "environment_id": "polar-kinematics-training-ground",
+          "environment_version": 1,
+          "model_id": "polar-kinematics",
+          "model_version": "polar-kinematics-v5",
+          "canonical_precision_version": "l01-precision-v1",
+          "accepted_helm_command": "neutral",
+          "causal_controls": [],
+          "prior_state": {
+            "logical_tick": 0,
+            "position_m": {
+              "x": 12,
+              "y": -8
+            },
+            "heading_rad": 0,
+            "helm_command": "neutral",
+            "apparent_wind_from_rad": 1.570796,
+            "apparent_wind_speed_mps": 6,
+            "sail_trim": {
+              "main_trim": 0.5,
+              "jib_trim": 0.5,
+              "reefed": false
+            }
+          },
+          "next_state": {
+            "logical_tick": 1,
+            "position_m": {
+              "x": 13.5,
+              "y": -4.5
+            },
+            "heading_rad": 0,
+            "helm_command": "neutral",
+            "apparent_wind_from_rad": 1.134169,
+            "apparent_wind_speed_mps": 8.276473,
+            "sail_trim": {
+              "main_trim": 0.5,
+              "jib_trim": 0.5,
+              "reefed": false
+            }
+          },
+          "observations": {
+            "heading_rad": 0,
+            "stw_mps": 3.5,
+            "sog_mps": 3.807887,
+            "cog_rad": 0.404892,
+            "drift_angle_rad": 0.404892,
+            "true_wind_from_rad": 1.570796,
+            "true_wind_speed_mps": 6,
+            "apparent_wind_from_rad": 1.134169,
+            "apparent_wind_speed_mps": 8.276473
+          }
+        }
+      }
+    ]
+  }
 }
