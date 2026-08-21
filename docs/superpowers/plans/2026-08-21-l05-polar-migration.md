@@ -628,35 +628,84 @@ git commit -m "feat(scoring): score L05 from its recorded decisions"
 - Modify: `src/main.ts:301` and the observation branch
 - Test: `tests/smoke/app.spec.ts` (add one case)
 
-- [ ] **Step 0: Ship the polar environment on a started L05 replay**
+- [ ] **Step 0: Make an L05 replay a valid, validated polar replay**
 
-**This is a correction, and it belongs to Task 1's migration** — I listed the lesson branches
-in `src/sim/session.ts` but never swept `src/main.ts`, which has a fourth one.
+**This is a correction covering three sites, and it belongs to Task 1's migration.** The
+design spec claimed the scattered replay-identity key sets "do not apply this cycle" because
+`identityFieldsFor` branches on `model_version`. **That claim was wrong.** It is true of
+`identityFieldsFor` and false of two other functions in the same file, which is exactly the
+hazard the project handoff warns about. Fix all three together; changing only `main.ts`
+produces an L05 replay that appears to run but cannot be saved or restored.
 
-`src/main.ts:670` builds the started replay and attaches the polar environment to only two
-lessons:
-
-```ts
-...(currentLesson.id === 'L04' || currentLesson.id === 'L06' ? { polar_kinematics_environment: polarEnvironmentAtStart } : {})
-```
-
-L05 is absent, so a started L05 replay carries no `polar_kinematics_environment`,
-`createSession` throws `Polar kinematics profile is missing.`, and **Start fails outright in
-the browser**. Unit tests do not catch this because they build identities from
-`l05ReplayBindings` directly rather than through the UI's start path.
-
-Add L05 to that condition:
+**(a) `src/main.ts:670`** attaches the polar environment to a started replay for L04 and L06
+only, so L05 starts with no environment and `createSession` throws `Polar kinematics profile
+is missing.` Add L05:
 
 ```ts
 ...(currentLesson.id === 'L04' || currentLesson.id === 'L05' || currentLesson.id === 'L06' ? { polar_kinematics_environment: polarEnvironmentAtStart } : {})
 ```
 
-This is the only site that needs it: `src/main.ts:237` is L04-specific trace presentation and
-must stay L04-only, and there is exactly one place where `polarEnvironmentAtStart` is
-constructed, so reset is covered by the same edit.
+**(b) `src/contracts/replay.ts:363-369`** — `isReplayV2Shape` uses `exactKeys`, and L05 falls
+through to `v2Keys`, which does **not** include `polar_kinematics_environment`. An L05 payload
+carrying the environment is therefore rejected as a malformed V2 shape. Add an `isL05`
+alongside the existing flags:
 
-**Verify by running the app's own smoke path, not a unit test** — the whole point of this
-defect is that unit tests bypassed it.
+```ts
+  const isL05 = (candidate.lesson_binding as { lesson_id?: unknown } | undefined)?.lesson_id === 'L05';
+```
+
+and include it in the polar branch of the key selection on line 369:
+
+```ts
+  if (!exactKeys(candidate, isL01 ? (isPolarL01 ? polarL01V2Keys : l01V2Keys) : isL02 ? l02V2Keys : isL03 ? l03V2Keys : isL04 || isL05 || isL06 ? polarLessonV2Keys : v2Keys)) return false;
+```
+
+**(c) `src/contracts/replay.ts:577`** — `resolveReplayV2` validates the polar environment for
+L01, L04 and L06 only. Without L05 there, a restored L05 replay would have its environment
+**never checked**, which is fail-open in a contract that is meant to fail closed. This is the
+more serious of the two replay defects. Add L05 to that condition:
+
+```ts
+  if ((replay.lesson_binding.lesson_id === 'L01' || replay.lesson_binding.lesson_id === 'L04' || replay.lesson_binding.lesson_id === 'L05' || replay.lesson_binding.lesson_id === 'L06') && !hasCanonicalL01Environment({
+```
+
+Do **not** add L05 to any other lesson branch in `replay.ts`. Lines 441, 450, 505, 524 and
+594-600 are L01/L02/L03 legacy terminal-authority and shape checks, and L05 must stay out of
+them.
+
+**(d) Prove the round trip.** Task 1's completion criteria promised an L05 replay round trip
+but no step ever tested one — that omission is why (b) and (c) went unnoticed. Add to
+`tests/contracts/replay.test.ts`:
+
+```ts
+describe('L05 polar replay identity', () => {
+  const l05Replay = Object.freeze({
+    schema_version: 'replay-v2' as const,
+    lesson_binding: Object.freeze({ lesson_id: 'L05', ...l05ReplayBindings, polar_kinematics_environment: undefined }),
+    scenario_snapshot: {}, variation_trace: {}, seed: 'l05-roundtrip', ordered_input_log: Object.freeze([]),
+    polar_kinematics_environment: polarKinematicsEnvironmentV1,
+  });
+
+  it('accepts an L05 payload that carries the polar environment', () => {
+    expect(isReplayV2Shape(l05Replay)).toBe(true);
+  });
+
+  it('rejects an L05 payload whose polar environment is missing', () => {
+    const { polar_kinematics_environment: _dropped, ...withoutEnvironment } = l05Replay;
+    expect(isReplayV2Shape(withoutEnvironment)).toBe(false);
+  });
+});
+```
+
+**Build `lesson_binding` exactly the way the existing polar tests in this file do** (see the
+`polar kinematics replay identity carrier` describe block around line 851) rather than
+copying the sketch above verbatim — `lesson_binding` must satisfy `exactKeys(...,
+lessonBindingKeys)` with every value a non-empty string, so it takes the seven version fields
+plus `lesson_id` and **not** the environment. If the shape assertion fails for a reason other
+than the missing L05 branch, stop and report.
+
+**Verify through the app, not only through unit tests.** The whole reason (a) went unnoticed
+is that unit tests build identities directly and bypass the UI start path.
 
 - [ ] **Step 1: Flip the two observations that are now computed**
 
@@ -756,7 +805,7 @@ Expected: all green; smoke 27/27.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/content/l02-l05.ts src/main.ts tests/smoke/app.spec.ts
+git add src/content/l02-l05.ts src/main.ts src/contracts/replay.ts tests/contracts/replay.test.ts tests/smoke/app.spec.ts
 git commit -m "feat(content): surface L05's computed depth and under-keel clearance"
 ```
 
