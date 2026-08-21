@@ -834,7 +834,21 @@ Write down the observed counts. Use those, not the counts this plan predicts.
 
 - [ ] **Step 3: Update the completion matrix**
 
-Update the **L05 row only**. Its observation facet moves from `declared_unavailable` for depth and clearance to `DECLARED_SYNTHETIC_ONLY` computed values, noting the polar model version and that `VR-L05-v0` remains `assumption`. Its debrief/scoring facet records the three scored components and the 75-point denominator, with judgment sourced from recorded pass/wait/return decisions. Do not touch the L01, L02, L03, L04 or L06 rows.
+Update the **L05 row**: its observation facet moves from `declared_unavailable` for depth and clearance to `DECLARED_SYNTHETIC_ONLY` computed values, noting the polar model version and that `VR-L05-v0` remains `assumption`; its debrief/scoring facet records the three scored components and the 75-point denominator, with judgment sourced from recorded pass/wait/return decisions.
+
+**Also update the "Which lessons run which model" paragraph** (around line 29). It currently
+reads "**L01, L02, L03 and L05 remain byte-identical** and still run the legacy fixed-speed
+model with their observations declared unavailable; their golden fixtures were not
+regenerated" — now false for L05 on all three counts. Rewrite that sentence so it says L01,
+L02 and L03 remain byte-identical on the legacy model, and that L05 was migrated in this cycle
+(3 binding sites, the cheapest of the three candidates) with both of its golden fixtures
+regenerated.
+
+**"L05 row only" was the wrong instruction on my part** — it was meant to stop you editing
+*other lessons'* rows, not to stop you fixing prose the migration falsifies. Do not touch the
+L01, L02, L03, L04 or L06 **rows**; do fix any sentence elsewhere in the document that this
+cycle makes untrue. A matrix that contradicts itself is the "documents silently become false"
+failure this project has already hit twice.
 
 - [ ] **Step 4: Verify and commit**
 
