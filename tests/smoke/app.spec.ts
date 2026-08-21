@@ -27,6 +27,18 @@ test('says plainly when a lesson declares no world position', async ({ page }) =
   await expect(page.locator('#world-text')).toContainText('declares no synthetic world position');
 });
 
+test('shows L05 computed under-keel clearance and depth with their synthetic boundary', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L05');
+  await expect(page.getByText(/Synthetic declared under-keel clearance [\d.]+ m/)).toBeVisible();
+  await expect(page.getByText(/not a charted depth, sounding, datum/)).toBeVisible();
+  await expect(page.getByText(/Synthetic declared seabed depth/)).toBeVisible();
+  await expect(page.getByText(/not a charted depth, sounding, or vertical datum/)).toBeVisible();
+  await expect(page.getByText(/not real tide data, harmonic constants/)).toBeVisible();
+  // The regression this guards: no L05 observation may render as generically unavailable.
+  await expect(page.getByText('Synthetic computed observation unavailable.')).toHaveCount(0);
+});
+
 test('shows a synthetic L04 score with its unvalidated boundary and component breakdown', async ({ page }) => {
   await page.goto('/');
   await startSession(page, 'L04');

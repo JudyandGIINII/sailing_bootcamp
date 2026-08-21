@@ -16,6 +16,7 @@ import { validateScenarioPackage, type ScenarioConfiguration } from './contracts
 import { materializeVariation } from './sim/scenario-variation.js';
 import { applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from './sim/session.js';
 import { deriveSyntheticCurrent } from './sim/tidal-current.js';
+import { deriveSyntheticTideHeightM } from './sim/depth-clearance.js';
 import { projectDebrief, projectL02RuntimeTrace, projectL02SyntheticTrimAcknowledgment, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore, type L02TraceEvidence, type L03TraceEvidence, type L04TraceEvidence, type L05DecisionLedgerRecordEvidence } from './scoring/projection.js';
 import { SCORE_BOUNDARY_TEXT } from './scoring/score-contract.js';
 
@@ -298,7 +299,7 @@ function render(): void {
       else if (observation.key === 'heading' && session.raw.heading !== 'declared-unavailable') description.textContent = `Synthetic computed heading ${numeric(session.raw.heading)} rad.`;
       else if (observation.key === 'cog' && session.raw.cog !== 'declared-unavailable') description.textContent = `Synthetic computed COG ${numeric(session.raw.cog)} rad.`;
       else description.textContent = 'Synthetic computed observation unavailable.';
-    } else if ((currentLesson.id === 'L04' || currentLesson.id === 'L06') && observation.status === 'declared_synthetic') {
+    } else if ((currentLesson.id === 'L04' || currentLesson.id === 'L05' || currentLesson.id === 'L06') && observation.status === 'declared_synthetic') {
       const numeric = (value: number) => value.toFixed(6);
       const polarText = (label: string, unit: string, value: number | 'declared-unavailable' | undefined) =>
         typeof value === 'number' ? `Synthetic computed ${label} ${numeric(value)} ${unit}.`
@@ -319,10 +320,25 @@ function render(): void {
         } else {
           description.textContent = 'Synthetic declared current unavailable.';
         }
-      } else if (observation.key === 'clearance') {
+      } else if (observation.key === 'clearance' || observation.key === 'declared_clearance') {
         description.textContent = session.raw.clearance_m === undefined || session.raw.clearance_m === 'declared-unavailable'
           ? 'Synthetic declared under-keel clearance not computed for this lesson.'
           : `Synthetic declared under-keel clearance ${numeric(session.raw.clearance_m)} m (${session.raw.clearance_level ?? 'unknown'}) — declared seabed depth plus a simplified semidiurnal tide minus declared draft; not a charted depth, sounding, datum, or under-keel safety margin.`;
+      } else if (observation.key === 'scenario_depth') {
+        const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
+        description.textContent = polarEnvironment
+          ? `Synthetic declared seabed depth ${numeric(polarEnvironment.seabed_depth_m)} m — an invented educational constant, not a charted depth or sounding.`
+          : 'Synthetic declared seabed depth unavailable.';
+      } else if (observation.key === 'synthetic_depth_datum') {
+        const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
+        description.textContent = polarEnvironment
+          ? `Synthetic declared depth datum: depths are declared against an invented educational reference with declared draft ${numeric(polarEnvironment.draft_m)} m — not a charted depth, sounding, or vertical datum.`
+          : 'Synthetic declared depth datum unavailable.';
+      } else if (observation.key === 'synthetic_tide_state') {
+        const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
+        description.textContent = polarEnvironment
+          ? `Synthetic declared tide height ${numeric(deriveSyntheticTideHeightM(polarEnvironment.current_epoch_ms))} m from a simplified semidiurnal sinusoid over the stored session start time — a declared educational assumption, not real tide data, harmonic constants, or a tidal prediction.`
+          : 'Synthetic declared tide state unavailable.';
       } else description.textContent = 'Synthetic computed observation unavailable.';
     } else if (currentLesson.id === 'L02' && observation.key === 'declared_trim_feedback') {
       const acknowledgment = projectL02SyntheticTrimAcknowledgment(session.raw);
@@ -651,7 +667,7 @@ async function startFrozenSession(): Promise<void> {
     // `current_epoch_ms` from a pre-1970 system clock) would leave
     // `frozenReplay` set while `session` was never created, permanently
     // blocking retry via the `if (frozenReplay || startInProgress) return;` guard.
-    const newReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L04' || currentLesson.id === 'L06' ? { polar_kinematics_environment: polarEnvironmentAtStart } : {}) });
+    const newReplay = Object.freeze({ schema_version: 'replay-v2' as const, lesson_binding: Object.freeze(lessonBinding), scenario_snapshot: validated.scenario, variation_trace: trace, seed, ordered_input_log: Object.freeze([]), ...(currentLesson.id === 'L01' ? { l01_synthetic_environment, l01_terminal_logical_tick: 0, l01_terminal_paused: false } : {}), ...(currentLesson.id === 'L02' ? { l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false } : {}), ...(currentLesson.id === 'L03' ? { l03_synthetic_acknowledgment_profile: l03SyntheticAcknowledgmentProfileV2, l03_terminal_logical_tick: 0, l03_terminal_paused: false } : {}), ...(currentLesson.id === 'L04' || currentLesson.id === 'L05' || currentLesson.id === 'L06' ? { polar_kinematics_environment: polarEnvironmentAtStart } : {}) });
     const newSession = createSession(newReplay);
     frozenReplay = newReplay; inputLog = []; nextSequence = 1; session = newSession; startStatus.textContent = 'Started: lesson, synthetic scenario, and variation trace are frozen.'; scheduler.start(); render(); title.focus();
   } catch { startStatus.textContent = 'Start failed: SCENARIO_SCHEMA_INVALID. Draft controls remain editable.'; }

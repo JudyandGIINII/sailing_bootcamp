@@ -3,7 +3,7 @@ import { prototypeVersionBindings } from '../../src/contracts/versions.js';
 import { L01_REPLAY_IDENTITY_FIELDS, REPLAY_IDENTITY_FIELDS, isReplayIdentity, isReplayV2Shape, replayIdentitySchemaV1Draft, resolveExactReplayIdentity, resolveReplayV2, resolveStoredReplay, serializeReplayV2Attempt, type ReplayIdentity, type ReplayV2 } from '../../src/contracts/replay.js';
 import { createSyntheticScenario, defaultScenarioConfiguration } from '../../src/content/scenario-catalog.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
-import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2, l04ReplayBindings } from '../../src/content/l02-l05.js';
+import { l02ReplayBindings, l03ReplayBindings, l03SyntheticAcknowledgmentProfileV2, l04ReplayBindings, l05ReplayBindings } from '../../src/content/l02-l05.js';
 import { l06ReplayBindings } from '../../src/content/l06-polar.js';
 import { l01SyntheticEnvironmentV1 } from '../../src/contracts/l01-synthetic-environment.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
@@ -1020,6 +1020,43 @@ describe('polar kinematics replay identity carrier', () => {
     expect({ raw: restored.raw, ledger: restored.ledger }).toEqual({ raw: live.raw, ledger: live.ledger });
 
     // A tampered polar environment must still fail closed for L04, as it does for L01/L06.
+    const tampered = { ...persisted, polar_kinematics_environment: { ...polar_kinematics_environment, draft_m: 9 } };
+    expect((await resolveReplayV2(tampered)).outcome).toBe('rejected');
+  });
+
+  it('saves, resolves and replays an L05 attempt with its polar environment intact', async () => {
+    const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
+    const { scenario_version: ignoredL05Scenario, polar_kinematics_environment, ...lessonBindingValues } = l05ReplayBindings;
+    void ignoredL05Scenario;
+    const seed = 'l05-v2-round-trip';
+    const attempt = {
+      schema_version: 'replay-v2' as const,
+      lesson_binding: { lesson_id: 'L05' as const, ...lessonBindingValues },
+      scenario_snapshot: scenario,
+      variation_trace: await materializeVariation(scenario, seed),
+      seed,
+      ordered_input_log: [],
+      polar_kinematics_environment,
+    } as unknown as ReplayV2;
+    const input = { logical_tick: 0, sequence: 1, input: { action: 'decision_wait' as const } };
+    const live = advanceLogicalTick(applyCanonicalInput(createSession(attempt), input));
+    const persisted = serializeReplayV2Attempt(attempt, [input], live.raw.logical_tick, live.paused);
+
+    expect(isReplayV2Shape(persisted)).toBe(true);
+    const resolution = await resolveReplayV2(persisted);
+    expect(resolution.outcome).toBe('accepted');
+    if (resolution.outcome !== 'accepted') return;
+    expect((resolution.replay as unknown as { polar_kinematics_environment: unknown }).polar_kinematics_environment).toEqual(polar_kinematics_environment);
+
+    expect(persisted.ordered_input_log).toEqual([input]);
+    const restored = replayInputs(resolution.replay, [input] as readonly CanonicalInput[], live.raw.logical_tick);
+    expect({ raw: restored.raw, ledger: restored.ledger }).toEqual({ raw: live.raw, ledger: live.ledger });
+
+    const { polar_kinematics_environment: omitted, ...missing } = persisted;
+    expect(omitted).toEqual(polar_kinematics_environment);
+    expect(isReplayV2Shape(missing)).toBe(false);
+    await expect(resolveReplayV2(missing)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: missing });
+
     const tampered = { ...persisted, polar_kinematics_environment: { ...polar_kinematics_environment, draft_m: 9 } };
     expect((await resolveReplayV2(tampered)).outcome).toBe('rejected');
   });

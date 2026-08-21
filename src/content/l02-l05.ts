@@ -144,9 +144,9 @@ export const l05Manifest: DraftLessonManifest = Object.freeze({
   initial_state: 'training-sloop-v1 synthetic tide/depth/visibility timeline and decision gate',
   required_observations: [
     { key: 'synthetic_tide_state', accessible_label: 'Synthetic tide state / 합성 조류 상태', status: 'declared_synthetic' },
-    { key: 'scenario_depth', accessible_label: 'Scenario depth / 시나리오 수심', status: 'declared_unavailable' },
+    { key: 'scenario_depth', accessible_label: 'Scenario depth / 시나리오 수심', status: 'declared_synthetic' },
     { key: 'synthetic_depth_datum', accessible_label: 'Synthetic depth datum / 합성 수심 기준', status: 'declared_synthetic' },
-    { key: 'declared_clearance', accessible_label: 'Declared clearance / 선언된 여유', status: 'declared_unavailable' },
+    { key: 'declared_clearance', accessible_label: 'Declared clearance / 선언된 여유', status: 'declared_synthetic' },
     { key: 'visibility', accessible_label: 'Visibility / 시계', status: 'declared_unavailable' },
     { key: 'route_state', accessible_label: 'Route state / 경로 상태', status: 'declared_unavailable' },
   ] as const,
