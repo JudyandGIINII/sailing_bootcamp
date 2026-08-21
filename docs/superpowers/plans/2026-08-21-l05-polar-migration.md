@@ -653,9 +653,15 @@ Change it to include L05:
     } else if ((currentLesson.id === 'L04' || currentLesson.id === 'L05' || currentLesson.id === 'L06') && observation.status === 'declared_synthetic') {
 ```
 
-That branch handles `observation.key === 'clearance'`, but L05's manifest keys are
-`declared_clearance` and `scenario_depth`. Extend the existing `clearance` condition at
-line 322 to accept L05's key, and add a depth branch beside it:
+**Adding L05 to that branch captures every L05 observation whose status is
+`declared_synthetic` — which is four keys, not two.** `synthetic_tide_state` and
+`synthetic_depth_datum` were *already* `declared_synthetic` before this cycle, and today they
+fall through to the generic `description.textContent = observation.status` tail. Once L05 is
+in this branch they would instead hit its final `else` and render "Synthetic computed
+observation unavailable." — which is false, and gives an observation literally named *depth
+datum* no denial that it is a charted datum. All four must be handled here.
+
+Extend the existing `clearance` condition and add three more branches beside it:
 
 ```ts
       } else if (observation.key === 'clearance' || observation.key === 'declared_clearance') {
@@ -665,9 +671,28 @@ line 322 to accept L05's key, and add a depth branch beside it:
       } else if (observation.key === 'scenario_depth') {
         const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
         description.textContent = polarEnvironment
-          ? `Synthetic declared seabed depth ${numeric(polarEnvironment.seabed_depth_m)} m and declared draft ${numeric(polarEnvironment.draft_m)} m — invented educational constants, not a charted depth, sounding, or datum.`
+          ? `Synthetic declared seabed depth ${numeric(polarEnvironment.seabed_depth_m)} m — an invented educational constant, not a charted depth or sounding.`
           : 'Synthetic declared seabed depth unavailable.';
+      } else if (observation.key === 'synthetic_depth_datum') {
+        const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
+        description.textContent = polarEnvironment
+          ? `Synthetic declared depth datum: depths are declared against an invented educational reference with declared draft ${numeric(polarEnvironment.draft_m)} m — not a charted depth, sounding, or vertical datum.`
+          : 'Synthetic declared depth datum unavailable.';
+      } else if (observation.key === 'synthetic_tide_state') {
+        const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
+        description.textContent = polarEnvironment
+          ? `Synthetic declared tide height ${numeric(deriveSyntheticTideHeightM(polarEnvironment.current_epoch_ms))} m from a simplified semidiurnal sinusoid over the stored session start time — a declared educational assumption, not real tide data, harmonic constants, or a tidal prediction.`
+          : 'Synthetic declared tide state unavailable.';
 ```
+
+Add `deriveSyntheticTideHeightM` to the imports at the top of `src/main.ts`; it is exported
+from `./sim/depth-clearance.js` but not yet imported there. (`deriveSyntheticCurrent` and
+`ReplayV2` already are.)
+
+**Check your work against the manifest before moving on:** every L05 observation whose status
+is `declared_synthetic` must now hit a branch that names it and denies a real-world reading.
+`visibility` and `route_state` stay `declared_unavailable`, so they never enter this branch at
+all.
 
 - [ ] **Step 3: Add smoke coverage**
 
@@ -680,6 +705,10 @@ test('shows L05 computed under-keel clearance and depth with their synthetic bou
   await expect(page.getByText(/Synthetic declared under-keel clearance [\d.]+ m/)).toBeVisible();
   await expect(page.getByText(/not a charted depth, sounding, datum/)).toBeVisible();
   await expect(page.getByText(/Synthetic declared seabed depth/)).toBeVisible();
+  await expect(page.getByText(/not a charted depth, sounding, or vertical datum/)).toBeVisible();
+  await expect(page.getByText(/not real tide data, harmonic constants/)).toBeVisible();
+  // The regression this guards: no L05 observation may render as generically unavailable.
+  await expect(page.getByText('Synthetic computed observation unavailable.')).toHaveCount(0);
 });
 ```
 
