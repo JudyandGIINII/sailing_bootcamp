@@ -628,6 +628,36 @@ git commit -m "feat(scoring): score L05 from its recorded decisions"
 - Modify: `src/main.ts:301` and the observation branch
 - Test: `tests/smoke/app.spec.ts` (add one case)
 
+- [ ] **Step 0: Ship the polar environment on a started L05 replay**
+
+**This is a correction, and it belongs to Task 1's migration** — I listed the lesson branches
+in `src/sim/session.ts` but never swept `src/main.ts`, which has a fourth one.
+
+`src/main.ts:670` builds the started replay and attaches the polar environment to only two
+lessons:
+
+```ts
+...(currentLesson.id === 'L04' || currentLesson.id === 'L06' ? { polar_kinematics_environment: polarEnvironmentAtStart } : {})
+```
+
+L05 is absent, so a started L05 replay carries no `polar_kinematics_environment`,
+`createSession` throws `Polar kinematics profile is missing.`, and **Start fails outright in
+the browser**. Unit tests do not catch this because they build identities from
+`l05ReplayBindings` directly rather than through the UI's start path.
+
+Add L05 to that condition:
+
+```ts
+...(currentLesson.id === 'L04' || currentLesson.id === 'L05' || currentLesson.id === 'L06' ? { polar_kinematics_environment: polarEnvironmentAtStart } : {})
+```
+
+This is the only site that needs it: `src/main.ts:237` is L04-specific trace presentation and
+must stay L04-only, and there is exactly one place where `polarEnvironmentAtStart` is
+constructed, so reset is covered by the same edit.
+
+**Verify by running the app's own smoke path, not a unit test** — the whole point of this
+defect is that unit tests bypassed it.
+
 - [ ] **Step 1: Flip the two observations that are now computed**
 
 In `l05Manifest.required_observations`, change **only** these two entries' `status` from
