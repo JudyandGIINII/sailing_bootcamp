@@ -1,7 +1,7 @@
 # Sailing Bootcamp — Project Status
 
-> 갱신: 2026-08-17 KST
-> 상태: **A polar-based boat model, sail-trim and reef correction factors, water-current composition and a tide-driven under-keel clearance are implemented. They are reachable through the mandatory lesson **L04** (current correction to a mark) and the non-mandatory demonstration lesson **L06**. Current and tide both derive from the real date/time a session starts and both advance with logical time on one shared phase, the stream being the tide's rate of change — a simplified synthetic sinusoid, not real tide data. L01, L02, L03 and L05 still run the legacy fixed-speed model.**
+> 갱신: 2026-08-21 KST
+> 상태: **A polar-based boat model, sail-trim and reef correction factors, water-current composition and a tide-driven under-keel clearance are implemented. They are reachable through mandatory lessons L04 (current correction to a mark) and L05 (tide/depth decision records), plus non-mandatory demonstration lesson L06. Current and tide derive from the session-start timestamp and advance with logical time on one shared phase; the stream is the tide's rate of change — a simplified synthetic sinusoid, not real tide data. L01, L02, and L03 remain on the legacy fixed-speed model.**
 
 ## 1. Current position
 
@@ -23,41 +23,41 @@ A polar-based boat model plus water-current vector composition is reachable thro
 
 **L04 was subsequently migrated in place**, because its coupling is nothing like L01's: `l04ReplayBindings` has 3 usages, and the one hardcoded legacy model-version literal in a test belongs to L02. L04 previously had no kinematic path at all (only declared string states); it now runs the polar model, derives mark arrival from real position against the declared course-template mark, and its two golden fixtures were regenerated. Its declaration-only `mark_state` string mechanic was removed, so its runtime-evidence contract moved from miss/correction slots to correction/arrival.
 
-**L01, L02, L03 and L05 remain byte-identical and still run the legacy fixed-speed model.** Their golden fixtures were not regenerated.
+**L01, L02, and L03 remain on the legacy fixed-speed model.** L05 now runs `polar-kinematics-v5`, carries and validates its polar Replay V2 environment, and retains record-only pass/wait/return decisions.
 
 ## 2. Current verification
 
 | Check | Result |
 |---|---|
 | TypeScript | PASS (`npm run typecheck`) |
-| Full Vitest | **37 files / 364 tests** PASS (`npm test`) |
+| Full Vitest | **38 files / 381 tests** PASS (`npm test`) |
 | Vite production build | PASS (`npm run build`) |
-| Playwright smoke | **26 / 26 passed** (`npm run test:smoke`) |
+| Playwright smoke | **27 / 27 passed** (`npm run test:smoke`) |
 | Simulation purity boundary | PASS (`tests/contracts/sim-boundary.test.ts`, 2 / 2) |
-| Golden fixtures | `l04-score-debrief-golden.json` regenerated this cycle; the other four score fixtures and every `*-raw-golden.json` are byte-identical |
+| Golden fixtures | Both `l05-raw-golden.json` and `l05-score-debrief-golden.json` were regenerated this cycle; all `l01-*`, `l02-*`, `l03-*`, and `l04-*` fixtures are byte-identical |
 
 ## 3. Local-only boundaries
 
-- L04 and L06 carry the same shared non-navigation boundary text as every other lesson (`Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.`); neither is safety, certification, or real-world sailing guidance.
-- L04 and L06 use the same local, browser-only replay/session/reset mechanism as L01–L05. No backend, network, deployment, or access-policy behavior was added or changed.
+- L04, L05, and L06 carry the same shared non-navigation boundary text as every other lesson (`Simulation-only prototype • Unvalidated content • Not navigation, safety, or certification guidance.`); none is safety, certification, or real-world sailing guidance.
+- L04, L05, and L06 use the same local, browser-only replay/session/reset mechanism as L01–L03. L05 Replay V2 now carries its polar environment and rejects a missing or tampered environment fail-closed. No backend, network, deployment, or access-policy behavior was added or changed.
 - The wall clock is read in exactly one place (`src/main.ts`) and stored on the replay identity as `current_epoch_ms`. Nothing under `src/sim` or `src/contracts` reads the clock, randomness, DOM, storage, or network, so replaying a stored identity reproduces exactly.
-- L01–L05, their manifests, and their golden fixtures are unchanged by this work.
+- L01–L04, their manifests, and their golden fixtures are unchanged by this L05 migration.
 
 ## 4. Product and technical boundaries
 
-What this work closes (for L06 only):
+What this work closes (for polar lessons L04, L05, and L06):
 - PRD §8.1 wind row — `(apparent wind angle, true wind speed) → target speed` is genuinely computed.
-- PRD §8.1 current row — SOG/COG and drift derive from vector composition, and the current itself is now derived from the real date and time the player starts an L06 session (`current_epoch_ms`, set once by `src/main.ts` from `Date.now()` and stored in the replay identity), fed through `deriveSyntheticCurrent`'s simplified semidiurnal sinusoid. SOG/COG/drift therefore genuinely diverge from STW/heading for a live session whenever the derived current is nonzero, which is observable end to end (`tests/unit/l06-polar-lesson.test.ts`). This is a declared synthetic assumption, not a real tidal prediction: the canonical fixture (`current_epoch_ms: 0`) still derives zero current, which keeps the pre-existing zero-current unit tests meaningful.
+- PRD §8.1 current row — SOG/COG and drift derive from vector composition, and the current itself is derived from `current_epoch_ms`, read once by `src/main.ts` and stored on the polar replay identity. This is a declared synthetic assumption, not a real tidal prediction. L05 also projects computed synthetic seabed depth, depth datum, tide height, and under-keel clearance with explicit non-chart/non-sounding/non-datum/non-safety-margin boundaries.
 - PRD §8.2 polar bullet; PRD FR-04 — STW/SOG and heading/COG are separated and computed.
 
 What this work does **not** close:
-- Any of the above for **L01–L05** — they still declare these observations unavailable.
+- The polar observations for legacy **L01–L03** — they still declare these observations unavailable.
 - PRD §8.1 wave and visibility — no model supplied. (Tide is now modelled; see above.)
 - PRD §8.2 **wave and safety** correction coefficients — not modelled. Trim and reef coefficients now exist; trimming changes speed and reefing reduces it by the declared factor, so a reefed boat reaches the L04 mark strictly later. **L02 (trim) and L03 (reef) still gain nothing**, because both remain on the legacy model.
 
 L03 was deliberately NOT migrated to make reef meaningful there: `advanceLogicalTick` and `applyCanonicalInput` both return the session unchanged once L03's episode is complete and reef is selected, so L03 terminates at reef selection and a speed factor would apply for zero further ticks. `reef` was added to L04's permitted actions instead, where a 200-plus-tick run to a mark makes the reduction observable.
 - PRD §8.2 safety thresholds and hull/rig configuration. (Draft is now declared and drives under-keel clearance.)
-- PRD §7.3 five-component scoring — L04 derives four scored components (judgment, control stability, safety, and goal) from immutable ledger evidence under `score-contract-v0-draft`, with a 100-point denominator; observation is declared unavailable because this lesson records no observation evidence. L01, L02, L03, L05, and L06 remain unscored at 0. The L04 score is `declared_synthetic_unvalidated`: calculating it does not validate its constants or assess real sailing competence, qualification, or safety.
+- PRD §7.3 five-component scoring — L04 derives four scored components under `score-contract-v0-draft`, with a 100-point denominator. L05 derives judgment from recorded pass/wait/return decision checkpoints plus control stability and safety, with observation and goal declared unavailable and a 75-point denominator. L01, L02, L03, and L06 remain unscored at 0. Both scored paths are `declared_synthetic_unvalidated`: calculating them does not validate their constants or assess real sailing competence, qualification, or safety.
 - **Domain validation** — `VR-POLAR-v0` is `disposition: assumption`. The 48 polar numbers, the trim and reef coefficients, and the tide, clearance, depth and draft constants are all invented educational assumptions asserting no real hull performance, tide, depth, or safety behaviour.
 - Renderer scope — waves, wind, current arrows, depth terrain, coastline, hazard zones, and camera zoom or pan are not drawn. The canvas remains `aria-hidden`; a synthetic/unvalidated text alternative carries its track, virtual-mark, and clearance information. The boat glyph is a symbol, not a scale drawing.
 
@@ -66,7 +66,7 @@ Known limitations, tracked as debt rather than closed:
 2. **Defensive-branch coverage** — the HUD's handling of the `'declared-unavailable'` and `undefined` cases for STW/SOG/drift is not exercised by tests, because a live polar session always produces numeric values; TypeScript `strict` mode, not a test, is what prevents a naive two-state rewrite.
 3. **`Math.sin`/`Math.cos` are not IEEE-specified across JS engines.** The 6-decimal canonicalization mitigates but does not eliminate cross-engine divergence at rounding boundaries. Pre-existing via `Math.hypot`/`atan2`; the tide and stream now sit on that path too.
 4. **`src/contracts` is not purity-scanned.** `tests/contracts/sim-boundary.test.ts` recurses `src/sim` only. `src/contracts` is clean by inspection today but unguarded going forward.
-5. **`replayInputs` applies no inputs at `terminalTicks: 0` for L04/L06.** Unlike L01/L02/L03 those lessons carry no V2 terminal-authority fields, so a saved attempt at tick 0 needs at least one advance to restore faithfully. Pre-existing for L06; inherited by L04 on migration.
+5. **`replayInputs` applies no inputs at `terminalTicks: 0` for L04/L05/L06.** Unlike L01/L02/L03 those lessons carry no V2 terminal-authority fields, so a saved attempt at tick 0 needs at least one advance to restore faithfully. Pre-existing for L06; inherited by L04 and L05 on migration.
 
 ## 4a. Review findings closed in this cycle
 
