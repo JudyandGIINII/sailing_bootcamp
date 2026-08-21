@@ -251,14 +251,19 @@ git commit -m "feat(sim): migrate L05 onto the polar and current model"
 
 ---
 
-### Task 2: Generalize scoring to a lesson profile table
+### Task 2: Generalize scoring to a lesson profile table (pure refactor)
 
-Replaces the single-lesson `computeL04Components` with a table-driven version, because L05's judgment evidence is a decision record rather than a helm correction.
+Replaces the single-lesson `computeL04Components` with a table-driven version. **This task
+changes no behaviour**: the table holds L04 only, every score stays exactly as it is, and no
+fixture moves. L05 is added in Task 3. Keeping the rename and the behaviour change in separate
+tasks is what lets each one end green — the rename touches `projection.ts`, so that file must
+move in this task, not the next one.
 
 **Files:**
 - Modify: `src/sim/session.ts` (extract the decision cause into a shared function)
 - Modify: `src/scoring/score-contract.ts` (add the profile table, remove `L04_UNAVAILABLE_COMPONENTS`)
 - Modify: `src/scoring/components.ts` (`computeL04Components` → `computeComponents`)
+- Modify: `src/scoring/projection.ts` (call the renamed function)
 - Modify: `tests/unit/score-contract.test.ts`, `tests/unit/score-components.test.ts`
 - Test: as above
 
@@ -285,42 +290,7 @@ Then use it at line 711 in place of the inline template so there is exactly one 
 
 Replace the L04-only helper assertions in `tests/unit/score-components.test.ts` by adding this block at the end of the file (keep every existing test):
 
-```ts
-describe('L05 component derivation', () => {
-  const l05Raw = { lesson_id: 'L05', highest_clearance_alert: 'clear' } as unknown as RawSimulationState;
-
-  it('scores judgment from recorded decisions, not helm corrections', () => {
-    const components = computeComponents(l05Raw, [
-      event({ id: 'd1', type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: l05DecisionCause('decision_wait'), tick: 0 }),
-    ])!;
-    const judgment = componentBy(components, 'judgment');
-    expect(judgment.points).toBe(10);
-    expect(judgment.causal_event_ids).toEqual(['d1']);
-  });
-
-  it('ignores a helm correction for L05 judgment', () => {
-    const components = computeComponents(l05Raw, [
-      event({ id: 'h1', type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: HELM_CORRECTION_CAUSE, tick: 0 }),
-    ])!;
-    expect(componentBy(components, 'judgment').points).toBe(0);
-  });
-
-  it('declares both observation and goal unavailable for L05', () => {
-    const components = computeComponents(l05Raw, [])!;
-    expect(componentBy(components, 'observation').status).toBe('declared-unavailable');
-    expect(componentBy(components, 'goal').status).toBe('declared-unavailable');
-  });
-
-  it('leaves L05 a 75 point denominator', () => {
-    const total = computeComponents(l05Raw, [])!.reduce((sum, component) => sum + component.points_possible, 0);
-    expect(total).toBe(75);
-  });
-
-  it('returns undefined for a lesson with no scoring profile', () => {
-    expect(computeComponents({ lesson_id: 'L02' } as unknown as RawSimulationState, [])).toBeUndefined();
-  });
-});
-```
+(No L05 cases yet — this task is behaviour-preserving. They arrive in Task 3.)
 
 Add `l05DecisionCause` to the existing `src/sim/session.js` import in that file, and rename the
 existing `computeL04Components` calls to `computeComponents` throughout.
@@ -330,7 +300,6 @@ In `tests/unit/score-contract.test.ts`, replace the `L04_UNAVAILABLE_COMPONENTS`
 ```ts
   it('declares a scoring profile per scored lesson', () => {
     expect(LESSON_SCORE_PROFILES.L04).toEqual({ unavailable: ['observation'], judgment_evidence: 'helm_correction' });
-    expect(LESSON_SCORE_PROFILES.L05).toEqual({ unavailable: ['observation', 'goal'], judgment_evidence: 'decision_record' });
   });
 ```
 
@@ -365,12 +334,6 @@ export const LESSON_SCORE_PROFILES: Readonly<Record<string, LessonScoreProfile>>
   L04: Object.freeze({
     unavailable: Object.freeze(['observation'] as const),
     judgment_evidence: 'helm_correction' as const,
-  }),
-  L05: Object.freeze({
-    // L05 has no mark; its own pass_semantics say transit is not mastery, so
-    // there is no single goal event to detect.
-    unavailable: Object.freeze(['observation', 'goal'] as const),
-    judgment_evidence: 'decision_record' as const,
   }),
 });
 ```
@@ -429,6 +392,39 @@ Update the imports at the top of the file: drop `L04_UNAVAILABLE_COMPONENTS`, ad
 neighbouring `byKey[key]` access needs no guard, because `Record<ScoreComponentKey, …>` over
 a finite literal union is a mapped type rather than an index signature.)
 
+- [ ] **Step 5b: Point `projectScore` at the renamed function**
+
+The rename breaks `src/scoring/projection.ts`, which still imports and calls
+`computeL04Components`. Fix it in **this** task, otherwise the task cannot end green.
+
+Replace this line in `projectScore`:
+
+```ts
+  if (raw.lesson_id === 'L04') return scoreL04(raw, ledger);
+```
+
+with:
+
+```ts
+  const components = computeComponents(raw, ledger);
+  if (components) return scoreFromComponents(raw, components);
+```
+
+Rename `scoreL04` to `scoreFromComponents` and change its signature so it receives the
+components rather than computing them:
+
+```ts
+function scoreFromComponents(raw: RawSimulationState, components: readonly ScoreComponent[]): ScoreProjection {
+```
+
+Delete the `const components = computeL04Components(raw, ledger);` line from its body; every
+other line of that function stays exactly as it is. Update the import from
+`computeL04Components` to `computeComponents`.
+
+Because the profile table still holds only L04, this is behaviour-preserving: L04 scores
+exactly what it scored before and every other lesson still falls through to the existing
+returns.
+
 - [ ] **Step 6: Run the tests**
 
 Run: `npx vitest run tests/unit/score-components.test.ts tests/unit/score-contract.test.ts`
@@ -439,21 +435,69 @@ Expected: PASS
 ```bash
 npm run typecheck
 npm test
-git diff --name-only tests/fixtures/   # must print ONLY l05-raw-golden.json
-git add src/sim/session.ts src/scoring/score-contract.ts src/scoring/components.ts tests/unit/score-contract.test.ts tests/unit/score-components.test.ts
+git diff --name-only tests/fixtures/   # must print ONLY l05-raw-golden.json (unchanged from Task 1)
+git add src/sim/session.ts src/scoring/score-contract.ts src/scoring/components.ts src/scoring/projection.ts tests/unit/score-contract.test.ts tests/unit/score-components.test.ts
 git commit -m "refactor(scoring): drive components from a lesson profile table"
 ```
+
+**This task must leave every score exactly as it was.** `l04-score-debrief-golden.json` must
+not move, and `l05-score-debrief-golden.json` must still read `total_points: 0`. If either
+changed, L05 reached the table early — **stop and report**.
 
 ---
 
 ### Task 3: Score L05
 
-**Files:**
-- Modify: `src/scoring/projection.ts` (`projectScore` dispatch)
-- Modify: `tests/fixtures/l05-score-debrief-golden.json` (regenerate)
-- Test: `tests/unit/score-total.test.ts` (add cases)
+Task 2 left the machinery table-driven with no behaviour change. This task adds L05 to the
+table, which is the entire behaviour change.
 
-- [ ] **Step 1: Write the failing test**
+**Files:**
+- Modify: `src/scoring/score-contract.ts` (add the L05 profile)
+- Modify: `tests/unit/score-components.test.ts`, `tests/unit/score-total.test.ts`
+- Modify: `tests/fixtures/l05-score-debrief-golden.json` (regenerate)
+
+- [ ] **Step 1: Write the failing tests**
+
+Add to `tests/unit/score-components.test.ts`:
+
+```ts
+describe('L05 component derivation', () => {
+  const l05Raw = { lesson_id: 'L05', highest_clearance_alert: 'clear' } as unknown as RawSimulationState;
+
+  it('scores judgment from recorded decisions, not helm corrections', () => {
+    const components = computeComponents(l05Raw, [
+      event({ id: 'd1', type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: l05DecisionCause('decision_wait'), tick: 0 }),
+    ])!;
+    const judgment = componentBy(components, 'judgment');
+    expect(judgment.points).toBe(10);
+    expect(judgment.causal_event_ids).toEqual(['d1']);
+  });
+
+  it('ignores a helm correction for L05 judgment', () => {
+    const components = computeComponents(l05Raw, [
+      event({ id: 'h1', type: 'LESSON_CHECKPOINT', lesson_id: 'L05', cause: HELM_CORRECTION_CAUSE, tick: 0 }),
+    ])!;
+    expect(componentBy(components, 'judgment').points).toBe(0);
+  });
+
+  it('declares both observation and goal unavailable for L05', () => {
+    const components = computeComponents(l05Raw, [])!;
+    expect(componentBy(components, 'observation').status).toBe('declared-unavailable');
+    expect(componentBy(components, 'goal').status).toBe('declared-unavailable');
+  });
+
+  it('leaves L05 a 75 point denominator', () => {
+    const total = computeComponents(l05Raw, [])!.reduce((sum, component) => sum + component.points_possible, 0);
+    expect(total).toBe(75);
+  });
+
+  it('returns undefined for a lesson with no scoring profile', () => {
+    expect(computeComponents({ lesson_id: 'L02' } as unknown as RawSimulationState, [])).toBeUndefined();
+  });
+});
+```
+
+Add `l05DecisionCause` to the existing `../../src/sim/session.js` import in that file.
 
 Add to `tests/unit/score-total.test.ts`:
 
@@ -478,36 +522,32 @@ describe('L05 total points', () => {
 
 Add `l05ReplayBindings` to the existing `../../src/content/l02-l05.js` import in that file.
 
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `npx vitest run tests/unit/score-total.test.ts`
-Expected: FAIL — L05 still returns `draft_causal_checkpoint_recorded` with `total_points: 0`
-
-- [ ] **Step 3: Dispatch on the profile table instead of a hardcoded lesson**
-
-In `src/scoring/projection.ts`, replace this line in `projectScore`:
+Also extend the contract test in `tests/unit/score-contract.test.ts` to assert the new row:
 
 ```ts
-  if (raw.lesson_id === 'L04') return scoreL04(raw, ledger);
+    expect(LESSON_SCORE_PROFILES.L05).toEqual({ unavailable: ['observation', 'goal'], judgment_evidence: 'decision_record' });
 ```
 
-with:
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `npx vitest run tests/unit/score-components.test.ts tests/unit/score-total.test.ts`
+Expected: FAIL — `LESSON_SCORE_PROFILES.L05` is undefined, so `computeComponents` returns undefined for L05
+
+- [ ] **Step 3: Add the L05 profile**
+
+In `src/scoring/score-contract.ts`, add this entry to `LESSON_SCORE_PROFILES` after `L04`:
 
 ```ts
-  const components = computeComponents(raw, ledger);
-  if (components) return scoreFromComponents(raw, components);
+  L05: Object.freeze({
+    // L05 has no mark; its own pass_semantics say transit is not mastery, so
+    // there is no single goal event to detect.
+    unavailable: Object.freeze(['observation', 'goal'] as const),
+    judgment_evidence: 'decision_record' as const,
+  }),
 ```
 
-Rename `scoreL04` to `scoreFromComponents` and change its signature so it receives the
-components rather than computing them:
-
-```ts
-function scoreFromComponents(raw: RawSimulationState, components: readonly ScoreComponent[]): ScoreProjection {
-```
-
-Delete the `const components = computeL04Components(raw, ledger);` line from its body; every
-other line of that function stays exactly as it is. Update the import from
-`computeL04Components` to `computeComponents`.
+That single table entry is the whole behaviour change — `computeComponents` and
+`projectScore` already route through it from Task 2.
 
 - [ ] **Step 4: Run the test**
 
@@ -546,7 +586,7 @@ npm run typecheck
 npm test
 npm run build
 git diff --name-only tests/fixtures/   # must print ONLY the two l05- files
-git add src/scoring/projection.ts tests/unit/score-total.test.ts tests/fixtures/l05-score-debrief-golden.json
+git add src/scoring/score-contract.ts tests/unit/score-components.test.ts tests/unit/score-total.test.ts tests/unit/score-contract.test.ts tests/fixtures/l05-score-debrief-golden.json
 git commit -m "feat(scoring): score L05 from its recorded decisions"
 ```
 
