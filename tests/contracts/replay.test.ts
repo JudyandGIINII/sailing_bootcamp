@@ -31,6 +31,39 @@ const disallowedActionReplayCases: readonly (readonly [ReplayIdentity['ordered_i
   [[{ logical_tick: 0, sequence: 1, input: { action: 'helm_port' } }, { logical_tick: 2, sequence: 2, input: { action: 'reef' } }]],
 ];
 
+function l02PolarReplayFixture(): Record<string, unknown> {
+  const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l02ReplayBindings;
+  void ignoredScenarioVersion;
+  return {
+    schema_version: 'replay-v2',
+    lesson_binding: { lesson_id: 'L02', ...lessonBindingValues, model_version: POLAR_KINEMATICS_MODEL_VERSION },
+    scenario_snapshot: {},
+    variation_trace: {},
+    seed: 'l02-polar-shape',
+    ordered_input_log: [],
+    polar_kinematics_environment: polarKinematicsEnvironmentV1,
+    l02_synthetic_trim_profile: l02SyntheticTrimProfileV1,
+    l02_terminal_logical_tick: 0,
+    l02_terminal_paused: false,
+  };
+}
+
+describe('L02 polar replay identity', () => {
+  it('accepts an L02 payload carrying the polar environment alongside its strict fields', () => {
+    expect(isReplayV2Shape(l02PolarReplayFixture())).toBe(true);
+  });
+
+  it('rejects an L02 payload whose polar environment is missing', () => {
+    const { polar_kinematics_environment: _dropped, ...withoutEnvironment } = l02PolarReplayFixture();
+    expect(isReplayV2Shape(withoutEnvironment)).toBe(false);
+  });
+
+  it('still requires the L02 trim profile and terminal fields', () => {
+    const { l02_synthetic_trim_profile: _dropped, ...withoutProfile } = l02PolarReplayFixture();
+    expect(isReplayV2Shape(withoutProfile)).toBe(false);
+  });
+});
+
 describe('replay identity contract', () => {
   it('requires the complete frozen L01 synthetic profile, including its initial state, without legacy defaulting', () => {
     const identity = { ...l01ReplayBindings, seed: 'l01-profile', ordered_input_log: [] };
