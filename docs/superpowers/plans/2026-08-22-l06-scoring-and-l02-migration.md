@@ -624,6 +624,39 @@ test('shows L02 computed sheet positions and speed response with synthetic bound
 });
 ```
 
+- [ ] **Step 4b: Fix the two smoke assertions that still call L02 legacy**
+
+**Another gap in my sweep — I checked the unit tests but not `tests/smoke/app.spec.ts`.**
+
+**(a) A real failure.** `tests/smoke/app.spec.ts:24`, `says plainly when a lesson declares no
+world position`, starts L02 — which now *has* a world position, so it fails. Switch it to
+**L03**, which is still on the legacy model:
+
+```ts
+  await startSession(page, 'L03');
+```
+
+Do not weaken the assertion; L03 genuinely declares no world position.
+
+**(b) A passing test that now lies.** `tests/smoke/app.spec.ts:476`,
+`does not render numeric STW/SOG for non-polar lessons`, iterates `['L02', 'L05']` and its
+comment says "L02 and L05 are non-polar". **Both are polar now** — L05 since the previous
+cycle, L02 as of this one. It still passes only because neither manifest declares `stw` or
+`sog` observations, so nothing forces the false claim to surface.
+
+Rename it and correct the comment to say what it actually verifies:
+
+```ts
+test('does not render numeric STW/SOG for lessons whose manifests declare no such observation', async ({ page }) => {
+```
+
+and replace the trailing comment with an accurate one — these lessons are polar, but their
+manifests do not list `stw`/`sog`, so no numeric value is surfaced and the status text renders
+in place of an empty node. **Do not change what the test asserts**; only its name and comment
+were wrong.
+
+A test whose name is false is worse than one that fails, because nothing will ever correct it.
+
 - [ ] **Step 5: Run the full gate**
 
 ```bash
