@@ -617,7 +617,10 @@ test('shows L02 computed sheet positions and speed response with synthetic bound
   await page.goto('/');
   await startSession(page, 'L02');
   await expect(page.getByText(/Synthetic declared main sheet position/)).toBeVisible();
-  await expect(page.getByText(/not a real sheet setting or sail trim recommendation/)).toBeVisible();
+  // Both the main and jib descriptions carry this denial, so the locator matches
+  // twice; Playwright strict mode rejects toBeVisible() on a multi-match locator.
+  // Asserting the count is also stronger — it proves BOTH sheets are covered.
+  await expect(page.getByText(/not a real sheet setting or sail trim recommendation/)).toHaveCount(2);
   await expect(page.getByText(/Synthetic control-input acknowledgment/)).toBeVisible();
   // The regression this guards: no L02 observation may render as generically unavailable.
   await expect(page.getByText('Synthetic computed observation unavailable.')).toHaveCount(0);
