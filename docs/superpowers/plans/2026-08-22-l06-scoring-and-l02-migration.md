@@ -498,13 +498,31 @@ npm run test:smoke
 git diff --name-only tests/fixtures/   # must print ONLY l02-raw-golden.json
 ```
 
-The L02 score fixture is Task 5's; if `l02-score-debrief-golden.json` fails here, note it and
-continue only if that is the sole remaining failure.
+- [ ] **Step 6b: Regenerate the score/debrief fixture too — it is this task's, not Task 5's**
+
+`tests/fixtures/l02-score-debrief-golden.json` also goes stale here, because the migration
+changes what L02 records. Filing it under a later task would leave this one unable to end
+green, which is a decomposition error.
+
+**What actually changes**, verified against a live run:
+
+- `score.causal_event_ids` grows from one id to three. L02 now emits helm-correction
+  `LESSON_CHECKPOINT`s on the polar path in addition to its trim-causality checkpoint, and the
+  non-scored `projectScore` path collects every checkpoint id.
+- `debrief_fact_kinds` gains entries for the same reason, plus a `synthetic_transition` for the
+  new `POLAR_KINEMATIC_TRANSITION`.
+- **`score.total_points` stays `0`** and `status` stays `draft_causal_checkpoint_recorded` —
+  L02 is migrated, not scored.
+
+**Verify before pasting:** every added `causal_event_ids` entry must correspond to a real
+`LESSON_CHECKPOINT` in the regenerated ledger — check the ids against `expected.ledger` in
+`l02-raw-golden.json`. **If `total_points` is anything other than 0, stop and report**: that
+would mean L02 reached `LESSON_SCORE_PROFILES`, which this cycle excludes.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/content/l02-l05.ts src/sim/session.ts src/main.ts tests/fixtures/l02-raw-golden.json tests/unit/l02-polar-migration.test.ts tests/contracts/replay.test.ts tests/unit/projection.test.ts tests/unit/l04-current-correction.test.ts tests/unit/render-session-view.test.ts tests/unit/sim-session.test.ts
+git add src/content/l02-l05.ts src/sim/session.ts src/main.ts tests/fixtures/l02-raw-golden.json tests/fixtures/l02-score-debrief-golden.json tests/unit/l02-polar-migration.test.ts tests/contracts/replay.test.ts tests/unit/projection.test.ts tests/unit/l04-current-correction.test.ts tests/unit/render-session-view.test.ts tests/unit/sim-session.test.ts
 git commit -m "feat(sim): run L02 on the polar model so trim changes boat speed"
 ```
 
@@ -631,24 +649,14 @@ git commit -m "feat(content): declare L02's real speed response and render its c
 - Modify: `tests/fixtures/l02-score-debrief-golden.json`
 - Modify: `docs/PROJECT_STATUS.md`, `docs/architecture/training-ground-completion-matrix.md`
 
-- [ ] **Step 1: Regenerate the score/debrief fixture**
-
-L02 is **not** being scored this cycle, so its `score` block must still read
-`total_points: 0` with no `points_possible` and no `components`. What changes is
-`debrief_fact_kinds`: L02 now emits `POLAR_KINEMATIC_TRANSITION`, so the array gains
-`"synthetic_transition"` entries.
-
-**If `total_points` is anything other than 0, stop and report** — that would mean L02 reached
-`LESSON_SCORE_PROFILES`, which this cycle explicitly excludes.
-
-- [ ] **Step 2: Capture the real numbers**
+- [ ] **Step 1: Capture the real numbers**
 
 ```bash
 npm run typecheck && npm test && npm run build && npm run test:smoke
 ```
 Use the observed counts, not the ones this plan predicts.
 
-- [ ] **Step 3: Update `docs/PROJECT_STATUS.md`**
+- [ ] **Step 2: Update `docs/PROJECT_STATUS.md`**
 
 - Refresh the verification table with observed counts.
 - Update the model line: **only L03 remains on the legacy model** among L02–L06; L01 stays unmigrated by decision.
@@ -656,19 +664,19 @@ Use the observed counts, not the ones this plan predicts.
 - Update the golden-fixtures line: both `l02-` fixtures regenerated; `l01-`, `l03-`, `l04-`, `l05-` byte-identical.
 - Record that L02's trim now changes declared speed through `MIN_TRIM_EFFICIENCY`, and that this is an invented educational constant, not a real performance claim.
 
-- [ ] **Step 4: Update the completion matrix**
+- [ ] **Step 3: Update the completion matrix**
 
 Update the **L02 and L06 rows**, and **also fix any prose elsewhere in the document that this
 cycle falsifies** — in particular the "Which lessons run which model" paragraph, which will
 still list L02 as legacy. Do not touch the L01, L03, L04 or L05 rows. A matrix that
 contradicts itself is the failure this project has already hit three times.
 
-- [ ] **Step 5: Verify and commit**
+- [ ] **Step 4: Verify and commit**
 
 ```bash
 npm test
 git diff --name-only tests/fixtures/   # only the two l02- files
-git add tests/fixtures/l02-score-debrief-golden.json docs/PROJECT_STATUS.md docs/architecture/training-ground-completion-matrix.md
+git add docs/PROJECT_STATUS.md docs/architecture/training-ground-completion-matrix.md
 git commit -m "docs: record L06 scoring and the L02 polar migration"
 ```
 
