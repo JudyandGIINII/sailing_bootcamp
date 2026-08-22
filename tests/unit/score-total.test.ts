@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { advanceLogicalTick, createSession, type DeterministicSession } from '../../src/sim/session.js';
 import { l04ReplayBindings, l05ReplayBindings } from '../../src/content/l02-l05.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
+import { l06ReplayBindings } from '../../src/content/l06-polar.js';
 import { projectScore } from '../../src/scoring/projection.js';
 
 function l04Session(seed: string): DeterministicSession {
@@ -70,6 +71,23 @@ describe('L05 total points', () => {
 
   it('declares observation and goal unavailable for L05', () => {
     const session = createSession({ ...l05ReplayBindings, seed: 'l05-unavail', ordered_input_log: [] } as never);
+    const components = projectScore(session.raw, session.ledger).components!;
+    expect(components.find((component) => component.key === 'goal')!.status).toBe('declared-unavailable');
+    expect(components.find((component) => component.key === 'observation')!.status).toBe('declared-unavailable');
+  });
+});
+
+describe('L06 total points', () => {
+  it('scores helm activity out of a 75 point denominator', () => {
+    const session = createSession({ ...l06ReplayBindings, seed: 'l06-score', ordered_input_log: [] } as never);
+    const score = projectScore(session.raw, session.ledger);
+    expect(score.status).toBe('declared_synthetic_unvalidated');
+    expect(score.points_possible).toBe(75);
+    expect(Number.isInteger(score.total_points)).toBe(true);
+  });
+
+  it('declares observation and goal unavailable for L06, which has no mark', () => {
+    const session = createSession({ ...l06ReplayBindings, seed: 'l06-unavail', ordered_input_log: [] } as never);
     const components = projectScore(session.raw, session.ledger).components!;
     expect(components.find((component) => component.key === 'goal')!.status).toBe('declared-unavailable');
     expect(components.find((component) => component.key === 'observation')!.status).toBe('declared-unavailable');

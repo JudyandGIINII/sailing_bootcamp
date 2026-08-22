@@ -75,6 +75,13 @@ export const LESSON_SCORE_PROFILES: Readonly<Record<string, LessonScoreProfile>>
     unavailable: Object.freeze(['observation', 'goal'] as const),
     judgment_evidence: 'decision_record' as const,
   }),
+  L06: Object.freeze({
+    // L06 declares no mark, so there is no goal event to detect. Unlike L05 it
+    // records no pass/wait/return decision either, so judgment falls back to the
+    // same helm-correction approximation L04 uses.
+    unavailable: Object.freeze(['observation', 'goal'] as const),
+    judgment_evidence: 'helm_correction' as const,
+  }),
 });
 
 /**
