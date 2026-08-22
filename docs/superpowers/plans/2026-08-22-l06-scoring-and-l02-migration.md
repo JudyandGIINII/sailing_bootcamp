@@ -15,6 +15,7 @@
 - **Exactly two fixtures may change:** `tests/fixtures/l02-raw-golden.json` and `tests/fixtures/l02-score-debrief-golden.json`. Run `git diff --name-only tests/fixtures/` at the end of every task. If any `l01-`, `l03-`, `l04-` or `l05-` fixture appears, **stop and report**. L06 scoring has no fixture, so Task 1 must move no fixture at all.
 - **Run the FULL suites at every task gate** — `npm test` in full, and `npm run test:smoke` for any task touching `src/main.ts`. Stop if red, even when the failure looks like it belongs to a later task. In the previous cycle three defects were invisible to a green partial run, including one where a lesson could not start in a browser while 380 unit tests passed.
 - **Do not migrate any other lesson.** L03 (strict variant, out of scope), L01 (89 binding sites, abandoned by decision).
+- **Known follow-up, deliberately out of scope:** because L02 keeps a valid legacy key set, a *stored* pre-migration L02 replay still passes the shape gate and would then throw `CanonicalInputContractError: Polar kinematics profile is missing.` inside `createSession` rather than being rejected with a stable reason code. L04/L05/L06 do not have this path because their polar key set is unconditional. Do not fix it in this cycle; do not make it worse. It is recorded for a follow-up cycle.
 - **Do not score L02.** Its judgment-evidence question is deliberately deferred; adding an L02 row to `LESSON_SCORE_PROFILES` is out of scope.
 - **Do not declare what is not computed.** Only the five L02 observations listed in Task 4 change status.
 - **Purity.** `src/scoring/*` must not use `Date.now`, `performance.now`, `Math.random`, `window`, `document`, `localStorage`, `sessionStorage`, `fetch`, `XMLHttpRequest`, `WebSocket`, or `EventSource`.
@@ -192,12 +193,27 @@ isL02 ? (isPolarL02 ? polarL02V2Keys : l02V2Keys)
 Keep the legacy `l02V2Keys` branch — a stored pre-migration L02 replay must still validate.
 
 **(c)** In `resolveReplayV2` (~line 578), add L02 to the lesson list guarding
-`hasCanonicalL01Environment`, so a restored L02 replay actually has its environment validated
-rather than silently accepted:
+`hasCanonicalL01Environment` — but **conditionally on L02 declaring the polar model.**
+
+`hasCanonicalL01Environment` falls through to `sameL01Environment(l01_synthetic_environment)`
+for any non-polar model. Legacy L01 survives that because it genuinely carries
+`l01_synthetic_environment`; **a legacy L02 carries neither environment** (it has
+`l02_synthetic_trim_profile` instead), so an unconditional branch rejects every pre-migration
+L02 replay. Declare the flag first:
 
 ```ts
-  if ((replay.lesson_binding.lesson_id === 'L01' || replay.lesson_binding.lesson_id === 'L02' || replay.lesson_binding.lesson_id === 'L04' || replay.lesson_binding.lesson_id === 'L05' || replay.lesson_binding.lesson_id === 'L06') && !hasCanonicalL01Environment({
+  const isPolarL02Replay = replay.lesson_binding.lesson_id === 'L02' &&
+    replay.lesson_binding.model_version === POLAR_KINEMATICS_MODEL_VERSION;
 ```
+
+then use it in the guard:
+
+```ts
+  if ((replay.lesson_binding.lesson_id === 'L01' || isPolarL02Replay || replay.lesson_binding.lesson_id === 'L04' || replay.lesson_binding.lesson_id === 'L05' || replay.lesson_binding.lesson_id === 'L06') && !hasCanonicalL01Environment({
+```
+
+This is permanently correct, not a Task-2 workaround: the guard's job is to validate a declared
+environment, and L02 only declares one once migrated.
 
 **Leave `hasStrictL02ReplayV2TerminalAuthority` and every other L02 branch alone.** L02 keeps
 its strict terminal authority; this migration adds the environment, it does not remove the
