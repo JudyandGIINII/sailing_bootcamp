@@ -130,10 +130,12 @@ describe('L04 current-correction lesson', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('leaves L02 and L03 on the legacy draft model', () => {
-    for (const manifest of [l02Manifest, l03Manifest]) {
-      expect(manifest.model_version).toBe('training-sloop-model-v0-draft');
-    }
+  it('leaves L03 on the legacy draft model', () => {
+    expect(l03Manifest.model_version).toBe('training-sloop-model-v0-draft');
+  });
+
+  it('has migrated L02 onto the polar model', () => {
+    expect(l02Manifest.model_version).toBe(POLAR_KINEMATICS_MODEL_VERSION);
   });
 
   it('has migrated L05 onto the polar model', () => {

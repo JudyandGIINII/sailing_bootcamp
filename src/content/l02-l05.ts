@@ -72,6 +72,7 @@ const common = {
 /** Contracts are synthetic semantic declarations, not sailing thresholds or advice. */
 export const l02Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L02', scenario_version: 'l02-scenario-v0-draft', validation_record_id: 'VR-L02-v0',
+  model_version: POLAR_KINEMATICS_MODEL_VERSION,
   initial_state: 'training-sloop-v1 synthetic main/jib control-input acknowledgment fixture',
   required_observations: [
     { key: 'apparent_wind_angle', accessible_label: 'Apparent wind angle / 체감 바람 각도', status: 'declared_unavailable' },
@@ -159,7 +160,7 @@ export const l05Manifest: DraftLessonManifest = Object.freeze({
   failure_or_boundary_acceptance: 'VR-L05-v0 assumption; no actual route, depth, or clearance claim is made.',
 });
 
-export const l02ReplayBindings = Object.freeze(bindings(l02Manifest));
+export const l02ReplayBindings = Object.freeze({ ...bindings(l02Manifest), polar_kinematics_environment: polarKinematicsEnvironmentV1 });
 export const l03ReplayBindings = Object.freeze(bindings(l03Manifest));
 /** L04 carries the polar environment directly so its replay is self-describing. */
 export const l04ReplayBindings = Object.freeze({ ...bindings(l04Manifest), polar_kinematics_environment: polarKinematicsEnvironmentV1 });

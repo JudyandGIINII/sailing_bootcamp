@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { l01ReplayBindings } from '../../src/content/l01.js';
 import { l02ReplayBindings } from '../../src/content/l02-l05.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
-import { CanonicalInputContractError, applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from '../../src/sim/session.js';
+import { CanonicalInputContractError, HELM_CORRECTION_CAUSE, applyCanonicalInput, advanceLogicalTick, createSession, pauseForLifecycle, replayInputs, type CanonicalInput } from '../../src/sim/session.js';
 import { projectDebrief, projectScore } from '../../src/scoring/projection.js';
 import { composeGroundRelativeVelocity } from '../../src/sim/vector.js';
 
@@ -383,9 +383,11 @@ describe('L02 synthetic trim-input acknowledgment session', () => {
     expect(applyCanonicalInput(initial, { logical_tick: 1, sequence: 1, input: { action: 'main_trim' } })).toBe(initial);
     expect({ raw: initial.raw, ledger: initial.ledger, evidence: initial.canonical_input_evidence }).toEqual(before);
     const helm = applyCanonicalInput(initial, { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } });
-    expect(helm.raw).toMatchObject({ helm_command: 'port', l02_trim_acknowledgment: createSession({ ...l02ReplayBindings, seed: 'l02-rejected', ordered_input_log: [] }).raw.l02_trim_acknowledgment });
+    expect(helm.raw.helm_command).toBe('neutral');
+    expect(helm.raw.l02_trim_acknowledgment).toEqual(initial.raw.l02_trim_acknowledgment);
+    expect(advanceLogicalTick(helm).raw.helm_command).toBe('port');
     expect(helm.ledger).toContainEqual(expect.objectContaining({ type: 'ACTION_ACCEPTED', action: 'helm_port' }));
-    expect(helm.ledger).not.toContainEqual(expect.objectContaining({ type: 'LESSON_CHECKPOINT', lesson_id: 'L02' }));
+    expect(helm.ledger).toContainEqual(expect.objectContaining({ type: 'LESSON_CHECKPOINT', lesson_id: 'L02', cause: HELM_CORRECTION_CAUSE }));
   });
 
   it('preserves L02 control acknowledgment across pause/resume without pause progression', () => {

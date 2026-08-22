@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { advanceLogicalTick, createSession, replayInputs, type CanonicalInput, type LedgerEvent } from '../../src/sim/session.js';
 import { projectDebrief, projectL02RuntimeTrace, projectL03RuntimeTrace, projectL04RuntimeTrace, projectL05DecisionLedger, projectScore } from '../../src/scoring/projection.js';
 import { l01ReplayBindings } from '../../src/content/l01.js';
-import { L04_MARK_ARRIVAL_CAUSE } from '../../src/content/l02-l05.js';
+import { L04_MARK_ARRIVAL_CAUSE, l02ReplayBindings } from '../../src/content/l02-l05.js';
 import { POLAR_KINEMATICS_MODEL_VERSION, polarKinematicsEnvironmentV1 } from '../../src/contracts/polar-kinematics-environment.js';
 
 const rawFixture = JSON.parse(readFileSync('tests/fixtures/l01-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: []; terminal_ticks: number };
@@ -15,6 +15,10 @@ const l04RawFixture = JSON.parse(readFileSync('tests/fixtures/l04-raw-golden.jso
 const l04ScoreFixture = JSON.parse(readFileSync('tests/fixtures/l04-score-debrief-golden.json', 'utf8')) as { score: unknown };
 const l05RawFixture = JSON.parse(readFileSync('tests/fixtures/l05-raw-golden.json', 'utf8')) as { identity: Parameters<typeof createSession>[0]; inputs: CanonicalInput[]; terminal_ticks: number };
 const l05ScoreFixture = JSON.parse(readFileSync('tests/fixtures/l05-score-debrief-golden.json', 'utf8')) as { score: unknown };
+
+function l02ProjectionIdentity(seed: string): Parameters<typeof createSession>[0] {
+  return { ...l02ReplayBindings, seed, ordered_input_log: [] };
+}
 
 describe('score/debrief pure causality projections', () => {
   it('matches its dedicated golden fixture without changing the raw baseline', () => {
@@ -57,7 +61,7 @@ describe('score/debrief pure causality projections', () => {
   });
 
   it('keeps initial L02 static declarations separate from explicitly unavailable runtime evidence', () => {
-    const session = createSession(l02RawFixture.identity);
+    const session = createSession(l02ProjectionIdentity('l02-projection-initial'));
     const trace = projectL02RuntimeTrace(session.raw, session.ledger);
 
     expect(trace).toEqual(expect.objectContaining({
@@ -70,7 +74,7 @@ describe('score/debrief pure causality projections', () => {
   });
 
   it('recognizes exact L02 main, jib, and checkpoint records independently', () => {
-    const raw = createSession(l02RawFixture.identity).raw;
+    const raw = createSession(l02ProjectionIdentity('l02-projection-exact')).raw;
     const main: LedgerEvent = { id: 'main-only', tick: 4, sequence: 8, type: 'ACTION_ACCEPTED', action: 'main_trim' };
     const jib: LedgerEvent = { id: 'jib-only', tick: 5, sequence: 1, type: 'ACTION_ACCEPTED', action: 'jib_trim' };
     const checkpoint: LedgerEvent = { id: 'checkpoint-only', tick: 6, sequence: 2, type: 'LESSON_CHECKPOINT', lesson_id: 'L02', cause: 'main/jib synthetic trim causality recorded' };
@@ -92,7 +96,7 @@ describe('score/debrief pure causality projections', () => {
   });
 
   it('rejects near-match L02 causes and unrelated records, while preserving duplicate records independently', () => {
-    const raw = createSession(l02RawFixture.identity).raw;
+    const raw = createSession(l02ProjectionIdentity('l02-projection-near-match')).raw;
     const mainA: LedgerEvent = { id: 'main-a', tick: 0, sequence: 9, type: 'ACTION_ACCEPTED', action: 'main_trim' };
     const mainB: LedgerEvent = { id: 'main-b', tick: 0, sequence: 1, type: 'ACTION_ACCEPTED', action: 'main_trim' };
     const nearCheckpoint: LedgerEvent = { id: 'near', tick: 0, sequence: 2, type: 'LESSON_CHECKPOINT', lesson_id: 'L02', cause: 'main/jib synthetic trim causality recorded ' };
@@ -107,18 +111,19 @@ describe('score/debrief pure causality projections', () => {
   });
 
   it('is deterministic and does not mutate L02 raw state, ledger, score, or replay payload', () => {
-    const replayPayload = structuredClone({ ...l02RawFixture.identity, ordered_input_log: l02RawFixture.inputs });
-    const session = replayInputs(l02RawFixture.identity, l02RawFixture.inputs, l02RawFixture.terminal_ticks);
+    const identity = l02ProjectionIdentity('l02-projection-determinism');
+    const replayPayload = structuredClone({ ...identity, ordered_input_log: l02RawFixture.inputs });
+    const session = replayInputs(identity, l02RawFixture.inputs, l02RawFixture.terminal_ticks);
     const before = structuredClone({ raw: session.raw, ledger: session.ledger, identity: session.identity, replayPayload });
     const first = projectL02RuntimeTrace(session.raw, session.ledger);
     const second = projectL02RuntimeTrace(session.raw, session.ledger);
-    const replayAgain = replayInputs(l02RawFixture.identity, l02RawFixture.inputs, l02RawFixture.terminal_ticks);
+    const replayAgain = replayInputs(identity, l02RawFixture.inputs, l02RawFixture.terminal_ticks);
 
     expect(first).toEqual(second);
     expect(projectL02RuntimeTrace(replayAgain.raw, replayAgain.ledger)).toEqual(first);
-    expect(first?.runtime_evidence.main_action).toEqual(expect.objectContaining({ record_ids: ['0:2:2'] }));
-    expect(first?.runtime_evidence.jib_action).toEqual(expect.objectContaining({ record_ids: ['0:4:4'] }));
-    expect(first?.runtime_evidence.checkpoint).toEqual(expect.objectContaining({ record_ids: ['0:4:5'], recorded_cause: 'main/jib synthetic trim causality recorded' }));
+    expect(first?.runtime_evidence.main_action).toEqual(expect.objectContaining({ record_ids: ['0:2:3'] }));
+    expect(first?.runtime_evidence.jib_action).toEqual(expect.objectContaining({ record_ids: ['0:4:6'] }));
+    expect(first?.runtime_evidence.checkpoint).toEqual(expect.objectContaining({ record_ids: ['0:4:7'], recorded_cause: 'main/jib synthetic trim causality recorded' }));
     expect({ raw: session.raw, ledger: session.ledger, identity: session.identity, replayPayload }).toEqual(before);
   });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { advanceLogicalTick, createSession, type DeterministicSession } from '../../src/sim/session.js';
-import { l04ReplayBindings, l02ReplayBindings } from '../../src/content/l02-l05.js';
+import { l03ReplayBindings, l04ReplayBindings } from '../../src/content/l02-l05.js';
 import { l06ReplayBindings } from '../../src/content/l06-polar.js';
 import { projectSessionWorldView } from '../../src/render/session-view.js';
 
@@ -43,7 +43,7 @@ describe('session world view derivation', () => {
   });
 
   it('returns undefined for a lesson that declares no world position', () => {
-    expect(projectSessionWorldView(polarSession(l02ReplayBindings, 'view-l02'))).toBeUndefined();
+    expect(projectSessionWorldView(polarSession(l03ReplayBindings, 'view-l03'))).toBeUndefined();
   });
 
   it('never mutates the session it reads', () => {

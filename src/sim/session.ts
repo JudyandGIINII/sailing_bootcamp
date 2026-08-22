@@ -218,8 +218,31 @@ function initialRaw(seedState: number, scenario: string, l01Profile?: L01Synthet
     });
   }
   if (scenario.startsWith('l02-')) {
+    // Keep the pre-migration trim-profile validation. Dropping it is what makes
+    // `l02Profile` look unused; the fail-closed check must survive the migration.
     if (l02Profile && !isL02SyntheticTrimProfileV1(l02Profile)) throw new CanonicalInputContractError('L02 synthetic trim profile is invalid.');
-    return freeze({ ...base, lesson_id: 'L02', l02_trim_acknowledgment: createInitialL02SyntheticTrimObservation() });
+    if (!polarProfile) throw new CanonicalInputContractError('Polar kinematics profile is missing.');
+    const initialState = createInitialPolarKinematicState(polarProfile);
+    const initialTransition = transitionPolarKinematicState(polarProfile, initialState, []);
+    const observations = projectPolarObservations(polarProfile, initialTransition);
+    return freeze({
+      ...base,
+      lesson_id: 'L02',
+      l02_trim_acknowledgment: createInitialL02SyntheticTrimObservation(),
+      helm_command: initialState.helm_command,
+      heading: observations.heading_rad,
+      cog: observations.cog_rad,
+      true_wind: freeze({ from_rad: observations.true_wind_from_rad, speed_mps: observations.true_wind_speed_mps }),
+      apparent_wind: freeze({ from_rad: observations.apparent_wind_from_rad, speed_mps: observations.apparent_wind_speed_mps }),
+      stw: observations.stw_mps,
+      sog: observations.sog_mps,
+      drift_angle: observations.drift_angle_rad,
+      polar_kinematic_state: initialState,
+      polar_last_helm_sequence: 0,
+      clearance_m: clearanceAt(polarProfile, 0),
+      clearance_level: clearanceLevel(clearanceAt(polarProfile, 0)),
+      highest_clearance_alert: 'clear',
+    });
   }
   if (scenario.startsWith('l03-')) {
     if (l03Profile && !isL03SyntheticAcknowledgmentProfileV2(l03Profile)) throw new CanonicalInputContractError('L03 synthetic acknowledgment profile is invalid.');
@@ -339,7 +362,7 @@ function l01Profile(identity: ReplayIdentity | ReplayV2): L01SyntheticEnvironmen
  */
 function polarProfile(identity: ReplayIdentity | ReplayV2): PolarKinematicsEnvironmentV1 | undefined {
   const lesson = sessionLesson(identity);
-  if (!lesson.startsWith('l01-') && !lesson.startsWith('l04-') && !lesson.startsWith('l05-') && !lesson.startsWith('l06-')) return undefined;
+  if (!lesson.startsWith('l01-') && !lesson.startsWith('l02-') && !lesson.startsWith('l04-') && !lesson.startsWith('l05-') && !lesson.startsWith('l06-')) return undefined;
   if (declaredModelVersion(identity) !== POLAR_KINEMATICS_MODEL_VERSION) return undefined;
   const profile = identity.polar_kinematics_environment;
   if (!isPolarKinematicsEnvironmentV1(profile) ||
@@ -424,11 +447,12 @@ function clearanceAt(profile: PolarKinematicsEnvironmentV1, logicalTick: number)
   );
 }
 
-function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L04' | 'L05' | 'L06' {
+function polarLessonTag(identity: ReplayIdentity | ReplayV2): 'L01' | 'L02' | 'L04' | 'L05' | 'L06' {
   const lesson = sessionLesson(identity);
   if (lesson.startsWith('l06-')) return 'L06';
   if (lesson.startsWith('l05-')) return 'L05';
   if (lesson.startsWith('l04-')) return 'L04';
+  if (lesson.startsWith('l02-')) return 'L02';
   return 'L01';
 }
 
@@ -444,7 +468,7 @@ export function l05DecisionCause(action: 'decision_pass' | 'decision_wait' | 'de
   return `synthetic ${action.replace('decision_', '')} decision recorded`;
 }
 
-function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number, lessonId: 'L01' | 'L04' | 'L05' | 'L06'): readonly Readonly<{
+function l01CausalControlsForTick(ledger: readonly LedgerEvent[], logicalTick: number, lessonId: 'L01' | 'L02' | 'L04' | 'L05' | 'L06'): readonly Readonly<{
   logical_tick: number;
   sequence: number;
   helm_command: HelmCommand;

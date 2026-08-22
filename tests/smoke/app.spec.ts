@@ -23,7 +23,7 @@ test('renders a moving synthetic track and a declared mark distance for L04', as
 
 test('says plainly when a lesson declares no world position', async ({ page }) => {
   await page.goto('/');
-  await startSession(page, 'L02');
+  await startSession(page, 'L03');
   await expect(page.locator('#world-text')).toContainText('declares no synthetic world position');
 });
 

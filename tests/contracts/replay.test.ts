@@ -32,7 +32,7 @@ const disallowedActionReplayCases: readonly (readonly [ReplayIdentity['ordered_i
 ];
 
 function l02PolarReplayFixture(): Record<string, unknown> {
-  const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l02ReplayBindings;
+  const { scenario_version: ignoredScenarioVersion, polar_kinematics_environment, ...lessonBindingValues } = l02ReplayBindings;
   void ignoredScenarioVersion;
   return {
     schema_version: 'replay-v2',
@@ -41,7 +41,7 @@ function l02PolarReplayFixture(): Record<string, unknown> {
     variation_trace: {},
     seed: 'l02-polar-shape',
     ordered_input_log: [],
-    polar_kinematics_environment: polarKinematicsEnvironmentV1,
+    polar_kinematics_environment,
     l02_synthetic_trim_profile: l02SyntheticTrimProfileV1,
     l02_terminal_logical_tick: 0,
     l02_terminal_paused: false,
@@ -75,18 +75,19 @@ describe('replay identity contract', () => {
     const altered = { ...identity, l01_synthetic_environment: { ...l01SyntheticEnvironmentV1, initial_position_m: { x: 999, y: -8 } } };
     expect(resolveExactReplayIdentity(altered, identity)).toEqual({ outcome: 'rejected', reason_code: 'REPLAY_IDENTITY_INCOMPATIBLE', stored_payload: altered });
   });
-  it('preserves the legacy L02 binding and V1 helm action resolution', () => {
-    const legacyL02 = {
+  it('uses the migrated polar L02 binding for V1 helm action resolution', () => {
+    const polarL02 = {
       ...l02ReplayBindings,
-      seed: 'legacy-l02-helm',
+      seed: 'polar-l02-helm',
       ordered_input_log: [
         { logical_tick: 0, sequence: 1, input: { action: 'helm_port' } },
         { logical_tick: 0, sequence: 2, input: { action: 'helm_starboard' } },
       ],
     };
-    expect(legacyL02.model_version).toBe('training-sloop-model-v0-draft');
-    expect(resolveStoredReplay(legacyL02, l02ReplayBindings)).toEqual({ outcome: 'accepted', replay: legacyL02 });
-    expect(replayInputs(legacyL02, legacyL02.ordered_input_log as readonly CanonicalInput[], 1).raw).toMatchObject({
+    expect(polarL02.model_version).toBe(POLAR_KINEMATICS_MODEL_VERSION);
+    expect(polarL02.polar_kinematics_environment).toEqual(polarKinematicsEnvironmentV1);
+    expect(resolveStoredReplay(polarL02, l02ReplayBindings)).toEqual({ outcome: 'accepted', replay: polarL02 });
+    expect(replayInputs(polarL02, polarL02.ordered_input_log as readonly CanonicalInput[], 1).raw).toMatchObject({
       helm_command: 'starboard',
       l02_trim_acknowledgment: { causal_state: 'none', last_accepted_trim: null },
     });
@@ -436,7 +437,7 @@ describe('Replay V2', () => {
     l02_terminal_paused = false,
   ): Promise<ReplayV2> {
     const scenario = await createSyntheticScenario(defaultScenarioConfiguration);
-    const { scenario_version: ignoredScenarioVersion, ...lessonBindingValues } = l02ReplayBindings;
+    const { scenario_version: ignoredScenarioVersion, polar_kinematics_environment, ...lessonBindingValues } = l02ReplayBindings;
     void ignoredScenarioVersion;
     return {
       schema_version: 'replay-v2',
@@ -445,6 +446,7 @@ describe('Replay V2', () => {
       variation_trace: await materializeVariation(scenario, seed),
       seed,
       ordered_input_log,
+      polar_kinematics_environment,
       l02_synthetic_trim_profile: l02SyntheticTrimProfileV1,
       l02_terminal_logical_tick,
       l02_terminal_paused,
@@ -483,7 +485,7 @@ describe('Replay V2', () => {
       await expect(resolveReplayV2(invalid)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: invalid });
     }
     const mutatedBinding = { ...payload, lesson_binding: { ...payload.lesson_binding, model_version: l02SyntheticTrimProfileV1.profile_id } };
-    await expect(resolveReplayV2(mutatedBinding)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_ACTION_DISALLOWED', stored_payload: mutatedBinding });
+    await expect(resolveReplayV2(mutatedBinding)).resolves.toEqual({ outcome: 'rejected', reason_code: 'REPLAY_V2_SCHEMA_INVALID', stored_payload: mutatedBinding });
     expect(() => replayInputs(payload, payload.ordered_input_log as readonly CanonicalInput[], 1)).toThrow(/terminal authority is invalid/);
   });
 
@@ -513,7 +515,7 @@ describe('Replay V2', () => {
     void _environment;
     void _terminalTick;
     void _terminalPaused;
-    const nonL01Shape = { ...nonL01, lesson_binding: { ...nonL01.lesson_binding, lesson_id: 'L02' as const, model_version: l02ReplayBindings.model_version }, l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false };
+    const nonL01Shape = { ...nonL01, lesson_binding: { ...nonL01.lesson_binding, lesson_id: 'L02' as const, model_version: l02ReplayBindings.model_version }, polar_kinematics_environment: polarKinematicsEnvironmentV1, l02_synthetic_trim_profile: l02SyntheticTrimProfileV1, l02_terminal_logical_tick: 0, l02_terminal_paused: false };
     expect(isReplayV2Shape(nonL01Shape)).toBe(true);
     expect(isReplayV2Shape({ ...nonL01Shape, l01_terminal_paused: false })).toBe(false);
   });
