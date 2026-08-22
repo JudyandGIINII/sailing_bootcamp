@@ -262,8 +262,10 @@ function l02Session(seed: string): DeterministicSession {
   return createSession({ ...l02ReplayBindings, seed, ordered_input_log: [] } as never);
 }
 
-function trim(session: DeterministicSession, action: 'main_trim' | 'jib_trim'): DeterministicSession {
-  return applyCanonicalInput(session, { logical_tick: session.raw.logical_tick, sequence: 0, input: { action } });
+// Sequence must strictly increase within one logical tick (see the collision
+// guard in src/sim/session.ts), so the caller passes it explicitly.
+function trim(session: DeterministicSession, action: 'main_trim' | 'jib_trim', sequence: number): DeterministicSession {
+  return applyCanonicalInput(session, { logical_tick: session.raw.logical_tick, sequence, input: { action } });
 }
 
 describe('L02 polar migration', () => {
@@ -280,14 +282,14 @@ describe('L02 polar migration', () => {
   it('makes trimming change the declared speed through water', () => {
     let session = advanceLogicalTick(l02Session('l02-trim-effect'));
     const before = session.raw.stw;
-    session = advanceLogicalTick(trim(session, 'main_trim'));
+    session = advanceLogicalTick(trim(session, 'main_trim', 1));
     expect(typeof before).toBe('number');
     expect(session.raw.stw).not.toBe(before);
   });
 
   it('still records the trim causality checkpoint after both sheets move', () => {
-    let session = trim(l02Session('l02-causality'), 'main_trim');
-    session = trim(session, 'jib_trim');
+    let session = trim(l02Session('l02-causality'), 'main_trim', 1);
+    session = trim(session, 'jib_trim', 2);
     expect(session.ledger.some((event) => event.cause === 'main/jib synthetic trim causality recorded')).toBe(true);
   });
 
