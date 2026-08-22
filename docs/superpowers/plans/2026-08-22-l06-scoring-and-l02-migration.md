@@ -616,12 +616,19 @@ Add to `tests/smoke/app.spec.ts`:
 test('shows L02 computed sheet positions and speed response with synthetic boundaries', async ({ page }) => {
   await page.goto('/');
   await startSession(page, 'L02');
-  await expect(page.getByText(/Synthetic declared main sheet position/)).toBeVisible();
-  // Both the main and jib descriptions carry this denial, so the locator matches
-  // twice; Playwright strict mode rejects toBeVisible() on a multi-match locator.
-  // Asserting the count is also stronger — it proves BOTH sheets are covered.
+  const hud = page.locator('#hud');
+  // Scope to #hud, which is a single element, so these are immune to Playwright
+  // strict mode. Several of these phrases legitimately appear more than once on
+  // the page (main and jib share a denial; the acknowledgment also renders in the
+  // runtime-evidence and debrief sections), and getByText would reject on that.
+  await expect(hud).toContainText('Synthetic declared main sheet position');
+  await expect(hud).toContainText('Synthetic declared jib sheet position');
+  await expect(hud).toContainText('main_trim_adjusted:');
+  await expect(hud).toContainText('Synthetic computed speed through water');
+  await expect(hud).toContainText('not a real sheet setting or sail trim recommendation');
+  // Both sheet descriptions must carry the denial, so assert it page-wide by count
+  // rather than by visibility.
   await expect(page.getByText(/not a real sheet setting or sail trim recommendation/)).toHaveCount(2);
-  await expect(page.getByText(/Synthetic control-input acknowledgment/)).toBeVisible();
   // The regression this guards: no L02 observation may render as generically unavailable.
   await expect(page.getByText('Synthetic computed observation unavailable.')).toHaveCount(0);
 });
