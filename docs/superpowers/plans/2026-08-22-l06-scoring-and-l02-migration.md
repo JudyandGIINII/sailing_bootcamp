@@ -460,11 +460,24 @@ the L02 golden comparison.
 `tests/fixtures/l04-raw-golden.json`**, including `current_epoch_ms: 0`), and
 `expected.raw` / `expected.ledger` regenerated.
 
-**Before pasting, verify:** `expected.raw.polar_kinematic_state` exists,
-`expected.raw.l02_trim_acknowledgment` is still present, `l01_synthetic_state` is gone,
-`mark_state` is **absent**, and the identity still carries `l02_synthetic_trim_profile`,
-`l02_terminal_logical_tick` and `l02_terminal_paused`. **If `mark_state` appears or the trim
-profile disappeared, stop and report.**
+**Corrected tripwire.** An earlier draft of this plan required the regenerated fixture to
+carry `l02_synthetic_trim_profile`, `l02_terminal_logical_tick` and `l02_terminal_paused`.
+**That was wrong.** `l02-raw-golden.json` uses the **Replay V1 identity shape** — plain binding
+fields plus `seed` and `ordered_input_log`, with no `schema_version` or `lesson_binding`. Those
+three fields belong to **Replay V2** payloads and are exercised by
+`tests/contracts/replay.test.ts`, not by this fixture. `l05-raw-golden.json` has the identical
+V1 shape and simply gained `polar_kinematics_environment` beside its binding fields; L02 gets
+exactly the same treatment. Do **not** convert this fixture to V2.
+
+**Before pasting, verify:** `identity.model_version` is `"polar-kinematics-v5"`,
+`identity.polar_kinematics_environment` is present (all 15 fields, `current_epoch_ms: 0`),
+`expected.raw.polar_kinematic_state` exists, `expected.raw.l02_trim_acknowledgment` is still
+present, `l01_synthetic_state` is gone, and `mark_state` is **absent**. **If `mark_state`
+appears or `l02_trim_acknowledgment` disappeared, stop and report.**
+
+Causal event ids in `expected.ledger` will shift, because the polar path emits a helm-correction
+checkpoint that the legacy path did not. That is expected; verify the shift is explained by the
+new checkpoint rather than by missing or duplicated events.
 
 - [ ] **Step 6: Run the full gate**
 
