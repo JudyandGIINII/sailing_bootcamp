@@ -407,6 +407,49 @@ browser while every unit test passed.** Verify with the smoke suite, not only wi
 
 Leave `src/main.ts:154-155` alone — L02 keeps its terminal tick and pause authority.
 
+- [ ] **Step 4b: Update the tests that encode legacy L02 behaviour**
+
+**This is a correction — my Task 3 file list was incomplete.** I swept `src/` for lesson
+branches but never swept `tests/` for assertions that encode "L02 is legacy", so five test
+files fail here. Every one of them is a *correct legacy expectation that this migration
+legitimately changes*, not a bug in your implementation.
+
+**Hard rule for this step: update each assertion to state the new correct behaviour. Never
+delete an assertion to make a test pass.** If you cannot express what the new behaviour should
+be, stop and report instead.
+
+| File | What changed | How to update |
+|---|---|---|
+| `tests/contracts/replay.test.ts` (4 tests) | strict-L02 payload builders now need the polar environment | add `polar_kinematics_environment: polarKinematicsEnvironmentV1` to the L02 payloads, keeping the trim profile and terminal fields |
+| `tests/unit/projection.test.ts` (4 tests) | L02 identities now need the polar environment | build them from `l02ReplayBindings`, which now carries it |
+| `tests/unit/l04-current-correction.test.ts` (1) | asserts "leaves L02 and L03 on the legacy draft model" | narrow it to L03 only, and **add** `it('has migrated L02 onto the polar model')` asserting `l02Manifest.model_version === POLAR_KINEMATICS_MODEL_VERSION`. Replace, do not delete — the same fix this file needed for L05 |
+| `tests/unit/render-session-view.test.ts` (1) | uses L02 as its example of "a lesson that declares no world position" — L02 now has one | switch that example to **L03**, which is still legacy. Do not weaken the assertion |
+| `tests/unit/sim-session.test.ts` (1) | two legacy helm expectations | see below |
+
+**The `sim-session.test.ts` case needs explaining, because it looks like a regression and is
+not.** `src/sim/session.ts:722` reads:
+
+```ts
+let raw = (isL01Raw(session.raw) || isPolarRaw(session.raw)) ? session.raw : /* legacy sets helm_command here */
+```
+
+The polar path **deliberately does not set `raw.helm_command` on input** — helm is applied
+during `advanceLogicalTick` through the transition — and it **does** emit a helm-correction
+`LESSON_CHECKPOINT`. Both behaviours are shared by every polar lesson (L01-polar, L04, L05,
+L06) and L02 now joins them. So in `keeps helm independently accepted without a trim
+acknowledgment effect`:
+
+- `helm_command: 'port'` immediately after the input is now wrong; on the polar path it stays
+  `'neutral'` until a tick is advanced. Assert the polar behaviour, and if you want to keep
+  covering the original intent, advance a tick and assert `'port'` after it.
+- `expect(helm.ledger).not.toContainEqual(... LESSON_CHECKPOINT, lesson_id: 'L02' ...)` is now
+  wrong — L02 emits a helm-correction checkpoint like every other polar lesson. Invert it to
+  assert the checkpoint **is** present with `cause: HELM_CORRECTION_CAUSE`, so the test still
+  says something true and specific.
+
+The test's real intent — that a helm input does not produce a *trim acknowledgment* effect —
+must survive. Keep asserting that `l02_trim_acknowledgment` is unchanged by a helm input.
+
 - [ ] **Step 5: Regenerate the raw golden fixture**
 
 Run `npm test`; `tests/unit/l02-l05.test.ts` and `tests/unit/projection.test.ts` will fail on
@@ -439,7 +482,7 @@ continue only if that is the sole remaining failure.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/content/l02-l05.ts src/sim/session.ts src/main.ts tests/fixtures/l02-raw-golden.json tests/unit/l02-polar-migration.test.ts
+git add src/content/l02-l05.ts src/sim/session.ts src/main.ts tests/fixtures/l02-raw-golden.json tests/unit/l02-polar-migration.test.ts tests/contracts/replay.test.ts tests/unit/projection.test.ts tests/unit/l04-current-correction.test.ts tests/unit/render-session-view.test.ts tests/unit/sim-session.test.ts
 git commit -m "feat(sim): run L02 on the polar model so trim changes boat speed"
 ```
 
