@@ -362,6 +362,9 @@ no `declared_navigation_concepts`:
 
 ```ts
   if (scenario.startsWith('l02-')) {
+    // Keep the pre-migration trim-profile validation. Dropping it is what makes
+    // `l02Profile` look unused; the fail-closed check must survive the migration.
+    if (l02Profile && !isL02SyntheticTrimProfileV1(l02Profile)) throw new CanonicalInputContractError('L02 synthetic trim profile is invalid.');
     if (!polarProfile) throw new CanonicalInputContractError('Polar kinematics profile is missing.');
     const initialState = createInitialPolarKinematicState(polarProfile);
     const initialTransition = transitionPolarKinematicState(polarProfile, initialState, []);
@@ -386,6 +389,12 @@ no `declared_navigation_concepts`:
     });
   }
 ```
+
+**If `tsc` reports `'l02Profile' is declared but its value is never read` (TS6133), do NOT
+delete the parameter and do NOT silence it with `void`.** That error is the symptom; the cause
+is that the pre-migration branch validated the trim profile and the replacement dropped the
+check. Restore the validation as shown above. Making a fail-closed check disappear to satisfy
+the compiler is the opposite of what this repository requires.
 
 **Do not touch `applyCanonicalInput`.** Its trim branch (~line 712) is gated on
 `isPolarRaw(raw)`, not on lesson id, so trim starts feeding `sail_trim` automatically; and the
