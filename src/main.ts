@@ -299,7 +299,7 @@ function render(): void {
       else if (observation.key === 'heading' && session.raw.heading !== 'declared-unavailable') description.textContent = `Synthetic computed heading ${numeric(session.raw.heading)} rad.`;
       else if (observation.key === 'cog' && session.raw.cog !== 'declared-unavailable') description.textContent = `Synthetic computed COG ${numeric(session.raw.cog)} rad.`;
       else description.textContent = 'Synthetic computed observation unavailable.';
-    } else if ((currentLesson.id === 'L04' || currentLesson.id === 'L05' || currentLesson.id === 'L06') && observation.status === 'declared_synthetic') {
+    } else if ((currentLesson.id === 'L02' || currentLesson.id === 'L04' || currentLesson.id === 'L05' || currentLesson.id === 'L06') && observation.status === 'declared_synthetic') {
       const numeric = (value: number) => value.toFixed(6);
       const polarText = (label: string, unit: string, value: number | 'declared-unavailable' | undefined) =>
         typeof value === 'number' ? `Synthetic computed ${label} ${numeric(value)} ${unit}.`
@@ -307,12 +307,26 @@ function render(): void {
             : `Synthetic computed ${label} not computed for this lesson.`;
       if (observation.key === 'true_wind_from' && session.raw.true_wind !== 'declared-unavailable') description.textContent = `Synthetic computed wind-from ${numeric(session.raw.true_wind.from_rad)} rad; synthetic speed ${numeric(session.raw.true_wind.speed_mps)} mps.`;
       else if (observation.key === 'apparent_wind' && session.raw.apparent_wind !== 'declared-unavailable') description.textContent = `Synthetic computed wind-from ${numeric(session.raw.apparent_wind.from_rad)} rad; synthetic speed ${numeric(session.raw.apparent_wind.speed_mps)} mps.`;
+      else if (observation.key === 'apparent_wind_angle' && session.raw.apparent_wind !== 'declared-unavailable') description.textContent = `Synthetic computed apparent wind angle from ${numeric(session.raw.apparent_wind.from_rad)} rad — an invented educational value, not a real wind reading.`;
       else if (observation.key === 'heading' && session.raw.heading !== 'declared-unavailable') description.textContent = `Synthetic computed heading ${numeric(session.raw.heading)} rad.`;
       else if (observation.key === 'cog') description.textContent = polarText('COG', 'rad', session.raw.cog);
       else if (observation.key === 'stw') description.textContent = polarText('STW', 'mps', session.raw.stw);
       else if (observation.key === 'sog') description.textContent = polarText('SOG', 'mps', session.raw.sog);
       else if (observation.key === 'drift') description.textContent = polarText('drift', 'rad', session.raw.drift_angle);
-      else if (observation.key === 'current') {
+      else if (observation.key === 'main_sheet' || observation.key === 'jib_sheet') {
+        const trimState = session.raw.polar_kinematic_state?.sail_trim;
+        const value = observation.key === 'main_sheet' ? trimState?.main_trim : trimState?.jib_trim;
+        description.textContent = value === undefined
+          ? 'Synthetic declared sheet position unavailable.'
+          : `Synthetic declared ${observation.key === 'main_sheet' ? 'main' : 'jib'} sheet position ${numeric(value)} (0 to 1), reefed: ${trimState?.reefed ?? 'unknown'} — an invented educational control value, not a real sheet setting or sail trim recommendation.`;
+      } else if (observation.key === 'declared_speed_response') {
+        description.textContent = polarText('speed through water', 'mps', session.raw.stw) + ' Trim adjusts this by an invented educational factor; it is not a real speed or performance claim.';
+      } else if (observation.key === 'declared_trim_feedback') {
+        const acknowledgment = projectL02SyntheticTrimAcknowledgment(session.raw);
+        description.textContent = acknowledgment
+          ? `main_trim_adjusted: ${acknowledgment.main_trim_adjusted}; jib_trim_adjusted: ${acknowledgment.jib_trim_adjusted}; last_accepted_trim: ${acknowledgment.last_accepted_trim ?? 'null'}; last_accepted_tick: ${acknowledgment.last_accepted_tick ?? 'null'}; causal_state: ${acknowledgment.causal_state}. Synthetic control-input acknowledgment — unvalidated.`
+          : 'Synthetic control-input acknowledgment unavailable.';
+      } else if (observation.key === 'current') {
         const polarEnvironment = (session.identity as ReplayV2).polar_kinematics_environment;
         if (polarEnvironment) {
           const current = deriveSyntheticCurrent(polarEnvironment.current_epoch_ms);
@@ -340,11 +354,6 @@ function render(): void {
           ? `Synthetic declared tide height ${numeric(deriveSyntheticTideHeightM(polarEnvironment.current_epoch_ms))} m from a simplified semidiurnal sinusoid over the stored session start time — a declared educational assumption, not real tide data, harmonic constants, or a tidal prediction.`
           : 'Synthetic declared tide state unavailable.';
       } else description.textContent = 'Synthetic computed observation unavailable.';
-    } else if (currentLesson.id === 'L02' && observation.key === 'declared_trim_feedback') {
-      const acknowledgment = projectL02SyntheticTrimAcknowledgment(session.raw);
-      description.textContent = acknowledgment
-        ? `main_trim_adjusted: ${acknowledgment.main_trim_adjusted}; jib_trim_adjusted: ${acknowledgment.jib_trim_adjusted}; last_accepted_trim: ${acknowledgment.last_accepted_trim ?? 'null'}; last_accepted_tick: ${acknowledgment.last_accepted_tick ?? 'null'}; causal_state: ${acknowledgment.causal_state}. Synthetic control-input acknowledgment — unvalidated. No sail, speed, stability, safety, or navigation response is modeled.`
-        : 'Synthetic control-input acknowledgment unavailable.';
     } else if (currentLesson.id === 'L03') {
       description.textContent = observation.key === 'gust_wave_cue'
         ? (session.raw.synthetic_episode === 'pending' ? 'Declared synthetic cue pending.' : 'Declared synthetic cue recorded.')

@@ -39,6 +39,26 @@ test('shows L05 computed under-keel clearance and depth with their synthetic bou
   await expect(page.getByText('Synthetic computed observation unavailable.')).toHaveCount(0);
 });
 
+test('shows L02 computed sheet positions and speed response with synthetic boundaries', async ({ page }) => {
+  await page.goto('/');
+  await startSession(page, 'L02');
+  const hud = page.locator('#hud');
+  // Scope to #hud, which is a single element, so these are immune to Playwright
+  // strict mode. Several of these phrases legitimately appear more than once on
+  // the page (main and jib share a denial; the acknowledgment also renders in the
+  // runtime-evidence and debrief sections), and getByText would reject on that.
+  await expect(hud).toContainText('Synthetic declared main sheet position');
+  await expect(hud).toContainText('Synthetic declared jib sheet position');
+  await expect(hud).toContainText('main_trim_adjusted:');
+  await expect(hud).toContainText('Synthetic computed speed through water');
+  await expect(hud).toContainText('not a real sheet setting or sail trim recommendation');
+  // Both sheet descriptions must carry the denial, so assert it page-wide by count
+  // rather than by visibility.
+  await expect(page.getByText(/not a real sheet setting or sail trim recommendation/)).toHaveCount(2);
+  // The regression this guards: no L02 observation may render as generically unavailable.
+  await expect(page.getByText('Synthetic computed observation unavailable.')).toHaveCount(0);
+});
+
 test('shows a synthetic L04 score with its unvalidated boundary and component breakdown', async ({ page }) => {
   await page.goto('/');
   await startSession(page, 'L04');
@@ -473,7 +493,7 @@ test('shows numeric STW and SOG for the L06 polar lesson after advancing, never 
   await expect(page.locator('#debrief')).toContainText('action recorded');
 });
 
-test('does not render numeric STW/SOG for non-polar lessons, showing unavailable/absent text instead', async ({ page }) => {
+test('does not render numeric STW/SOG for lessons whose manifests declare no such observation', async ({ page }) => {
   for (const id of ['L02', 'L05'] as const) {
     await page.goto('/');
     await startSession(page, id);
@@ -481,7 +501,7 @@ test('does not render numeric STW/SOG for non-polar lessons, showing unavailable
     await expect(hud).not.toContainText('Synthetic computed STW');
     await expect(hud).not.toContainText('Synthetic computed SOG');
   }
-  // L02 and L05 are non-polar and declare unavailable observations, so the status text
-  // renders in place of any numeric value rather than leaving an empty node.
+  // L02 and L05 are polar, but their manifests do not list STW/SOG observations, so
+  // no numeric value is surfaced and status text renders in place of an empty node.
   await expect(page.locator('#hud')).toContainText('declared_unavailable');
 });
