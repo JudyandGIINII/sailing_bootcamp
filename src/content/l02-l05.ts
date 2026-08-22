@@ -116,8 +116,9 @@ export const L04_MARK_ARRIVAL_CAUSE = 'synthetic declared mark arrival recorded'
 /**
  * L04 runs the polar-and-current kinematics model so its declared objective —
  * reading the COG/heading difference and correcting for drift to reach a mark —
- * is actually simulated rather than declared. Only this manifest overrides the
- * shared `common` model_version; L02, L03 and L05 stay on the legacy draft model.
+ * is actually simulated rather than declared. This manifest and `l05Manifest`
+ * both override the shared `common` model_version; L02 and L03 stay on the
+ * legacy draft model.
  */
 export const l04Manifest: DraftLessonManifest = Object.freeze({
   ...common, lesson_id: 'L04', scenario_version: 'l04-scenario-v0-draft', validation_record_id: 'VR-L04-v0',
