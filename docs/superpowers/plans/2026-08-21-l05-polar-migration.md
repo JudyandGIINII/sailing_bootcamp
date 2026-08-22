@@ -4,7 +4,7 @@
 
 **Goal:** Move L05 off the legacy fixed-speed model onto the polar model so its depth and under-keel clearance become genuinely computed, and extend the existing scoring contract to L05 so it stops reporting 0.
 
-**Architecture:** Five edits migrate the lesson (manifest, bindings, and three lesson branches in `session.ts`); the replay-identity layer follows automatically because it keys off `model_version`, not a lesson list. Scoring then generalizes from a hardcoded `computeL04Components` to a lesson-profile table, because L05 draws its judgment evidence from decision records rather than helm corrections.
+**Architecture:** Eight edits migrate the lesson — manifest, bindings, three lesson branches in `session.ts`, two in `contracts/replay.ts`, and the start path in `main.ts`. **The original draft of this plan claimed the replay-identity layer "follows automatically because it keys off `model_version`, not a lesson list." That was wrong**: it holds for `identityFieldsFor` but not for `isReplayV2Shape` or `resolveReplayV2`, which each carry their own lesson-keyed branch. See the design spec §6 for the correction. Scoring then generalizes from a hardcoded `computeL04Components` to a lesson-profile table, because L05 draws its judgment evidence from decision records rather than helm corrections.
 
 **Tech Stack:** TypeScript 5.9 (strict), Vitest 4.1, Playwright. No new dependencies.
 
